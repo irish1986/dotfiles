@@ -16,8 +16,13 @@
 
     - name: Install packages
       ansible.builtin.apt:
-        name:
-          - git
-          - htop
-          - vim
+        name: "{{ item }}"
         state: present
+      loop:
+        - flatpak
+        - git
+        - htop
+        - neofetch
+        - snapd
+        - ubuntu-restricted-extras
+        - vim
