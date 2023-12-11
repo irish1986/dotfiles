@@ -17,3 +17,8 @@ if ! command -v git >/dev/null; then
   sudo apt install git -y
   echo "Git package was installed, required for the next step."
 fi
+
+if [ ! -d "$HOME/.oh-my-zsh/custom/themes/powerlevel10k" ]; then
+  git clone --depth=1 https://github.com/romkatv/powerlevel10k.git ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k
+  echo "powerlevelk10k theme installed."
+fi
