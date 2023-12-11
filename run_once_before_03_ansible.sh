@@ -7,5 +7,5 @@ pipx install --include-deps ansible
 pipx ensurepath
 echo "Ansible package installed."
 
-ansible-playbook ~/.bootstrap/setup.yml --ask-become-pass
+# ansible-playbook ~/.bootstrap/setup.yml --ask-become-pass
 echo "Ansible installation complete."
