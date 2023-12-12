@@ -8,5 +8,5 @@ This automated setup is currently only configured for Fedora machines.
 
 ```shell
 export GITHUB_USERNAME=irish1986
-sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply $GITHUB_USERNAME
+sh -c "$(curl -fsLS get.chezmoi.io)" -- init --ssh --apply $GITHUB_USERNAME
 ```
