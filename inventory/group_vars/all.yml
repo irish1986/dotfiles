@@ -1,5 +1,6 @@
 default_roles:
   - setup
+  - docker
 
 exclude_roles:
   - none

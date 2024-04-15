@@ -157,7 +157,6 @@
     - nfs-common
     - open-iscsi
     - openssh-server
-    - sudo
   become: true
 
 - name: "System | {{ ansible_distribution }} | Install monitoring packages"
