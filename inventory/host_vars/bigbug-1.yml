@@ -1,13 +1,14 @@
 ---
+ansible_user: irish
 ansible_host: 192.168.10.105
 
 gpu:
-  intel:
-    enabled: false
   amd:
     enabled: true
     driver_version:
       - amd-driver-1
+  intel:
+    enabled: false
   nvidia:
     enabled: true
     driver_version:
@@ -18,5 +19,7 @@ tpu:
     enabled: false
 
 usb:
-  ups2:
-    client: true
+  ups:
+    enabled: false
+    client: false
+    server: false

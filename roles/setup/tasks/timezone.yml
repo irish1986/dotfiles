@@ -1,10 +1,5 @@
 ---
-- name: Packages | Install common packages
-  ansible.builtin.apt:
-    name: "{{ item }}"
-    state: absent
-  loop:
-    - systemd-timesyncd
+
 - name: Timezone | Install ntp package
   ansible.builtin.apt:
     name: "{{ item }}"
@@ -13,6 +8,7 @@
   loop:
     - ntp
   notify: Start ntp
+  
 - name: Timezone | Locale
   community.general.timezone:
     name: "{{ system_timezone | default('Etc/UTC') }}"

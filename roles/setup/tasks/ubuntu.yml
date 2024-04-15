@@ -1,0 +1,103 @@
+---
+- name: "System | {{ ansible_distribution }} | Update and Upgrade"
+  block:
+    - name: System | Update packages
+      ansible.builtin.apt:
+        autoclean: true
+        autoremove: true
+        update_cache: true
+        cache_valid_time: 3600
+        upgrade: full
+      become: true
+  rescue:
+    - name: System | Error handling
+      ansible.builtin.debug:
+        msg: There was an error during the update cycle.
+  always:
+    - name: System | Check if reboot is required
+      ansible.builtin.stat:
+        path: /var/run/reboot-required
+      register: reboot_required
+
+    - name: Reboot system if required
+      ansible.builtin.reboot:
+        msg: Rebooting to complete system upgrade
+        reboot_timeout: 120
+      when: reboot_required.stat.exists
+
+- name: "System | {{ ansible_distribution }} | Hostname"
+  when:
+    - not ansible_host_environment_is_wsl
+  block:
+    - name: System | Set hostname to inventory hostname
+      ansible.builtin.hostname:
+        name: "{{ inventory_hostname | default('ubuntu') }}"
+
+    - name: System | Set /etc/hosts to include inventory hostname
+      ansible.builtin.blockinfile:
+        path: /etc/hosts
+        block: |
+          127.0.0.1  localhost
+          127.0.1.1  {{ inventory_hostname | default('ubuntu') }}
+
+- name: "System | {{ ansible_distribution }} | Timezone"
+  block:
+    - name: System | Remove systemd-timesyncd packages
+      ansible.builtin.apt:
+        name: "{{ item }}"
+        state: absent
+      loop:
+        - systemd-timesyncd
+
+    - name: System | Install ntp package
+      ansible.builtin.apt:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - ntp
+      notify: Start ntp
+
+    - name: System | Set local timezone
+      community.general.timezone:
+        name: "{{ system_timezone | default('Etc/UTC') }}"
+
+- name: "System | {{ ansible_distribution }} | Install"
+  ansible.builtin.apt:
+    name:
+      - jq
+      - open-iscsi
+    state: present
+  become: true
+
+- name: System | Install win32yank.exe
+  when:
+    - ansible_host_environment_is_wsl
+    - not win32yank_installed.stat.exists
+  block:
+    - name: System | Download win32yank zip
+      ansible.builtin.get_url:
+        url: https://github.com/equalsraf/win32yank/releases/download/v0.0.4/win32yank-x64.zip
+        dest: /tmp/win32yank.zip
+        mode: "0755"
+
+    - name: System | Unzip win32yank.exe
+      ansible.builtin.unarchive:
+        src: /tmp/win32yank.zip
+        dest: /tmp
+        mode: "0755"
+
+    - name: System | Copy win32yank into path
+      ansible.builtin.copy:
+        remote_src: true
+        src: /tmp/win32yank.exe
+        dest: /usr/local/bin/win32yank.exe
+        mode: "0755"
+      become: true
+
+    - name: System | Remove tmp files
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /tmp/win32yank.zip
+        - /tmp/win32yank.exe

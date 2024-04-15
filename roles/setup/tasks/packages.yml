@@ -30,14 +30,3 @@
     - ansible_virtualization_role == "guest"
 
   notify: Start qemu
-- name: Packages | Install RPi packages
-  ansible.builtin.apt:
-    name: "{{ item }}"
-    state: present
-    autoclean: true
-  loop:
-    - linux-modules-extra-raspi
-    - rpi-eeprom
-  when:
-    - "'raspi' in ansible_kernel"
-  notify: Reboot

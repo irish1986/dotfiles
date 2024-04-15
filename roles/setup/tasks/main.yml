@@ -1,28 +1,21 @@
 ---
-- name: Setup additional repo
-  ansible.builtin.include_tasks: repo.yml
-- name: Setup hostname
-  ansible.builtin.include_tasks: host.yml
-- name: Configure network
-  ansible.builtin.include_tasks: network.yml
-- name: Configure timezone
-  ansible.builtin.include_tasks: timezone.yml
-- name: Update servers
-  ansible.builtin.include_tasks: update.yml
+# Variable configuration.
+- include_tasks: variables.yml
+
+- name: "System | Checking for Distribution Config: {{ ansible_distribution }}"
+  ansible.builtin.stat:
+    path: "{{ role_path }}/tasks/{{ ansible_distribution }}.yml"
+  register: system_distribution_config
+
+- name: "System | Run Tasks: {{ ansible_distribution }}"
+  ansible.builtin.include_tasks: "{{ ansible_distribution }}.yml"
+  when: system_distribution_config.stat.exists
+
 - name: Install unattended-upgrades
   ansible.builtin.include_tasks: unattended-upgrades.yml
 - name: Install packages
   ansible.builtin.include_tasks: packages.yml
-- name: Setup additional hardware
-  ansible.builtin.include_tasks: hardware.yml
 - name: Configure users
   ansible.builtin.include_tasks: user.yml
-  when: inventory_hostname not in groups['proxmox']
-- name: Configure ufw
-  ansible.builtin.include_tasks: ufw.yml
-- name: Configure ssh
-  ansible.builtin.include_tasks: ssh.yml
-- name: Configure fail2ban
-  ansible.builtin.include_tasks: fail2ban.yml
 - name: Disable cloud-init
   ansible.builtin.include_tasks: cloud-init.yml
