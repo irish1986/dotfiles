@@ -1,0 +1,23 @@
+---
+- name: "Flux CLI | Install dependencies"
+  ansible.builtin.apt:
+    name:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+    state: present
+  become: true
+
+- name: "Flux CLI | Install fluxcd"
+  when: not ohmyzsh_is_installed
+  block:
+    - name: "ZSH | Download oh-my-zsh | Install Script"
+      ansible.builtin.get_url:
+        url: https://fluxcd.io/install.sh
+        dest: /tmp/fluxcd.install.sh
+        force: true
+        mode: "0755"
+
+    - name: "Flux CLI | Run the install script"
+      ansible.builtin.script:
+        cmd: /tmp/fluxcd.install.sh
