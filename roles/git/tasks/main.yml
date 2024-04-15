@@ -25,12 +25,12 @@
 
 - name: "Git | Git Configuration"
   block:
-    - name: "Git | Set URL to SSH"
-      community.general.git_config:
-        name: url
-        scope: file
-        file: "/home/irish/git/irish1986/.gitconfig"
-        value: "git@github.com_irish1986"
+    # - name: "Git | Set URL to SSH"
+    #   community.general.git_config:
+    #     name: url
+    #     scope: file
+    #     file: "/home/irish/git/irish1986/.gitconfig"
+    #     value: "git@github.com_irish1986"
 
     - name: "Git | Set user.email"
       community.general.git_config:
