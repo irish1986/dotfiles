@@ -27,7 +27,7 @@
   block:
     - name: "Git | Set URL to SSH"
       community.general.git_config:
-        name: URL
+        name: url
         scope: file
         file: "/home/irish/git/irish1986/.gitconfig"
         value: "git@github.com_irish1986"
