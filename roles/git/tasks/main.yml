@@ -31,7 +31,6 @@
         scope: file
         file: "/home/irish/git/irish1986/.gitconfig"
         value: "{{ git_user_email }}"
-      no_log: true
 
     - name: "Git | Set user.name"
       community.general.git_config:
