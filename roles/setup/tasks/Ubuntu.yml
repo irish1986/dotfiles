@@ -10,7 +10,7 @@
         upgrade: full
       become: true
 
-    - name: Unattended-Upgrades | Install package
+    - name: System | Unattended-Upgrades | Install package
       ansible.builtin.apt:
         name: "{{ item }}"
         state: present
@@ -18,7 +18,7 @@
       loop:
         - unattended-upgrades
 
-    - name: Unattended-Upgrades | 2norecommends
+    - name: System | Unattended-Upgrades | 2norecommends
       ansible.builtin.blockinfile:
         path: /etc/apt/apt.conf.d/2norecommends
         mode: "0644"
@@ -29,7 +29,7 @@
           APT::Install-Recommends "false";
           APT::Install-Suggests "false";
 
-    - name: Unattended-Upgrades | 10periodic
+    - name: System | Unattended-Upgrades | 10periodic
       ansible.builtin.blockinfile:
         path: /etc/apt/apt.conf.d/10periodic
         mode: "0644"
@@ -40,7 +40,7 @@
           APT::Periodic::Unattended-Upgrade "1";
           APT::Periodic::Update-Package-Lists "1";
 
-    - name: Unattended-Upgrades | 50unattended-upgrades
+    - name: System | Unattended-Upgrades | 50unattended-upgrades
       ansible.builtin.blockinfile:
         path: /etc/apt/apt.conf.d/50unattended-upgrades
         mode: "0644"
@@ -60,13 +60,13 @@
           Unattended-Upgrade::Remove-Unused-Dependencies "true";
           Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";
 
-    - name: Unattended-Upgrades | start systemd service
+    - name: System | Unattended-Upgrades | Start systemd service
       ansible.builtin.systemd:
         name: unattended-upgrades
         enabled: true
         state: started
 
-    - name: Unattended-Upgrades  restart systemd service
+    - name: System | Unattended-Upgrades | Restart systemd service
       ansible.builtin.service:
         name: unattended-upgrades.service
         daemon_reload: true
@@ -103,7 +103,7 @@
         path: /etc/hosts
         block: |
           127.0.0.1  localhost
-          {{ hostloop | default('127.0.1.1') }}  {{ inventory_hostname | default('ubuntu') }}
+          {{ loop_host | default('127.0.1.1') }}  {{ inventory_hostname | default('ubuntu') }}
 
 - name: "System | {{ ansible_distribution }} | Timezone"
   block:
