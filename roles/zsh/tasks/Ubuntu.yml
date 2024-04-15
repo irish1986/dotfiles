@@ -6,6 +6,12 @@
     state: present
   become: true
 
+- name: "ZSH | Default shell"
+  user:
+    name: "{{ ansible_user }}"
+    shell: "/usr/bin/zsh"
+  become: true
+
 - name: "ZSH | Detect oh-my-zsh"
   ansible.builtin.stat:
     path: "{{ ansible_user_dir }}/.oh-my-zsh"
@@ -25,7 +31,7 @@
     - name: "ZSH | Download oh-my-zsh | Install Script"
       ansible.builtin.get_url:
         url: https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh
-        dest: "/{{ ansible_user_dir }}/oh-my-zsh.install.sh"
+        dest: "/tmp/oh-my-zsh.install.sh"
         force: true
         mode: "0755"
       notify:
@@ -33,7 +39,7 @@
 
     - name: "ZSH | Run the install script"
       ansible.builtin.script:
-        cmd: /{{ ansible_user_dir }}/oh-my-zsh.install.sh
+        cmd: /tmp/oh-my-zsh.install.sh
 
 - name: "ZSH | Copy .zshrc"
   ansible.builtin.copy:
