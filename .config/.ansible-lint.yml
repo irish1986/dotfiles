@@ -1,0 +1,5 @@
+---
+profile: shared
+
+exclude_paths:
+  - .github/

@@ -1,0 +1,100 @@
+---
+fail_fast: false
+ci:
+  autoupdate_schedule: monthly
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      # Git style
+      - id: check-added-large-files
+        args: [--maxkb=2048]
+      - id: check-merge-conflict
+      - id: check-vcs-permalinks
+      - id: forbid-new-submodules
+      - id: forbid-submodules
+      # Common errors
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-yaml
+        files: \.(yaml|yml)$
+        exclude: ^k8s/cluster/homelab/base/flux-system
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+        args:
+          - --markdown-linebreak-ext=md
+      # Cross platform
+      - id: check-case-conflict
+      - id: mixed-line-ending
+        args:
+          - --fix=lf
+      # Security
+      - id: detect-private-key
+  - repo: https://github.com/Lucas-C/pre-commit-hooks
+    rev: v1.5.5
+    hooks:
+      - id: remove-crlf
+      - id: remove-tabs
+  - repo: https://github.com/sirosen/fix-smartquotes
+    rev: "0.2.0"
+    hooks:
+      - id: fix-smartquotes
+  - repo: https://github.com/onedr0p/sops-pre-commit
+    rev: v2.1.1
+    hooks:
+      - id: forbid-secrets
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.39.0
+    hooks:
+      - id: markdownlint
+        args:
+          - --config
+          - .config/.markdownlint.yml
+  - repo: https://github.com/rhysd/actionlint
+    rev: v1.6.27
+    hooks:
+      - id: actionlint
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.35.1
+    hooks:
+      - id: yamllint
+        args:
+          - -c
+          - .config/.yamllint.yml
+  - repo: https://github.com/antonbabenko/pre-commit-terraform
+    rev: v1.88.4
+    hooks:
+      - id: terraform_fmt
+        files: \.(tf|tfvars)$
+        args:
+          - --args=-check
+          - --args=-diff
+          - --args=-recursive
+          - --args=-write=false
+  - repo: https://github.com/ansible-community/ansible-lint
+    rev: v24.2.2
+    hooks:
+      - id: ansible-lint
+        files: \.(yaml|yml)$
+        args:
+          - -c
+          - .config/.ansible-lint.yml
+          - --fix
+  - repo: https://github.com/IamTheFij/ansible-pre-commit
+    rev: v1.0.0
+    hooks:
+      - id: encryption-check
+        files: \.(vault|vault.yaml|vault.yml)$
+  - repo: https://github.com/IamTheFij/docker-pre-commit
+    rev: v3.0.1
+    hooks:
+      - id: docker-compose-check
+  - repo: https://github.com/Agilicus/pre-commit-hook-k8svalidate.git
+    rev: v0.2.0
+    hooks:
+      - id: k8svalidate
+        files: \.(yaml|yml)$

@@ -1,0 +1,10 @@
+---
+- name: Hostname | Ubuntu
+  when:
+    - ansible_facts['distribution'] == 'Ubuntu'
+  block:
+    - name: Networking | Set hostname to inventory hostname
+      ansible.builtin.hostname:
+        name: "{{ inventory_hostname | default('ubuntu') }}"
+      when:
+        - ansible_hostname != inventory_hostname

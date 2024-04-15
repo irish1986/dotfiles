@@ -1,0 +1,45 @@
+default_roles:
+  - system
+  - bash
+  - flatpak
+  - fonts
+  - git
+  - ssh
+  - zsh
+
+dev_roles:
+  - ansible
+  - docker
+  - gh
+  - helm
+  - k8s
+  - k9s
+  - lazygit
+  - pwsh
+  - python
+  - terraform
+
+cli_roles:
+  - bat
+  - exa
+  - neofetch
+
+gui_roles:
+  - chrome
+  - obsidian
+  - spotify
+  - steam
+
+git_user_name: "irish"
+git_user_email: "simon.harvey.86@gmail.com"
+
+flatpak_packages:
+  - md.obsidian.Obsidian
+
+k8s:
+  repo_version: "v1.26"
+
+helm:
+  repos:
+    - name: traefik
+      url: https://helm.traefik.io/traefik

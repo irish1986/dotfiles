@@ -1,0 +1,11 @@
+---
+- name: Networking | Ubuntu
+  when:
+    - ansible_facts['distribution'] == 'Ubuntu'
+  block:
+    - name: Networking | Update /etc/hosts to include inventory hostname
+      ansible.builtin.blockinfile:
+        path: /etc/hosts
+        block: |
+          127.0.0.1   localhost
+          127.0.1.1   {{ inventory_hostname | default('ubuntu') }}

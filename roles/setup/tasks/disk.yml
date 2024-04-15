@@ -1,0 +1,18 @@
+---
+- name: Disk Usage | Check
+  ansible.builtin.command: |
+    set -o pipefail
+    df -h
+  register: disk_usage
+  changed_when: disk_usage.rc != 0
+- name: Check disk space available
+  ansible.builtin.command: |
+    set -o pipefail
+    df -h /
+    awk 'NR==2 {print $5}'
+  register: disk_usage
+  changed_when: disk_usage.rc != 0
+- name: Disk Usage | Message status
+  ansible.builtin.debug:
+    msg: Disk space on {{ inventory_hostname }} is above 80%!
+  when: disk_usage.stdout[:-1]|int > 80

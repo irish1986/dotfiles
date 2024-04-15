@@ -1,0 +1,17 @@
+---
+name: Continous Integration
+
+on: # yamllint disable-line rule:truthy
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '**/README.md'
+
+jobs:
+
+  pre-commit:
+    uses: ./.github/workflows/pre-commit.yml
