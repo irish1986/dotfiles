@@ -10,6 +10,3 @@
 - name: "System | Run Tasks: {{ ansible_distribution }}"
   ansible.builtin.include_tasks: "{{ ansible_distribution }}.yml"
   when: system_distribution_config.stat.exists
-
-- name: Install unattended-upgrades
-  ansible.builtin.include_tasks: unattended-upgrades.yml
