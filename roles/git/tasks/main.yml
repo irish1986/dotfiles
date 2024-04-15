@@ -30,21 +30,21 @@
         name: user.email
         scope: file
         file: "/home/irish/git/irish1986/.gitconfig"
-        value: "{{ git_user_email }}"
+        value: "simon.harvey.86@gmail.com"
 
     - name: "Git | Set user.name"
       community.general.git_config:
         name: user.name
         scope: file
         file: "/home/irish/git/irish1986/.gitconfig"
-        value: "{{ git_user_name }}"
+        value: "Simon HARVEY"
 
     - name: "Git | Set user.user"
       community.general.git_config:
         name: user.user
         scope: file
         file: "/home/irish/git/irish1986/.gitconfig"
-        value: "{{ git_user_user }}"
+        value: "irish1986"
 
     # - name: "Git | Set diff.colorMoved"
     #   community.general.git_config:
