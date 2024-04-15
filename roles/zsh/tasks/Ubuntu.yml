@@ -46,11 +46,11 @@
   block:
     - name: ensure fonts directory
       file:
-        path: "{{ ansible_env.HOME }}/.local/share/fonts"
+        path: "/home/irish/.local/share/fonts"
         state: directory
 
     - name: Hack exists
-      shell: "ls {{ ansible_env.HOME }}/.local/share/fonts/Hack*Nerd*Font*Complete*"
+      shell: "ls /home/irish/.local/share/fonts/Hack*Nerd*Font*Complete*"
       register: hack_exists
       ignore_errors: true
 
@@ -58,7 +58,7 @@
       when: hack_exists is failed
       ansible.builtin.unarchive:
         src: https://github.com/ryanoasis/nerd-fonts/releases/download/{{ nerd_fonts_version }}/{{ nerd_fonts_font }}.zip
-        dest: "{{ ansible_env.HOME }}/.local/share/fonts/"
+        dest: "/home/irish/.local/share/fonts//"
         remote_src: true
 
     - name: ZSH | update font-cache
@@ -117,11 +117,11 @@
 - name: "ZSH | Copy .zshrc"
   ansible.builtin.copy:
     src: ".zshrc"
-    dest: "{{ ansible_env.HOME }}/.zshrc"
+    dest: "/home/irish/.zshrc"
     mode: "0644"
 
 - name: "ZSH | Copy .profile"
   ansible.builtin.copy:
     src: ".profile"
-    dest: "{{ ansible_env.HOME }}/.profile"
+    dest: "/home/irish/.profile"
     mode: "0644"
