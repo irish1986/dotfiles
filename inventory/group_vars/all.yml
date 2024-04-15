@@ -7,6 +7,7 @@ default_roles:
   - kubectl
   - helm
   - fluxcd
+  - vscode
 
 exclude_roles:
   - none

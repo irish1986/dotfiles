@@ -1,0 +1,38 @@
+---
+- name: "VSCode | Install dependencies"
+  ansible.builtin.apt:
+    name:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+    state: present
+  become: true
+
+- name: VSCode | Add GPG key
+  ansible.builtin.apt_key:
+    url: https://packages.microsoft.com/keys/microsoft.asc
+    keyring: /usr/share/keyrings/packages.microsoft.gpg
+    state: present
+  become: true
+
+- name: "VSCode | Get System Architecture"
+  ansible.builtin.command: "dpkg --print-architecture"
+  register: dpkg_architecture
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: VSCode | Add APT repository
+  ansible.builtin.apt_repository:
+    repo: "deb [arch={{ dpkg_architecture.stdout }} signed-by=/usr/share/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/repos/code stable main"
+    filename: vscode
+  become: true
+
+- name: "VSCode | Install packages"
+  ansible.builtin.apt:
+    name: "{{ item }}"
+    state: present
+    update_cache: true
+  loop:
+      - code
+  become: true
