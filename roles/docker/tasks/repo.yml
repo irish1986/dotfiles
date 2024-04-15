@@ -1,0 +1,37 @@
+---
+- name: Packages | Install dependencies packages
+  ansible.builtin.apt:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - ca-certificates
+    - curl
+    - gnupg
+    - lsb-release
+- name: Repo | Add GPG signing key
+  ansible.builtin.get_url:
+    url: https://download.docker.com/linux/{{ ansible_distribution | lower }}/gpg
+    dest: /etc/apt/trusted.gpg.d/docker.asc
+    mode: "0755"
+    force: true
+- name: Repo | Add AMD64 repository
+  ansible.builtin.apt_repository:
+    filename: docker
+    repo: deb [arch=amd64] https://download.docker.com/linux/{{ ansible_distribution | lower }} {{ ansible_distribution_release | lower }} stable
+    state: present
+  when: ansible_facts.architecture == "x86_64"
+- name: Repo | Add armhf repository
+  ansible.builtin.apt_repository:
+    filename: docker
+    repo: deb [arch=armhf] https://download.docker.com/linux/{{ ansible_distribution | lower }} {{ ansible_distribution_release | lower }} stable
+    state: present
+  when:
+    - ansible_facts.architecture is search("arm")
+    - ansible_facts.userspace_bits == "32"
+- name: Repo | Add ARM64 repository
+  ansible.builtin.apt_repository:
+    filename: docker
+    repo: deb [arch=arm64] https://download.docker.com/linux/{{ ansible_distribution | lower }} {{ ansible_distribution_release | lower }} stable
+    state: present
+  when:
+    - ansible_facts.architecture is search("arm") and ansible_facts.userspace_bits == "64" or ansible_facts.architecture is search("aarch64")

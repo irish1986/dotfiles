@@ -1,0 +1,4 @@
+---
+- name: Hardware | nvidia
+  ansible.builtin.debug:
+    msg: This host has nvidia gpu enable.

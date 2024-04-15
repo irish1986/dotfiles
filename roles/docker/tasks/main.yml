@@ -1,0 +1,7 @@
+---
+- name: Setup additional repo
+  ansible.builtin.include_tasks: repo.yml
+- name: Install docker
+  ansible.builtin.include_tasks: docker.yml
+- name: Configure user
+  ansible.builtin.include_tasks: user.yml

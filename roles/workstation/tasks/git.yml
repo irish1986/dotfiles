@@ -1,0 +1,24 @@
+---
+- name: Packages | Install common
+  when:
+    - ansible_os_family == "Debian"
+  block:
+    - name: Packages | APT Install
+      ansible.builtin.apt:
+        update_cache: true
+        force_apt_get: true
+        cache_valid_time: 3600
+    - name: Packages | APT Install
+      ansible.builtin.apt:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - git
+        - gh
+
+- name: Pull our Git repository
+  git:
+    repo: git@github.com:roelofjan-elsinga/portfolio.git
+    dest: /var/www/html/roelofjanelsinga.com
+    version: master
+    accept_hostkey: true

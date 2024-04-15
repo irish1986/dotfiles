@@ -1,0 +1,22 @@
+---
+ignore:
+  - .vscode/
+extends: default
+rules:
+  braces:
+    min-spaces-inside: 0
+    max-spaces-inside: 1
+  brackets:
+    min-spaces-inside: 0
+    max-spaces-inside: 0
+  comments:
+    min-spaces-from-content: 1
+  line-length: disable
+  indentation: enable
+  truthy:
+    allowed-values: ["true", "false"]
+    check-keys: true
+yaml-files:
+  - "*.yaml"
+  - "*.yml"
+  - .yamllint

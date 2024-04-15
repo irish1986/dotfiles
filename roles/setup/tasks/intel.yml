@@ -1,0 +1,4 @@
+---
+- name: Hardware | intel
+  ansible.builtin.debug:
+    msg: This host has intel gpu enable.

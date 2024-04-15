@@ -1,0 +1,32 @@
+---
+- name: NUT | Install required packages
+  apt:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - nut-client
+
+- name: NUT | Clients Configuration file
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: /etc/nut/{{ item }}
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - upsmon.conf
+    - nut.conf
+
+- name: Open NUT ports
+  community.general.ufw:
+    state: "{{ item.state }}"
+    rule: "{{ item.rule }}"
+    port: "{{ item.port }}"
+    proto: "{{ item.proto }}"
+  with_items:
+    - name: NUT
+      state: enabled
+      rule: allow
+      port: "3493"
+      proto: tcp
+  notify: Reload ufw

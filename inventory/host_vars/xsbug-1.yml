@@ -1,0 +1,10 @@
+---
+ansible_host: 192.168.10.45
+
+gpu:
+  intel:
+    enabled: false
+  amd:
+    enabled: false
+  nvidia:
+    enabled: false

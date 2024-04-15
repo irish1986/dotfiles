@@ -1,0 +1,11 @@
+---
+- name: Packages | Install benchmark APT packages
+  ansible.builtin.apt:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - htop
+    - iotop
+    - lm-sensors
+    - s-tui
+    - stress
