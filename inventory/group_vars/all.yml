@@ -3,6 +3,8 @@ default_roles:
   - docker
   - zsh
   - git
+  - gh
+  - kubectl
 
 exclude_roles:
   - none
