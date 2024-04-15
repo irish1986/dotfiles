@@ -8,6 +8,10 @@
   any_errors_fatal: false
 
   pre_tasks:
+    - name: Debug
+      ansible.builtin.debug:
+        msg: "{{ ansible_user_dir }}"
+
     - name: Ping machine
       ansible.builtin.ping:
 
