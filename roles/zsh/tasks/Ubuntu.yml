@@ -125,3 +125,9 @@
     src: ".profile"
     dest: "/home/irish/.profile"
     mode: "0644"
+
+- name: "ZSH | Copy .p10k.zsh"
+  ansible.builtin.copy:
+    src: ".p10k.zsh"
+    dest: "/home/irish/.p10k.zsh"
+    mode: "0644"

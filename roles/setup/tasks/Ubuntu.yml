@@ -149,14 +149,19 @@
     name: "{{ item }}"
     state: present
   loop:
+    - apt-transport-https
     - curl
     - git
+    - gnupg
+    - gpg
     - htop
     - jq
     - nano
     - nfs-common
     - open-iscsi
     - openssh-server
+    - tree
+    - wget
   become: true
 
 - name: "System | {{ ansible_distribution }} | Install monitoring packages"
