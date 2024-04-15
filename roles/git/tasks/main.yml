@@ -1,0 +1,110 @@
+---
+# Variable configuration.
+- include_tasks: variables.yml
+
+- name: "Git | Checking for Distribution Config: {{ ansible_distribution }}"
+  ansible.builtin.stat:
+    path: "{{ role_path }}/tasks/{{ ansible_distribution }}.yml"
+  register: system_distribution_config
+
+- name: "Git | Run Tasks: {{ ansible_distribution }}"
+  ansible.builtin.include_tasks: "{{ ansible_distribution }}.yml"
+  when: system_distribution_config.stat.exists
+
+- name: "Git | Computer Configuration"
+  block:
+    - name: ZSH | Ensure git directory exist
+      file:
+        path: "/home/irish/git"
+        state: directory
+
+    - name: ZSH | Ensure irish1986 directory exist
+      file:
+        path: "/home/irish/git/irish1986"
+        state: directory
+
+- name: "Git | Git Configuration"
+  block:
+    - name: "Git | Set user.email"
+      community.general.git_config:
+        name: user.email
+        scope: file
+        file: "/home/irish/git/irish1986/.gitconfig"
+        value: "{{ git_user_email }}"
+      no_log: true
+
+    - name: "Git | Set user.name"
+      community.general.git_config:
+        name: user.name
+        scope: file
+        file: "/home/irish/git/irish1986/.gitconfig"
+        value: "{{ git_user_name }}"
+
+    - name: "Git | Set user.user"
+      community.general.git_config:
+        name: user.user
+        scope: file
+        file: "/home/irish/git/irish1986/.gitconfig"
+        value: "{{ git_user_user }}"
+
+    # - name: "Git | Set diff.colorMoved"
+    #   community.general.git_config:
+    #     name: diff.colorMoved
+    #     scope: global
+    #     value: zebra
+
+    # - name: "Git | Set fetch.prune"
+    #   community.general.git_config:
+    #     name: fetch.prune
+    #     scope: global
+    #     value: true
+
+# git config --global --add url."git@github.com:".insteadOf "https://github.com/"
+# - name: "Git | Set URL to SSH"
+#   community.general.git_config:
+#     name: URL
+#     scope: global
+#     value: "git@github.com"
+
+# - name: "Git | Set init.defaultBranch"
+#   community.general.git_config:
+#     name: init.defaultBranch
+#     scope: global
+#     value: main
+
+# - name: "Git | Set pull.rebase"
+#   community.general.git_config:
+#     name: pull.rebase
+#     scope: global
+#     value: true
+
+# - name: "Git | Set rebase.autoStash"
+#   community.general.git_config:
+#     name: rebase.autoStash
+#     scope: global
+#     value: true
+
+
+# - name: "Git | Set user.signingkey"
+#   community.general.git_config:
+#     name: user.signingkey
+#     scope: global
+#     value: "/home/irish/.ssh/id_ed25519.pub"
+
+# - name: "Git | Set gpg.format"
+#   community.general.git_config:
+#     name: gpg.format
+#     scope: global
+#     value: ssh
+
+# - name: "Git | Set commit.gpgsign"
+#   community.general.git_config:
+#     name: commit.gpgsign
+#     scope: global
+#     value: true
+
+# - name: "Git | Set tag.gpgsign"
+#   community.general.git_config:
+#     name: tag.gpgsign
+#     scope: global
+#     value: true

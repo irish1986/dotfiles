@@ -2,6 +2,7 @@ default_roles:
   - setup
   - docker
   - zsh
+  - git
 
 exclude_roles:
   - none
