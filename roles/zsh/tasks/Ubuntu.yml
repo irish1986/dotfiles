@@ -86,7 +86,7 @@
         dest: ~/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting
         depth: 1
 
-    - name: ZSH | Install zsh-z plugin # noqa: latest
+    - name: ZSH | Install zsh-z plugin
       ansible.builtin.git:
         repo: https://github.com/agkozak/zsh-z
         dest: ~/.oh-my-zsh/custom/plugins/zsh-z
@@ -95,11 +95,11 @@
 - name: "ZSH | Copy .zshrc"
   ansible.builtin.copy:
     src: ".zshrc"
-    dest: "{{ ansible_user_dir }}/.zshrc"
+    dest: "~/{{ ansible_user }}/.zshrc"
     mode: "0644"
 
 - name: "ZSH | Copy .profile"
   ansible.builtin.copy:
     src: ".profile"
-    dest: "{{ ansible_user_dir }}/.profile"
+    dest: "~/{{ ansible_user }}/.profile"
     mode: "0644"
