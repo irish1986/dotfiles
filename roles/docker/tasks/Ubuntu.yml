@@ -71,19 +71,3 @@
     mode: "0644"
   become: true
   notify: Restart Docker
-
-- name: Docker | Clean Up
-  block:
-    - name: Docker | Prune dangling image
-      community.docker.docker_prune:
-        containers: false
-        images: true
-        images_filters:
-          dangling: false
-        networks: false
-        volumes: false
-        builder_cache: false
-  rescue:
-    - name: Docker | Docker API not found
-      ansible.builtin.debug:
-        msg: Docker API not found, maybe it is not installed
