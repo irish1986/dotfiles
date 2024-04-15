@@ -37,7 +37,7 @@
         name: user.name
         scope: file
         file: "/home/irish/git/irish1986/.gitconfig"
-        value: "Simon HARVEY"
+        value: "Simon HARVEY1"
 
     - name: "Git | Set user.user"
       community.general.git_config:
