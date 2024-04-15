@@ -1,8 +1,4 @@
 ---
-- name: "Docker | Update APT cache"
-  ansible.builtin.apt:
-    update_cache: true
-  become: true
 
 - name: "Docker | Install dependencies"
   ansible.builtin.apt:
