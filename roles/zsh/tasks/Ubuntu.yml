@@ -33,7 +33,7 @@
 
     - name: "ZSH | Run the install script"
       ansible.builtin.script:
-        cmd: "/{{ ansible_user_dir }}/oh-my-zsh.install.sh"
+        cmd: /{{ ansible_user_dir }}/oh-my-zsh.install.sh
 
 - name: "ZSH | Copy .zshrc"
   ansible.builtin.copy:
