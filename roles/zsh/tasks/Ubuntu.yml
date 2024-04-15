@@ -57,8 +57,8 @@
     - name: Download Hack
       when: hack_exists is failed
       ansible.builtin.unarchive:
-        src: https://github.com/ryanoasis/nerd-fonts/releases/download/{{ nerd_fonts_version }}/{{ nerd_fonts_font }}.zip
-        dest: "/home/irish/.local/share/fonts//"
+        src: https://github.com/ryanoasis/nerd-fonts/releases/download/v3.2.1/Hack.zip
+        dest: "/home/irish/.local/share/fonts/"
         remote_src: true
 
     - name: ZSH | update font-cache
