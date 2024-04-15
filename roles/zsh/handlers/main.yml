@@ -4,7 +4,10 @@
     path: /tmp/oh-my-zsh.install.sh
     state: absent
 
-- name: ZSH | Cleanup oh-my-zsh install script
+- name: Cleanup oh-my-zsh
   ansible.builtin.file:
     path: /{{ ansible_user_dir }}/oh-my-zsh.install.sh
     state: absent
+
+- name: Update font-cache 
+  ansible.builtin.command: fc-cache -fv

@@ -35,8 +35,7 @@
         dest: "/tmp/oh-my-zsh.install.sh"
         force: true
         mode: "0755"
-      notify:
-        - "ZSH | Cleanup oh-my-zsh install script"
+      notify: Cleanup oh-my-zsh
 
     - name: "ZSH | Run the install script"
       ansible.builtin.script:
@@ -44,25 +43,17 @@
 
 - name: "ZSH | Install Nerds Fonts"
   block:
-    - name: ensure fonts directory
+    - name: ZSH | Ensure fonts directory
       file:
         path: "/home/irish/.local/share/fonts"
         state: directory
 
-    - name: Hack exists
-      shell: "ls /home/irish/.local/share/fonts/Hack*Nerd*Font*Complete*"
-      register: hack_exists
-      ignore_errors: true
-
-    - name: Download Hack
-      when: hack_exists is failed
+    - name: ZSH | Download Hack fonts
       ansible.builtin.unarchive:
         src: https://github.com/ryanoasis/nerd-fonts/releases/download/v3.2.1/Hack.zip
         dest: "/home/irish/.local/share/fonts/"
         remote_src: true
-
-    - name: ZSH | update font-cache
-      command: fc-cache -fv
+      notify: Update font-cache
 
 - name: "ZSH | Setup oh-my-zsh plugin"
   block:
