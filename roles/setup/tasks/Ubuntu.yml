@@ -17,6 +17,7 @@
         autoclean: true
       loop:
         - unattended-upgrades
+      notify: Start unattended-upgrades
 
     - name: System | Unattended-Upgrades | 2norecommends
       ansible.builtin.blockinfile:
@@ -28,6 +29,7 @@
           APT::Get::Install-Suggests "false";
           APT::Install-Recommends "false";
           APT::Install-Suggests "false";
+      notify: Restart unattended-upgrades
 
     - name: System | Unattended-Upgrades | 10periodic
       ansible.builtin.blockinfile:
@@ -39,6 +41,7 @@
           APT::Periodic::Download-Upgradeable-Packages "1";
           APT::Periodic::Unattended-Upgrade "1";
           APT::Periodic::Update-Package-Lists "1";
+      notify: Start unattended-upgrades
 
     - name: System | Unattended-Upgrades | 50unattended-upgrades
       ansible.builtin.blockinfile:
@@ -59,19 +62,7 @@
           Unattended-Upgrade::Remove-New-Unused-Dependencies "true";
           Unattended-Upgrade::Remove-Unused-Dependencies "true";
           Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";
-
-    - name: System | Unattended-Upgrades | Start systemd service
-      ansible.builtin.systemd:
-        name: unattended-upgrades
-        enabled: true
-        state: started
-
-    - name: System | Unattended-Upgrades | Restart systemd service
-      ansible.builtin.service:
-        name: unattended-upgrades.service
-        daemon_reload: true
-        enabled: true
-        state: restarted
+      notify: Start unattended-upgrades
 
   rescue:
     - name: System | Error handling
