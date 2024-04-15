@@ -8,8 +8,17 @@
     state: present
   become: true
 
+- name: "Flux CLI | Detect flux"
+  ansible.builtin.stat:
+    path: "/usr/local/bin/flux"
+  register: fluxcd
+
+- name: "Flux CLI | Register flux state"
+  ansible.builtin.set_fact:
+    fluxcd_is_installed: "{{ fluxcd.stat.exists }}"
+
 - name: "Flux CLI | Install fluxcd"
-  when: not ohmyzsh_is_installed
+  when: not fluxcd_is_installed
   block:
     - name: "ZSH | Download oh-my-zsh | Install Script"
       ansible.builtin.get_url:
