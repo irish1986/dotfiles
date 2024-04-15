@@ -61,13 +61,108 @@
       community.general.timezone:
         name: "{{ system_timezone | default('Etc/UTC') }}"
 
-- name: "System | {{ ansible_distribution }} | Install"
+- name: "System | {{ ansible_distribution }} | User"
+  when:
+    - not ansible_host_environment_is_wsl
+  block:
+    - name: System | Ensure groups are present
+      ansible.builtin.group:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - sudo
+
+    - name: System | Ensure sudo group has sudo privileges
+      ansible.builtin.lineinfile:
+        dest: /etc/sudoers
+        state: present
+        regexp: ^%sudo
+        line: "%sudo ALL=(ALL:ALL) ALL"
+        validate: /usr/sbin/visudo -cf %s
+
+    - name: "System | Give sudo access to {{ ansible_user }}"
+      ansible.builtin.blockinfile:
+        path: /etc/sudoers
+        insertafter: "%sudo ALL=(ALL:ALL) ALL"
+        block: | # pragma: allowlist secret
+          # Gives sudo access to the devops group
+          {{ ansible_user }}        ALL=(ALL)       NOPASSWD: ALL
+
+- name: "System | {{ ansible_distribution }} | Install packages"
   ansible.builtin.apt:
-    name:
-      - jq
-      - open-iscsi
+    name: "{{ item }}"
     state: present
+  loop:
+    - curl
+    - git
+    - htop
+    - jq
+    - nano
+    - nfs-common
+    - open-iscsi
+    - openssh-server
+    - sudo
   become: true
+
+- name: "System | {{ ansible_distribution }} | Install monitoring packages"
+  ansible.builtin.apt:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - prometheus-node-exporter
+  become: true
+
+- name: "System | {{ ansible_distribution }} | Install qemu-guest-agent"
+  ansible.builtin.apt:
+    name: "{{ item }}"
+    state: present
+    update_cache: true
+  loop:
+    - qemu-guest-agent
+  become: true
+  when:
+    - ansible_virtualization_role == "guest"
+  notify: Start qemu
+
+- name: "System | {{ ansible_distribution }} | Disable Cloud-Init"
+  block:
+    - name: Cloud-Init | Check for Cloud-Init folder
+      ansible.builtin.stat:
+        path: /etc/cloud/
+      register: etc_cloud_folder
+    - name: Cloud-Init | Disable /etc/cloud/cloud-init.disabled
+      ansible.builtin.copy:
+        dest: /etc/cloud/cloud-init.disabled
+        content: disabled by ansible\n
+        owner: root
+        group: root
+        mode: "0644"
+      when:
+        - etc_cloud_folder.stat.exists
+    - name: Cloud-Init | Remove package
+      ansible.builtin.apt:
+        name: "{{ item }}"
+        state: absent
+      loop:
+        - cloud-init
+      when:
+        - etc_cloud_folder.stat.exists
+    - name: Cloud-Init | Disable all services
+      ansible.builtin.service:
+        name: "{{ item }}"
+        state: stopped
+      loop:
+        - cloud-config.service
+        - cloud-final.service
+        - cloud-init-local.service
+        - cloud-init.service
+      when:
+        - etc_cloud_folder.stat.exists
+  rescue:
+    - name: Cloud-Init | Something wrong
+      ansible.builtin.debug:
+        msg: Playbook had an issue with Cloud-Init disabling.
+
 
 - name: System | Install win32yank.exe
   when:
