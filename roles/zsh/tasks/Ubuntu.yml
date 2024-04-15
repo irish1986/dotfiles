@@ -41,6 +41,51 @@
       ansible.builtin.script:
         cmd: /tmp/oh-my-zsh.install.sh
 
+
+- name: "ZSH | Setup oh-my-zsh plugin"
+  block:
+    - name: ZSH | Install powerlevel10k themes
+      ansible.builtin.git:
+        repo: https://github.com/romkatv/powerlevel10k.git
+        dest: ~/.oh-my-zsh/custom/themes/powerlevel10k
+        depth: 1
+
+    - name: ZSH | Install you-should-use plugin 
+      ansible.builtin.git:
+        repo: https://github.com/MichaelAquilina/zsh-you-should-use.git 
+        dest: ~/.oh-my-zsh/custom/plugins/you-should-use
+        depth: 1
+
+    - name: ZSH | Install zsh-autosuggestions plugin
+      ansible.builtin.git:
+        repo: https://github.com/zsh-users/zsh-autosuggestions
+        dest: ~/.oh-my-zsh/custom/plugins/zsh-autosuggestions
+        depth: 1
+
+    - name: ZSH | Install zsh-bat plugin
+      ansible.builtin.git:
+        repo: https://github.com/fdellwing/zsh-bat.git 
+        dest: ~/.oh-my-zsh/custom/plugins/zsh-bat
+        depth: 1
+
+    - name: ZSH | Install zsh-completions plugin
+      ansible.builtin.git:
+        repo: https://github.com/zsh-users/zsh-completions
+        dest: ~/.oh-my-zsh/custom/plugins/zsh-completions
+        depth: 1
+    
+    - name: ZSH | Install zsh-syntax-highlighting plugin
+      ansible.builtin.git:
+        repo: https://github.com/zsh-users/zsh-syntax-highlighting.git
+        dest: ~/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting
+        depth: 1
+
+    - name: ZSH | Install zsh-z plugin # noqa: latest
+      ansible.builtin.git:
+        repo: https://github.com/agkozak/zsh-z
+        dest: ~/.oh-my-zsh/custom/plugins/zsh-z
+        depth: 1
+
 - name: "ZSH | Copy .zshrc"
   ansible.builtin.copy:
     src: ".zshrc"
