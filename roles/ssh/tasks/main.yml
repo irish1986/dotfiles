@@ -17,7 +17,6 @@
     key: "{{ item }}"
   loop:
     - "{{ github_ssh_keys | default([]) }}"
-    - "{{ public_ssh_keys | default([]) }}"
 
 - name: Copy config
   ansible.builtin.template:
