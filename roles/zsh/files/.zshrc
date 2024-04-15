@@ -28,6 +28,7 @@ plugins=(
   zsh-autosuggestions
   zsh-exa
   zsh-syntax-highlighting
+  zsh-z
 )
 
 autoload -U compinit
