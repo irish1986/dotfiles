@@ -24,7 +24,6 @@ plugins=(
   git
   kubectl
   sudo
-  web-search
   you-should-use
   zsh-autosuggestions
   zsh-exa
