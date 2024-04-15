@@ -42,6 +42,28 @@
       ansible.builtin.script:
         cmd: /tmp/oh-my-zsh.install.sh
 
+- name: "ZSH | Install Nerds Fonts"
+  block:
+    - name: ensure fonts directory
+      file:
+        path: "{{ ansible_env.HOME }}/.local/share/fonts"
+        state: directory
+
+    - name: Hack exists
+      shell: "ls {{ ansible_env.HOME }}/.local/share/fonts/Hack*Nerd*Font*Complete*"
+      register: hack_exists
+      ignore_errors: true
+
+    - name: Download Hack
+      when: hack_exists is failed
+      ansible.builtin.unarchive:
+        src: https://github.com/ryanoasis/nerd-fonts/releases/download/{{ nerd_fonts_version }}/{{ nerd_fonts_font }}.zip
+        dest: "{{ ansible_env.HOME }}/.local/share/fonts/"
+        remote_src: true
+
+    - name: ZSH | update font-cache
+      command: fc-cache -fv
+
 - name: "ZSH | Setup oh-my-zsh plugin"
   block:
     - name: ZSH | Install powerlevel10k themes
@@ -95,11 +117,11 @@
 - name: "ZSH | Copy .zshrc"
   ansible.builtin.copy:
     src: ".zshrc"
-    dest: "/home/irish/.zshrc"
+    dest: "{{ ansible_env.HOME }}/.zshrc"
     mode: "0644"
 
 - name: "ZSH | Copy .profile"
   ansible.builtin.copy:
     src: ".profile"
-    dest: "/home/irish/.profile"
+    dest: "{{ ansible_env.HOME }}/.profile"
     mode: "0644"
