@@ -3,7 +3,6 @@ default_roles:
   - docker
   - zsh
   - git
-  - ssh
 
 exclude_roles:
   - none
