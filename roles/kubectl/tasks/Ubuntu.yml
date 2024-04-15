@@ -1,5 +1,4 @@
 ---
-
 - name: "Kubectl CLI  | Install dependencies"
   ansible.builtin.apt:
     name:
@@ -9,7 +8,7 @@
     state: present
   become: true
 
-- name: Kubectl CLI | Adding kubernetes apt key
+- name: Kubectl CLI | Adding Kubernetes GPG key
   ansible.builtin.apt_key:
     url: "https://pkgs.k8s.io/core:/stable:/v1.29/deb/Release.key"
     keyring: "/etc/apt/keyrings/kubernetes-apt-keyring.gpg"
