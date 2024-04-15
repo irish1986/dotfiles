@@ -31,7 +31,7 @@
     - name: "ZSH | Download oh-my-zsh | Install Script"
       ansible.builtin.get_url:
         url: https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh
-        dest: "/{{ ansible_user_dir }}/oh-my-zsh.install.sh"
+        dest: "/tmp/oh-my-zsh.install.sh"
         force: true
         mode: "0755"
       notify:
@@ -39,7 +39,7 @@
 
     - name: "ZSH | Run the install script"
       ansible.builtin.script:
-        cmd: /{{ ansible_user_dir }}/oh-my-zsh.install.sh
+        cmd: /tmp/oh-my-zsh.install.sh
 
 - name: "ZSH | Copy .zshrc"
   ansible.builtin.copy:
