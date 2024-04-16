@@ -9,5 +9,7 @@
     path: /{{ ansible_user_dir }}/oh-my-zsh.install.sh
     state: absent
 
-- name: Update font-cache 
+- name: Update font-cache
   ansible.builtin.command: fc-cache -fv
+  register: fontcache
+  changed_when: fontcache.rc != 0

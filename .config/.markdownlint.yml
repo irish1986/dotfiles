@@ -29,7 +29,7 @@ MD025:
 
 # MD033/inline-html
 MD033:
-  allowed_elements: [br, img]
+  allowed_elements: [a, br, p, img]
 # MD041/first-line-heading/first-line-h1
 MD041:
   level: 1

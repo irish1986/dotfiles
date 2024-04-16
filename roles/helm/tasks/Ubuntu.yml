@@ -1,5 +1,5 @@
 ---
-- name: "Helm CLI  | Install dependencies"
+- name: Helm CLI  | Install dependencies
   ansible.builtin.apt:
     name:
       - apt-transport-https
@@ -15,8 +15,8 @@
     state: present
   become: true
 
-- name: "Helm | Get System Architecture"
-  ansible.builtin.command: "dpkg --print-architecture"
+- name: Helm | Get System Architecture
+  ansible.builtin.command: dpkg --print-architecture
   register: dpkg_architecture
   changed_when: false
   failed_when: false
@@ -24,15 +24,15 @@
 
 - name: Helm | Add Helm APT repository
   ansible.builtin.apt_repository:
-    repo: "deb [arch={{ dpkg_architecture.stdout }} signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main"
+    repo: deb [arch={{ dpkg_architecture.stdout }} signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main
     filename: helm
   become: true
 
-- name: "Helm | Install Helm Engine"
+- name: Helm | Install Helm Engine
   ansible.builtin.apt:
     name: "{{ item }}"
     state: present
     update_cache: true
   loop:
-      - helm
+    - helm
   become: true

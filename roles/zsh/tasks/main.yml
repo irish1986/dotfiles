@@ -1,6 +1,7 @@
 ---
-# Variable configuration.
-- include_tasks: variables.yml
+- name: Include OS-specific variables | Debian
+  ansible.builtin.include_vars: "{{ ansible_distribution }}-{{ ansible_distribution_version.split('.')[0] }}.yml"
+  when: ansible_os_family == 'Debian'
 
 - name: "ZSH | Checking for Distribution Config: {{ ansible_distribution }}"
   ansible.builtin.stat:
@@ -10,4 +11,3 @@
 - name: "ZSH | Run Tasks: {{ ansible_distribution }}"
   ansible.builtin.include_tasks: "{{ ansible_distribution }}.yml"
   when: system_distribution_config.stat.exists
-

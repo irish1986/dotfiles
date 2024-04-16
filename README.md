@@ -39,15 +39,7 @@ The `default.yml` [file](https://raw.githubusercontent.com/irish1986/dotfiles/ma
 
 The `all.yml` [file](https://raw.githubusercontent.com/irish1986/dotfiles/main/inventory/group_vars/all.yml) allows you to personalize your setup to your needs.  These settings are system wide configurations mostly based on user and accounts.
 
-The role `default.yml`
-
- `all.yml` [file](https://raw.githubusercontent.com/irish1986/dotfiles/main/inventory/group_vars/all.yml) allows you to personalize your setup to your needs.  These settings are system wide configurations mostly based on user and accounts.
-
-
-This file will be created in the file located at `~/.dotfiles/inventory/group_vars/all.yaml`
-
-After all setup configuration is complete, you can cntinue to [Install this dotfiles](#install) and including your desired settings.
-
+The role `default.yml`. This file will be created in the file located at `~/.dotfiles/inventory/group_vars/all.yaml`.  After all setup configuration is complete, you can cntinue to [Install this dotfiles](#install) and including your desired settings.
 
 ### Secrets
 
@@ -60,8 +52,8 @@ vim ~/.ansible-vault/vault.secret
 To then encrypt values with your vault password use the following:
 
 ```bash
-$ ansible-vault encrypt_string --vault-password-file $HOME/.ansible-vault/vault.secret "mynewsecret" --name "MY_SECRET_VAR"
-$ cat myfile.conf | ansible-vault encrypt_string --vault-password-file $HOME/.ansible-vault/vault.secret --stdin-name "myfile"
+ansible-vault encrypt_string --vault-password-file $HOME/.ansible-vault/vault.secret "mynewsecret" --name "MY_SECRET_VAR"
+cat myfile.conf | ansible-vault encrypt_string --vault-password-file $HOME/.ansible-vault/vault.secret --stdin-name "myfile"
 ```
 
 > NOTE: This file will automatically be detected by the playbook when running `dotfiles` command to decrypt values. Read more on Ansible Vault [here](https://docs.ansible.com/ansible/latest/user_guide/vault.html).

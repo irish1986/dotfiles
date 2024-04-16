@@ -1,6 +1,7 @@
 ---
-# Variable configuration.
-# - include_tasks: variables.yml
+- name: Include OS-specific variables | Debian
+  ansible.builtin.include_vars: "{{ ansible_distribution }}-{{ ansible_distribution_version.split('.')[0] }}.yml"
+  when: ansible_os_family == 'Debian'
 
 - name: "SSH | Checking for Distribution Config: {{ ansible_distribution }}"
   ansible.builtin.stat:
@@ -21,7 +22,7 @@
 - name: Copy config
   ansible.builtin.template:
     dest: "{{ ansible_user_dir }}/.ssh/config"
-    src: "config.j2"
+    src: config.j2
 
 - name: SSH | Start SSH service
   ansible.builtin.service:

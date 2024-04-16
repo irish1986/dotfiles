@@ -1,6 +1,6 @@
 #!/bin/bash
 # Shows a spinner while another command is running. Randomly picks one of 12 spinner styles.
-# @args command to run (with any parameters) while showing a spinner. 
+# @args command to run (with any parameters) while showing a spinner.
 #       E.g. ‹spinner sleep 10›
 
 function shutdown() {
@@ -13,7 +13,7 @@ function cursorBack() {
 }
 
 function spinner() {
-  # make sure we use non-unicode character type locale 
+  # make sure we use non-unicode character type locale
   # (that way it works for any locale as long as the font supports the characters)
   local LC_CTYPE=C
 

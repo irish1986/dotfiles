@@ -1,6 +1,7 @@
 ---
-# Variable configuration.
-- include_tasks: variables.yml
+- name: Include OS-specific variables | Debian
+  ansible.builtin.include_vars: "{{ ansible_distribution }}-{{ ansible_distribution_version.split('.')[0] }}.yml"
+  when: ansible_os_family == 'Debian'
 
 - name: "Git | Checking for Distribution Config: {{ ansible_distribution }}"
   ansible.builtin.stat:
@@ -11,19 +12,19 @@
   ansible.builtin.include_tasks: "{{ ansible_distribution }}.yml"
   when: system_distribution_config.stat.exists
 
-- name: "Git | Computer Configuration"
+- name: Git | Computer Configuration
   block:
     - name: ZSH | Ensure git directory exist
       file:
-        path: "/home/irish/git"
+        path: /home/irish/git
         state: directory
 
     - name: ZSH | Ensure irish1986 directory exist
       file:
-        path: "/home/irish/git/irish1986"
+        path: /home/irish/git/irish1986
         state: directory
 
-- name: "Git | Git Configuration"
+- name: Git | Git Configuration
   block:
     # - name: "Git | Set URL to SSH"
     #   community.general.git_config:
@@ -32,44 +33,44 @@
     #     file: "/home/irish/git/irish1986/.gitconfig"
     #     value: "git@github.com_irish1986"
 
-    - name: "Git | Set user.email"
+    - name: Git | Set user.email
       community.general.git_config:
         name: user.email
         scope: file
-        file: "/home/irish/git/irish1986/.gitconfig"
-        value: "simon.harvey.86@gmail.com"
+        file: /home/irish/git/irish1986/.gitconfig
+        value: simon.harvey.86@gmail.com
 
-    - name: "Git | Set user.name"
+    - name: Git | Set user.name
       community.general.git_config:
         name: user.name
         scope: file
-        file: "/home/irish/git/irish1986/.gitconfig"
-        value: "Simon HARVEY"
+        file: /home/irish/git/irish1986/.gitconfig
+        value: Simon HARVEY
 
-    - name: "Git | Set user.user"
+    - name: Git | Set user.user
       community.general.git_config:
         name: user.user
         scope: file
-        file: "/home/irish/git/irish1986/.gitconfig"
-        value: "irish1986"
+        file: /home/irish/git/irish1986/.gitconfig
+        value: irish1986
 
-    - name: "Git | Set init.defaultBranch"
+    - name: Git | Set init.defaultBranch
       community.general.git_config:
         name: init.defaultBranch
         scope: file
-        file: "/home/irish/git/irish1986/.gitconfig"
+        file: /home/irish/git/irish1986/.gitconfig
         value: main
 
-    - name: "Git | Set commit.gpgsign"
+    - name: Git | Set commit.gpgsign
       community.general.git_config:
         name: commit.gpgsign
         scope: file
-        file: "/home/irish/git/irish1986/.gitconfig"
+        file: /home/irish/git/irish1986/.gitconfig
         value: true
 
-    - name: "Git | Set tag.gpgsign"
+    - name: Git | Set tag.gpgsign
       community.general.git_config:
         name: tag.gpgsign
         scope: file
-        file: "/home/irish/git/irish1986/.gitconfig"
+        file: /home/irish/git/irish1986/.gitconfig
         value: true

@@ -1,5 +1,5 @@
 ---
-- name: "System | {{ ansible_distribution }} | Update and Upgrade"
+- name: System | {{ ansible_distribution }} | Update and Upgrade
   block:
     - name: System | Update packages
       ansible.builtin.apt:
@@ -81,7 +81,7 @@
         reboot_timeout: 120
       when: reboot_required.stat.exists
 
-- name: "System | {{ ansible_distribution }} | Hostname"
+- name: System | Hostname | {{ ansible_distribution }}
   when:
     - not ansible_host_environment_is_wsl
   block:
@@ -96,7 +96,7 @@
           127.0.0.1  localhost
           {{ loop_host | default('127.0.1.1') }}  {{ inventory_hostname | default('ubuntu') }}
 
-- name: "System | {{ ansible_distribution }} | Timezone"
+- name: System | {{ ansible_distribution }} | Timezone
   block:
     - name: System | Remove systemd-timesyncd packages
       ansible.builtin.apt:
@@ -117,7 +117,7 @@
       community.general.timezone:
         name: "{{ system_timezone | default('Etc/UTC') }}"
 
-- name: "System | {{ ansible_distribution }} | User"
+- name: System | {{ ansible_distribution }} | User
   when:
     - not ansible_host_environment_is_wsl
   block:
@@ -136,7 +136,7 @@
         line: "%sudo ALL=(ALL:ALL) ALL"
         validate: /usr/sbin/visudo -cf %s
 
-    - name: "System | Give sudo access to {{ ansible_user }}"
+    - name: System | Give sudo access to {{ ansible_user }}
       ansible.builtin.blockinfile:
         path: /etc/sudoers
         insertafter: "%sudo ALL=(ALL:ALL) ALL"
@@ -144,7 +144,7 @@
           # Gives sudo access to the devops group
           {{ ansible_user }}        ALL=(ALL)       NOPASSWD: ALL
 
-- name: "System | {{ ansible_distribution }} | Install packages"
+- name: System | {{ ansible_distribution }} | Install packages
   ansible.builtin.apt:
     name: "{{ item }}"
     state: present
@@ -164,7 +164,7 @@
     - wget
   become: true
 
-- name: "System | {{ ansible_distribution }} | Install monitoring packages"
+- name: System | {{ ansible_distribution }} | Install monitoring packages
   ansible.builtin.apt:
     name: "{{ item }}"
     state: present
@@ -172,7 +172,7 @@
     - prometheus-node-exporter
   become: true
 
-- name: "System | {{ ansible_distribution }} | Install qemu-guest-agent"
+- name: System | {{ ansible_distribution }} | Install qemu-guest-agent
   ansible.builtin.apt:
     name: "{{ item }}"
     state: present
@@ -184,7 +184,7 @@
     - ansible_virtualization_role == "guest"
   notify: Start qemu
 
-- name: "System | {{ ansible_distribution }} | Disable Cloud-Init"
+- name: System | {{ ansible_distribution }} | Disable Cloud-Init
   block:
     - name: Cloud-Init | Check for Cloud-Init folder
       ansible.builtin.stat:
@@ -222,7 +222,6 @@
     - name: System | Cloud-Init | Something wrong
       ansible.builtin.debug:
         msg: Playbook had an issue with Cloud-Init disabling.
-
 
 - name: System | Install win32yank.exe
   when:

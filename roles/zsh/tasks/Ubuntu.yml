@@ -1,5 +1,5 @@
 ---
-- name: "ZSH | Install dependencies"
+- name: ZSH | Install dependencies
   ansible.builtin.apt:
     name:
       - git
@@ -7,118 +7,126 @@
     state: present
   become: true
 
-- name: "ZSH | Default shell"
+- name: ZSH | Default shell
   user:
     name: "{{ ansible_user }}"
-    shell: "/usr/bin/zsh"
+    shell: /usr/bin/zsh
   become: true
 
-- name: "ZSH | Detect oh-my-zsh"
+- name: ZSH | Detect oh-my-zsh
   ansible.builtin.stat:
     path: "{{ ansible_user_dir }}/.oh-my-zsh"
   register: ohmyzsh
 
-- name: "ZSH | Register oh-my-zsh state"
+- name: ZSH | Register oh-my-zsh state
   ansible.builtin.set_fact:
     ohmyzsh_is_installed: "{{ ohmyzsh.stat.exists }}"
 
-- name: "ZSH | Debug ohmyzsh_is_installed"
+- name: ZSH | Debug ohmyzsh_is_installed
   ansible.builtin.debug:
     var: ohmyzsh
 
-- name: "ZSH | Install oh-my-zsh"
+- name: ZSH | Install oh-my-zsh
   when: not ohmyzsh_is_installed
   block:
-    - name: "ZSH | Download oh-my-zsh | Install Script"
+    - name: ZSH | Download oh-my-zsh | Install Script
       ansible.builtin.get_url:
         url: https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh
-        dest: "/tmp/oh-my-zsh.install.sh"
+        dest: /tmp/oh-my-zsh.install.sh
         force: true
         mode: "0755"
       notify: Cleanup oh-my-zsh
 
-    - name: "ZSH | Run the install script"
+    - name: ZSH | Run the install script
       ansible.builtin.script:
         cmd: /tmp/oh-my-zsh.install.sh
 
-- name: "ZSH | Install Nerds Fonts"
+- name: ZSH | Install Nerds Fonts
   block:
     - name: ZSH | Ensure fonts directory
       file:
-        path: "/home/irish/.local/share/fonts"
+        path: /home/irish/.local/share/fonts
         state: directory
 
     - name: ZSH | Download Hack fonts
       ansible.builtin.unarchive:
         src: https://github.com/ryanoasis/nerd-fonts/releases/download/v3.2.1/Hack.zip
-        dest: "/home/irish/.local/share/fonts/"
+        dest: /home/irish/.local/share/fonts/
         remote_src: true
       notify: Update font-cache
 
-- name: "ZSH | Setup oh-my-zsh plugin"
+- name: ZSH | Setup oh-my-zsh plugin
   block:
     - name: ZSH | Install powerlevel10k themes
       ansible.builtin.git:
         repo: https://github.com/romkatv/powerlevel10k.git
+        version: v1.20.0
         dest: ~/.oh-my-zsh/custom/themes/powerlevel10k
         depth: 1
 
-    - name: ZSH | Install you-should-use plugin 
+    - name: ZSH | Install you-should-use plugin
       ansible.builtin.git:
-        repo: https://github.com/MichaelAquilina/zsh-you-should-use.git 
+        repo: https://github.com/MichaelAquilina/zsh-you-should-use.git
+        version: 1.7.3
         dest: ~/.oh-my-zsh/custom/plugins/you-should-use
         depth: 1
 
     - name: ZSH | Install zsh-autosuggestions plugin
       ansible.builtin.git:
         repo: https://github.com/zsh-users/zsh-autosuggestions
+        version: v0.7.0
         dest: ~/.oh-my-zsh/custom/plugins/zsh-autosuggestions
         depth: 1
 
     - name: ZSH | Install zsh-bat plugin
       ansible.builtin.git:
-        repo: https://github.com/fdellwing/zsh-bat.git 
+        repo: https://github.com/fdellwing/zsh-bat.git
+        version: a65c2e8
         dest: ~/.oh-my-zsh/custom/plugins/zsh-bat
         depth: 1
 
     - name: ZSH | Install zsh-exa plugin
       ansible.builtin.git:
         repo: https://github.com/ptavares/zsh-exa
+        version: "0.2.3"
         dest: ~/.oh-my-zsh/custom/plugins/zsh-exa
         depth: 1
 
     - name: ZSH | Install zsh-completions plugin
       ansible.builtin.git:
         repo: https://github.com/zsh-users/zsh-completions
+        version: "0.35.0"
         dest: ~/.oh-my-zsh/custom/plugins/zsh-completions
         depth: 1
-    
+
     - name: ZSH | Install zsh-syntax-highlighting plugin
       ansible.builtin.git:
         repo: https://github.com/zsh-users/zsh-syntax-highlighting.git
+        version: "0.8.0"
         dest: ~/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting
         depth: 1
 
     - name: ZSH | Install zsh-z plugin
       ansible.builtin.git:
         repo: https://github.com/agkozak/zsh-z
+        version: afaf29
         dest: ~/.oh-my-zsh/custom/plugins/zsh-z
         depth: 1
 
-- name: "ZSH | Copy .zshrc"
+- name: ZSH | Copy .zshrc
   ansible.builtin.copy:
-    src: ".zshrc"
-    dest: "/home/irish/.zshrc"
+    src: .zshrc
+    dest: /home/irish/.zshrc
     mode: "0644"
 
-- name: "ZSH | Copy .profile"
+- name: ZSH | Copy .profile
   ansible.builtin.copy:
-    src: ".profile"
-    dest: "/home/irish/.profile"
+    src: .profile
+    dest: /home/irish/.profile
     mode: "0644"
 
-- name: "ZSH | Copy .p10k.zsh"
+- name: ZSH | Copy .p10k.zsh
   ansible.builtin.copy:
-    src: ".p10k.zsh"
-    dest: "/home/irish/.p10k.zsh"
+    src: .p10k.zsh
+    dest: /home/irish/.p10k.zsh
     mode: "0644"
