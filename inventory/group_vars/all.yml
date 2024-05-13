@@ -7,7 +7,6 @@ default_roles:
   - git
   - helm
   - kubectl
-  - vscode
   - zsh
 
 exclude_roles:
