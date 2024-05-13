@@ -34,7 +34,7 @@ jobs:
 
       - name: Install Ansible-Galaxy Requirements
         run: |
-          ansible-galaxy install -r ansible/collections/requirements.yml
+          ansible-galaxy install -r collections/requirements.yml
           ansible-galaxy collection list
 
       - name: Run Pre-Commit
