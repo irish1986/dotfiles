@@ -56,4 +56,3 @@
       port: "22"
       proto: tcp
   notify: Reload ufw
-

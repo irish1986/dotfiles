@@ -1,0 +1,10 @@
+---
+- name: Dev | Install packages | {{ ansible_distribution }}
+  ansible.builtin.apt:
+    name:
+      - htop
+      - jq
+      - tmux
+      - vim
+    state: present
+  become: true

@@ -1,0 +1,15 @@
+---
+- name: Python | Install python | {{ ansible_distribution }}
+  ansible.builtin.apt:
+    name:
+      - python3
+      - python3-pip
+      - pipx
+    state: present
+  become: true
+
+#  pipx install poetry    
+# mkdir $ZSH_CUSTOM/plugins/poetry
+# poetry completions zsh > $ZSH_CUSTOM/plugins/poetry/_poetry
+# nano ~/.zshrc => plugins(poetry )
+# source ~/.zshrc
