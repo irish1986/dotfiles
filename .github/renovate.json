@@ -10,25 +10,10 @@
   ],
   "ansible-galaxy": {
     "fileMatch": [
-      "(^|/)ansible/collections/.+\\.ya?ml(?:\\.j2)?$"
-    ]
-  },
-  "docker-compose": {
-    "fileMatch": [
-      "(^|/)docker/.+\\.ya?ml(?:\\.j2)?$"
-    ]
-  },
-  "kubernetes": {
-    "fileMatch": [
-      "(^|/)k8s/.+\\.ya?ml(?:\\.j2)?$"
+      "(^|/)collections/.+\\.ya?ml(?:\\.j2)?$"
     ]
   },
   "pre-commit": {
     "enabled": true
-  },
-  "terraform": {
-    "fileMatch": [
-      "(^|/)terraform/.+\\.ya?ml(?:\\.j2)?$"
-    ]
   }
 }
