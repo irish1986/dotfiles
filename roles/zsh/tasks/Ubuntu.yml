@@ -3,6 +3,7 @@
   ansible.builtin.apt:
     name:
       - git
+      - unzip
       - zsh
     state: present
   become: true
@@ -48,12 +49,12 @@
         path: /home/irish/.local/share/fonts
         state: directory
 
-    # - name: ZSH | Download Hack fonts
-    #   ansible.builtin.unarchive:
-    #     src: https://github.com/ryanoasis/nerd-fonts/releases/download/v3.2.1/Hack.zip
-    #     dest: /home/irish/.local/share/fonts/
-    #     remote_src: true
-    #   notify: Update font-cache
+    - name: ZSH | Download Hack fonts
+      ansible.builtin.unarchive:
+        src: https://github.com/ryanoasis/nerd-fonts/releases/download/v3.2.1/Hack.zip
+        dest: /home/irish/.local/share/fonts/
+        remote_src: true
+      notify: Update font-cache
 
 - name: ZSH | Setup oh-my-zsh plugin
   block:

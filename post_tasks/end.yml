@@ -1,0 +1,4 @@
+---
+- name: Status message
+  ansible.builtin.debug:
+    msg: Playbook ran without any issue.

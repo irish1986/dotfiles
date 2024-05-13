@@ -1,0 +1,4 @@
+---
+- name: Status message
+  ansible.builtin.debug:
+    msg: Ubuntu 24.xx is supported

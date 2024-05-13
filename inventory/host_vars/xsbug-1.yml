@@ -11,13 +11,3 @@ gpu:
       - intel-driver-1
   nvidia:
     enabled: false
-
-tpu:
-  coral:
-    enabled: false
-
-usb:
-  ups:
-    enabled: false
-    client: false
-    server: false

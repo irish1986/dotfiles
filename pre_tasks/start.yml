@@ -1,0 +1,7 @@
+---
+- name: Show the uptime
+  ansible.builtin.debug:
+    msg: Uptime {{ now().replace(microsecond=0) - now().fromtimestamp(now(fmt='%s') | int - ansible_uptime_seconds) }}
+- name: Include OS-specific variables | Debian
+  ansible.builtin.include_vars: "{{ ansible_distribution }}-{{ ansible_distribution_version.split('.')[0] }}.yml"
+  when: ansible_os_family == 'Debian'

@@ -1,9 +1,2 @@
 ---
-- name: Install GitHub CLI tool
-  ansible.builtin.apt:
-    name: gh
-    state: present
-  become: true
-
-# - name: Authenticate with GitHub using SSH key
-#   command: gh auth login --hostname github.com --git-protocol ssh
+# sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b ~/.local/bin

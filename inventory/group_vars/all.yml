@@ -2,13 +2,13 @@
 default_roles:
   - setup
   - docker
-  - zsh
-  - git
-  - gh
-  - kubectl
-  - helm
   - fluxcd
+  - gh
+  - git
+  - helm
+  - kubectl
   - vscode
+  - zsh
 
 exclude_roles:
   - none

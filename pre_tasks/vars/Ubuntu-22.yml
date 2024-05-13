@@ -1,0 +1,4 @@
+---
+- name: Status message
+  ansible.builtin.debug:
+    msg: Ubuntu 22.xx is supported
