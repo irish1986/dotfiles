@@ -1,5 +1,5 @@
 ---
-- name: "Python | Install"
+- name: Python | Install
   ansible.builtin.apt:
     name:
       - python3
@@ -9,7 +9,7 @@
     state: present
   become: true
 
-- name: "Python | Install pipx packages"
+- name: Python | Install pipx packages
   community.general.pipx:
     name: "{{ item }}"
     state: present

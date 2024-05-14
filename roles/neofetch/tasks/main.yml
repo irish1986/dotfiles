@@ -8,13 +8,13 @@
   ansible.builtin.include_tasks: "{{ ansible_distribution }}.yml"
   when: neofetch_distribution_config.stat.exists
 
-- name: "Neofetch | {{ ansible_distribution }} | Ensure .config directory exists"
+- name: Neofetch | {{ ansible_distribution }} | Ensure .config directory exists
   ansible.builtin.file:
     path: "{{ ansible_user_dir }}/.config/neofetch"
     state: directory
     mode: "0755"
 
-- name: "Neofetch | {{ ansible_distribution }} | Copy config file"
+- name: Neofetch | {{ ansible_distribution }} | Copy config file
   ansible.builtin.copy:
     src: config
     dest: "{{ ansible_user_dir }}/.config/neofetch/config"
