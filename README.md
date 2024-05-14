@@ -65,7 +65,7 @@ This playbook includes a custom shell script located at `scripts/dotfiles`. This
 This shell script is also used to initialize your environment after installing `Ubuntu|Windows` and performing a full system upgrade as mentioned above.
 
 ```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/irish1986/dotfiles/main/scripts/dotfiles)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/irish1986/dotfiles/main/scripts/setup)"
 ```
 
 ### Update

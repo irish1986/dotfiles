@@ -1,5 +1,5 @@
 ---
-- name: Flux CLI | Install dependencies
+- name: Flux | Install dependencies
   ansible.builtin.apt:
     name:
       - apt-transport-https
@@ -8,25 +8,24 @@
     state: present
   become: true
 
-- name: Flux CLI | Detect flux
+- name: Flux | Detect flux
   ansible.builtin.stat:
     path: /usr/local/bin/flux
   register: fluxcd
 
-- name: Flux CLI | Register flux state
+- name: Flux | Register flux state
   ansible.builtin.set_fact:
     fluxcd_is_installed: "{{ fluxcd.stat.exists }}"
 
-- name: Flux CLI | Install fluxcd
-  when: not fluxcd_is_installed
+- name: Flux | Install fluxcd
   block:
-    - name: ZSH | Download oh-my-zsh | Install Script
+    - name: Flux | Download flux install script
       ansible.builtin.get_url:
         url: https://fluxcd.io/install.sh
         dest: /tmp/fluxcd.install.sh
         force: true
         mode: "0755"
 
-    - name: Flux CLI | Run the install script
+    - name: Flux | Run the install script
       ansible.builtin.script:
         cmd: /tmp/fluxcd.install.sh
