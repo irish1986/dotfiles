@@ -1,6 +1,6 @@
 ---
 ansible_user: irish
-ansible_host: 192.168.10.45
+ansible_host: 192.168.10.13
 
 gpu:
   amd:

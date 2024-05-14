@@ -1,7 +1,7 @@
 ---
 - name: Detect WSL
   ansible.builtin.shell: |
-    if [[ $(cat /proc/version | grep microsoft.*WSL) ]]; then
+    if [[ $(cat /proc/version | grep microsoft-standard-WSL) ]]; then
       echo true
     else
       echo false
