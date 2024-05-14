@@ -1,5 +1,5 @@
 ---
-- name: Helm CLI  | Install dependencies
+- name: Helm | Install dependencies
   ansible.builtin.apt:
     name:
       - apt-transport-https

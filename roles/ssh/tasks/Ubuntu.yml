@@ -1,15 +1,19 @@
 ---
+- name: SSH | Install packages
+  ansible.builtin.apt:
+    name:
+      - openssh-server
+    state: present
+  become: true
+
 - name: SSH | Add additional SSH public keys
   ansible.posix.authorized_key:
     user: "{{ ansible_user }}"
     key: "{{ item }}"
   loop:
     - "{{ github_ssh_keys | default([]) }}"
-
-- name: Copy config
-  ansible.builtin.template:
-    dest: "{{ ansible_user_dir }}/.ssh/config"
-    src: config.j2
+    - "{{ launchpad_ssh_keys | default([]) }}"
+    - "{{ other_ssh_keys | default([]) }}"
 
 - name: SSH | Start SSH service
   ansible.builtin.service:

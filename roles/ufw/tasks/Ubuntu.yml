@@ -1,0 +1,26 @@
+---
+- name: UFW | Install packages
+  ansible.builtin.apt:
+    name:
+      - ufw
+    state: present
+  become: true
+
+- name: UFW | Start UFW service
+  ansible.builtin.service:
+    name: ufw
+    state: started
+
+- name: UFW | Open SSH ports
+  community.general.ufw:
+    state: "{{ item.state }}"
+    rule: "{{ item.rule }}"
+    port: "{{ item.port }}"
+    proto: "{{ item.proto }}"
+  with_items:
+    - name: SSH
+      state: enabled
+      rule: allow
+      port: "22"
+      proto: tcp
+  notify: Reload ufw

@@ -2,6 +2,7 @@
 - name: ZSH | Install dependencies
   ansible.builtin.apt:
     name:
+      - fonts-powerline
       - git
       - unzip
       - zsh
@@ -82,15 +83,7 @@
     - name: ZSH | Install zsh-bat plugin
       ansible.builtin.git:
         repo: https://github.com/fdellwing/zsh-bat.git
-        version: a65c2e8
         dest: ~/.oh-my-zsh/custom/plugins/zsh-bat
-        depth: 1
-
-    - name: ZSH | Install zsh-exa plugin
-      ansible.builtin.git:
-        repo: https://github.com/ptavares/zsh-exa
-        version: "0.2.3"
-        dest: ~/.oh-my-zsh/custom/plugins/zsh-exa
         depth: 1
 
     - name: ZSH | Install zsh-completions plugin

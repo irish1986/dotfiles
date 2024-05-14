@@ -1,4 +1,0 @@
----
-- name: Status message
-  ansible.builtin.debug:
-    msg: Ubuntu 20.xx is supported

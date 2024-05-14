@@ -25,10 +25,10 @@ plugins=(
   kubectl
   sudo
   you-should-use
-  zsh-autosuggestions
-  zsh-exa
-  zsh-syntax-highlighting
   z
+  zsh-autosuggestions
+  zsh-bat
+  zsh-syntax-highlighting
 )
 
 autoload -U compinit
