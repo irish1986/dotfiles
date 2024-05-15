@@ -2,6 +2,7 @@
 - name: SSH | Install packages
   ansible.builtin.apt:
     name:
+      - keychain
       - openssh-server
     state: present
   become: true
@@ -11,9 +12,9 @@
     user: "{{ ansible_user }}"
     key: "{{ item }}"
   loop:
-    - "{{ github_ssh_keys | default([]) }}"
-    - "{{ launchpad_ssh_keys | default([]) }}"
-    - "{{ other_ssh_keys | default([]) }}"
+    - "{{ github_ssh_keys }}"
+    - "{{ launchpad_ssh_keys }}"
+    - "{{ other_ssh_keys }}"
 
 - name: SSH | Start SSH service
   ansible.builtin.service:

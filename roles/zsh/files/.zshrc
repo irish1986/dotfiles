@@ -20,24 +20,36 @@ export ZSH="$HOME/.oh-my-zsh"
 ZSH_THEME="powerlevel10k/powerlevel10k"
 
 plugins=(
+  command-not-found
   docker
   git
+  history
+  jsontools
   kubectl
+  ssh-agent
   sudo
   you-should-use
   z
   zsh-autosuggestions
   zsh-bat
+  zsh-nvm
   zsh-syntax-highlighting
 )
 
-autoload -U compinit
-compinit -i
-
 # User configuration
+eval ``keychain  --quiet --eval --agents ssh id_ed25519
+
+# NVM configuration
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+
 
 # P10K configuration
 # Run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
 source $ZSH/oh-my-zsh.sh
+
+autoload -U compinit
+compinit -i

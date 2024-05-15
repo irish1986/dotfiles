@@ -9,6 +9,7 @@ default_roles:
   - kind
   - kubectl
   - neofetch
+  - nvm
   - python
   - ssh
   - ufw
@@ -26,12 +27,6 @@ exclude_roles:
 ansible_user: irish
 system_timezone: America/Toronto
 loop_host: 127.0.1.1
-
-docker_network: 172.10.0.0
-
-git_user_email: simon.harvey.86@gmail.com
-git_user_name: Simon HARVEY
-git_user_user: irish1986
 
 github_ssh_keys: https://github.com/irish1986.keys
 launchpad_ssh_keys: ""

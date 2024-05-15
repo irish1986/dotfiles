@@ -1,5 +1,5 @@
 ---
-- name: Github CLI | Install GitHub CLI tool
+- name: GitHub | Install GitHub CLI tool
   ansible.builtin.apt:
     name: "{{ item }}"
     state: present

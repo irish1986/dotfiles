@@ -69,7 +69,12 @@ bash -c "$(curl -fsSL https://raw.githubusercontent.com/irish1986/dotfiles/main/
 
 ```powershell
 # Windows
-iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/irish1986/dotfiles/main/scripts/setup.ps1'))
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+$url = "https://raw.githubusercontent.com/irish1986/dotfiles/main/scripts/setup.ps1"
+$file = "$env:temp\setup.ps1"
+
+(New-Object -TypeName System.Net.WebClient).DownloadFile($url, $file)
+powershell.exe -ExecutionPolicy ByPass -File $file -Verbose
 ```
 
 ## Reference

@@ -3,5 +3,6 @@
   ansible.builtin.apt:
     name:
       - git
+      - git-lfs
     state: present
   become: true
