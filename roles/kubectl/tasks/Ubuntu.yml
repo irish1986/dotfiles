@@ -1,5 +1,5 @@
 ---
-- name: Kubectl CLI  | Install dependencies
+- name: Kubectl  | Install dependencies
   ansible.builtin.apt:
     name:
       - apt-transport-https
@@ -8,21 +8,21 @@
     state: present
   become: true
 
-- name: Kubectl CLI | Adding Kubernetes GPG key
+- name: Kubectl | Adding Kubernetes GPG key
   ansible.builtin.apt_key:
     url: https://pkgs.k8s.io/core:/stable:/v1.29/deb/Release.key
     keyring: /etc/apt/keyrings/kubernetes-apt-keyring.gpg
     state: present
   become: true
 
-- name: Kubectl CLI | Adding kubernetes apt repo
+- name: Kubectl | Adding kubernetes apt repo
   ansible.builtin.apt_repository:
     repo: deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.29/deb/ /
     filename: kubernetes
     mode: "0644"
   become: true
 
-- name: Kubectl CLI | Installing Kubernetes
+- name: Kubectl | Installing Kubernetes
   ansible.builtin.apt:
     name: "{{ item }}"
     state: present
