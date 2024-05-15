@@ -28,9 +28,7 @@ sudo apt-get update && sudo apt-get upgrade -y && sudo apt autoremove -y && sudo
 
 ```powershell
 # Windows
-Install-Module PSWindowsUpdate
-Get-WindowsUpdate
-Install-WindowsUpdate
+Install-Module PSWindowsUpdate; Get-WindowsUpdate; Install-WindowsUpdate
 ```
 
 ### Setup
@@ -65,26 +63,14 @@ This playbook includes a custom shell script located at `scripts/dotfiles`. This
 This shell script is also used to initialize your environment after installing `Ubuntu|Windows` and performing a full system upgrade as mentioned above.
 
 ```bash
+# Ubuntu
 bash -c "$(curl -fsSL https://raw.githubusercontent.com/irish1986/dotfiles/main/scripts/setup)"
 ```
 
-### Update
-
-This repository is continuously updated with new features and settings which become available to you when updating.
-
-To update your environment run the `dotfiles` command in your shell:
-
-```bash
-dotfiles
+```powershell
+# Windows
+iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/irish1986/dotfiles/main/scripts/setup.ps1'))
 ```
-
-This will handle the following tasks:
-
-- Verify Ansible is up-to-date
-- Generate SSH keys and add to `~/.ssh/authorized_keys`
-- Clone this repository locally to `~/.dotfiles`
-- Verify any `ansible-galaxy` plugins are updated
-- Run this playbook with the values in `~/.config/dotfiles/group_vars/all.yaml`
 
 ## Reference
 
