@@ -10,6 +10,7 @@ touch_file() {
 }
 
 git_action() {
+    cd "$repo_dir" || return
     git add .
     git commit -m "Automated commit on $(date)"
 }
