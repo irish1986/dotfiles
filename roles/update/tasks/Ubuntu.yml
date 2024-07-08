@@ -1,0 +1,82 @@
+---
+- name: Update | {{ ansible_distribution }} | Update and Upgrade
+  block:
+    - name: Update | Update packages
+      ansible.builtin.apt:
+        autoclean: true
+        autoremove: true
+        update_cache: true
+        cache_valid_time: 3600
+        upgrade: full
+      become: true
+
+    - name: Update | Unattended-Upgrades | Install package
+      ansible.builtin.apt:
+        name: "{{ item }}"
+        state: present
+        autoclean: true
+      loop:
+        - unattended-upgrades
+      notify: Start unattended-upgrades
+
+    - name: Update | Unattended-Upgrades | 2norecommends
+      ansible.builtin.blockinfile:
+        path: /etc/apt/apt.conf.d/2norecommends
+        mode: "0644"
+        create: true
+        block: |
+          APT::Get::Install-Recommends "false";
+          APT::Get::Install-Suggests "false";
+          APT::Install-Recommends "false";
+          APT::Install-Suggests "false";
+      notify: Restart unattended-upgrades
+
+    - name: Update | Unattended-Upgrades | 10periodic
+      ansible.builtin.blockinfile:
+        path: /etc/apt/apt.conf.d/10periodic
+        mode: "0644"
+        create: true
+        block: |
+          APT::Periodic::AutocleanInterval "7";
+          APT::Periodic::Download-Upgradeable-Packages "1";
+          APT::Periodic::Unattended-Upgrade "1";
+          APT::Periodic::Update-Package-Lists "1";
+      notify: Start unattended-upgrades
+
+    - name: Update | Unattended-Upgrades | 50unattended-upgrades
+      ansible.builtin.blockinfile:
+        path: /etc/apt/apt.conf.d/50unattended-upgrades
+        mode: "0644"
+        create: true
+        block: |
+          Unattended-Upgrade::Allowed-Origins {
+              "${distro_id}:${distro_codename}-security";
+              "${distro_id}:${distro_codename}-updates";
+              "${distro_id}:${distro_codename}";
+              "${distro_id}ESM:${distro_codename}-infra-security";
+              "${distro_id}ESMApps:${distro_codename}-apps-security";
+          };
+          Unattended-Upgrade::AutoFixInterruptedDpkg "true";
+          Unattended-Upgrade::Automatic-Reboot "true";
+          Unattended-Upgrade::Automatic-Reboot-Time "03:00";
+          Unattended-Upgrade::Remove-New-Unused-Dependencies "true";
+          Unattended-Upgrade::Remove-Unused-Dependencies "true";
+          Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";
+      notify: Start unattended-upgrades
+
+  rescue:
+    - name: Update | Error handling
+      ansible.builtin.debug:
+        msg: There was an error during the update cycle.
+
+  always:
+    - name: Update | Check if reboot is required
+      ansible.builtin.stat:
+        path: /var/run/reboot-required
+      register: reboot_required
+
+    - name: Update | Reboot system if required
+      ansible.builtin.reboot:
+        msg: Rebooting to complete system upgrade
+        reboot_timeout: 120
+      when: reboot_required.stat.exists

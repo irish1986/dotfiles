@@ -1,0 +1,21 @@
+---
+- name: Timezone | {{ ansible_distribution }} | Timezone
+  block:
+    - name: System | Remove systemd-timesyncd packages
+      ansible.builtin.apt:
+        name: "{{ item }}"
+        state: absent
+      loop:
+        - systemd-timesyncd
+
+    - name: Timezone | Install ntp package
+      ansible.builtin.apt:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - ntp
+      notify: Start ntp
+
+    - name: System | Set local timezone
+      community.general.timezone:
+        name: "{{ system_timezone | default('Etc/UTC') }}"

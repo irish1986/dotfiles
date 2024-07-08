@@ -12,7 +12,9 @@ default_roles:
   - nvm
   - python
   - ssh
+  - timezone
   - ufw
+  - update
   - vscode
   - zsh
 
