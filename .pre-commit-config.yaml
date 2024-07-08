@@ -42,7 +42,7 @@ repos:
       - id: remove-crlf
       - id: remove-tabs
   - repo: https://github.com/sirosen/fix-smartquotes
-    rev: "0.2.0"
+    rev: 0.2.0
     hooks:
       - id: fix-smartquotes
   - repo: https://github.com/igorshubovych/markdownlint-cli

@@ -89,7 +89,7 @@
     - name: ZSH | Install zsh-completions plugin
       ansible.builtin.git:
         repo: https://github.com/zsh-users/zsh-completions
-        version: "0.35.0"
+        version: 0.35.0
         dest: ~/.oh-my-zsh/custom/plugins/zsh-completions
         depth: 1
 
@@ -102,7 +102,7 @@
     - name: ZSH | Install zsh-syntax-highlighting plugin
       ansible.builtin.git:
         repo: https://github.com/zsh-users/zsh-syntax-highlighting.git
-        version: "0.8.0"
+        version: 0.8.0
         dest: ~/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting
         depth: 1
 
