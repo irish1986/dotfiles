@@ -36,9 +36,6 @@ plugins=(
   zsh-syntax-highlighting
 )
 
-# User configuration
-eval ``keychain  --quiet --eval --agents ssh id_ed25519
-
 # NVM configuration
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
