@@ -2,6 +2,9 @@
 fail_fast: false
 ci:
   autoupdate_schedule: monthly
+  skip:
+    - actionlint
+    - ggshield
 repos:
   - repo: https://github.com/gitguardian/ggshield
     rev: v1.30.2
@@ -21,7 +24,6 @@ repos:
       - id: forbid-submodules
       # Common errors
       - id: check-json
-      - id: check-merge-conflict
       - id: check-yaml
         files: \.(yaml|yml)$
         exclude: ^k8s/cluster/homelab/base/flux-system
@@ -41,28 +43,25 @@ repos:
     hooks:
       - id: remove-crlf
       - id: remove-tabs
-  - repo: https://github.com/sirosen/fix-smartquotes
-    rev: 0.2.0
+  - repo: https://github.com/sirosen/texthooks
+    rev: 0.6.6
     hooks:
       - id: fix-smartquotes
+      - id: fix-ligatures
   - repo: https://github.com/igorshubovych/markdownlint-cli
     rev: v0.41.0
     hooks:
       - id: markdownlint
         args:
           - --config
-          - .config/.markdownlint.yml
-  - repo: https://github.com/rhysd/actionlint
-    rev: v1.7.1
-    hooks:
-      - id: actionlint
+          - .config/.markdown-lint.yml
   - repo: https://github.com/adrienverge/yamllint
     rev: v1.35.1
     hooks:
       - id: yamllint
         args:
           - -c
-          - .config/.yamllint.yml
+          - .config/.yaml-lint.yml
   - repo: https://github.com/ansible-community/ansible-lint
     rev: v24.7.0
     hooks:
@@ -72,3 +71,7 @@ repos:
           - -c
           - .config/.ansible-lint.yml
           - --fix
+  - repo: https://github.com/rhysd/actionlint
+    rev: v1.7.1
+    hooks:
+      - id: actionlint
