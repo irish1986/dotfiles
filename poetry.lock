@@ -324,13 +324,13 @@ typing = ["typing-extensions (>=4.8)"]
 
 [[package]]
 name = "ggshield"
-version = "1.29.0"
+version = "1.30.2"
 description = "Detect secrets from all sources using GitGuardian's brains"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "ggshield-1.29.0-py3-none-any.whl", hash = "sha256:03d95d82c9da60838b9d6ac8ba6d2126f58cac1178199b733974d97d4f99b219"},
-    {file = "ggshield-1.29.0.tar.gz", hash = "sha256:37fbfc82807ceddf842ce9e48b84e8227c755d4203ec148e8e6757e259f912a5"},
+    {file = "ggshield-1.30.2-py3-none-any.whl", hash = "sha256:18167a606c404c87e5a1e7e098761aec318d377c2ca203e28936612f8fb91c3b"},
+    {file = "ggshield-1.30.2.tar.gz", hash = "sha256:81b96feeac81675ef917807576a9e2a36df748a2a33b3e444cc0a6e9b98e1ffb"},
 ]
 
 [package.dependencies]
@@ -341,7 +341,7 @@ marshmallow = ">=3.18.0,<3.19.0"
 marshmallow-dataclass = ">=8.5.8,<8.6.0"
 oauthlib = ">=3.2.1,<3.3.0"
 platformdirs = ">=3.0.0,<3.1.0"
-pygitguardian = ">=1.15.2,<1.16.0"
+pygitguardian = ">=1.16.0,<1.17.0"
 pyjwt = ">=2.6.0,<2.7.0"
 python-dotenv = ">=0.21.0,<0.22.0"
 pyyaml = ">=6.0.1,<6.1"
@@ -601,13 +601,13 @@ files = [
 
 [[package]]
 name = "pygitguardian"
-version = "1.15.2"
+version = "1.16.0"
 description = "Python Wrapper for GitGuardian's API -- Scan security policy breaks everywhere"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "pygitguardian-1.15.2-py3-none-any.whl", hash = "sha256:b89aa72441a31bd2e0c38dc949036c4aabed57f13bab629c68a2c2642ef5bdc0"},
-    {file = "pygitguardian-1.15.2.tar.gz", hash = "sha256:430d237184d7988d77eb122658116233cdbf11f78afad0ea172441061b29648d"},
+    {file = "pygitguardian-1.16.0-py3-none-any.whl", hash = "sha256:1e965017a87337db72749a454359d13625850ce855b7dcbdac8e2cbdea3d102b"},
+    {file = "pygitguardian-1.16.0.tar.gz", hash = "sha256:91f7c5454fcf7d337946f53c35d035e4979224bf45eba85ed82f9d3939c904fd"},
 ]
 
 [package.dependencies]
