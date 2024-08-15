@@ -4,7 +4,7 @@ ci:
   autoupdate_schedule: monthly
 repos:
   - repo: https://github.com/gitguardian/ggshield
-    rev: v1.29.0
+    rev: v1.30.2
     hooks:
       - id: ggshield
         language_version: python3
