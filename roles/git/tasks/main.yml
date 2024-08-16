@@ -21,6 +21,8 @@
       value: "{{ git_user_name }}"
     - name: user.user
       value: "{{ git_user_user }}"
+    - name: color.ui
+      value: auto
     - name: commit.gpgsign
       value: false
     - name: commit.verbose
@@ -39,10 +41,10 @@
       value: true
     - name: fetch.writeCommitGraph
       value: true
+    - name: log.abbrevCommit
+      value: true
     - name: init.defaultBranch
       value: main
-    - name: pull.ff
-      value: only
     - name: pull.rebase
       value: true
     - name: push.default
@@ -57,3 +59,17 @@
       value: true
     - name: tag.gpgsign
       value: false
+    - name: tag.sort
+      value: version:refname
+    - name: versionsort.prereleaseSuffix
+      value: -pre
+    - name: versionsort.prereleaseSuffix
+      value: .pre
+    - name: versionsort.prereleaseSuffix
+      value: -beta
+    - name: versionsort.prereleaseSuffix
+      value: .beta
+    - name: versionsort.prereleaseSuffix
+      value: -rc
+    - name: versionsort.prereleaseSuffix
+      value: .rc
