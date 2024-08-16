@@ -36,16 +36,15 @@ repos:
       - id: mixed-line-ending
         args:
           - --fix=lf
-      # Security
-      - id: detect-private-key
   - repo: https://github.com/Lucas-C/pre-commit-hooks
     rev: v1.5.5
     hooks:
       - id: remove-crlf
       - id: remove-tabs
   - repo: https://github.com/sirosen/texthooks
-    rev: 0.6.6
+    rev: 0.6.7
     hooks:
+      - id: alphabetize-codeowners
       - id: fix-smartquotes
       - id: fix-ligatures
   - repo: https://github.com/igorshubovych/markdownlint-cli
