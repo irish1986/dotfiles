@@ -5,17 +5,25 @@ if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]
   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
 fi
 
-# Where to look for autoloaded function definitions
-fpath=(~/.config/zsh/zfunc $fpath)
-
-for func in $^fpath/*(N-.x:t); autoload $func
-
 # automatically remove duplicates from these arrays
 typeset -U path cdpath fpath manpath
 
 # General configuration
 export PATH=$HOME/bin:/usr/local/bin:$PATH:$HOME/.local/bin
 export ZSH="$HOME/.oh-my-zsh"
+
+# Expand the history size
+export HISTFILESIZE=10000
+export HISTSIZE=500
+export HISTTIMEFORMAT="%F %T" # add timestamp to history
+export HISTCONTROL=erasedups:ignoredups:ignor
+
+# Set the default editor
+# export EDITOR=nvim
+# export VISUAL=nvim
+
+source $ZSH/oh-my-zsh.sh
+source $HOME/.zsh_aliases
 
 ZSH_THEME="powerlevel10k/powerlevel10k"
 
@@ -32,17 +40,8 @@ plugins=(
   zsh-syntax-highlighting
 )
 
-# NVM configuration
-export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
-
-
-# P10K configuration
-# Run `p10k configure` or edit ~/.p10k.zsh.
+# P10K configuration - Run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
-
-source $ZSH/oh-my-zsh.sh
 
 autoload -U compinit
 compinit -i

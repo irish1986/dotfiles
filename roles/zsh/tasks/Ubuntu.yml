@@ -124,6 +124,12 @@
     dest: /home/irish/.zshrc
     mode: "0644"
 
+- name: ZSH | Copy .zsh_aliases
+  ansible.builtin.copy:
+    src: .zsh_aliases
+    dest: /home/irish/.zsh_aliases
+    mode: "0644"
+
 - name: ZSH | Copy .profile
   ansible.builtin.copy:
     src: .profile
