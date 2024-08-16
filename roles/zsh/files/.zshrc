@@ -21,18 +21,14 @@ ZSH_THEME="powerlevel10k/powerlevel10k"
 
 plugins=(
   command-not-found
-  docker
   git
   history
-  jsontools
-  kubectl
-  ssh-agent
   sudo
   you-should-use
   z
   zsh-autosuggestions
   zsh-bat
-  zsh-nvm
+  zsh-eza
   zsh-syntax-highlighting
 )
 

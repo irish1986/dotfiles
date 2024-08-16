@@ -6,7 +6,7 @@
 
 - name: Cleanup oh-my-zsh
   ansible.builtin.file:
-    path: /{{ ansible_user_dir }}/oh-my-zsh.install.sh
+    path: /home/irish/oh-my-zsh.install.sh
     state: absent
 
 - name: Update font-cache

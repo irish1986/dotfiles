@@ -5,14 +5,14 @@
   block:
     - name: System | Set hostname to inventory hostname
       ansible.builtin.hostname:
-        name: "{{ inventory_hostname | default('ubuntu') }}"
+        name: "{{ hostname | default('ubuntu') }}"
 
     - name: System | Set /etc/hosts to include inventory hostname
       ansible.builtin.blockinfile:
         path: /etc/hosts
         block: |
           127.0.0.1  localhost
-          {{ loop_host | default('127.0.1.1') }}  {{ inventory_hostname | default('ubuntu') }}
+          {{ loop_host | default('127.0.1.1') }}  {{ hostname | default('ubuntu') }}
 
 - name: System | {{ ansible_distribution }} | User
   when:
@@ -36,10 +36,10 @@
     - name: System | Give sudo access to {{ ansible_user }}
       ansible.builtin.blockinfile:
         path: /etc/sudoers
-        insertafter: "%sudo ALL=(ALL:ALL) ALL"
+        insertafter: "%sudo   ALL=(ALL:ALL) ALL"
         block: | # pragma: allowlist secret
-          # Gives sudo access to the devops group
-          {{ ansible_user }}        ALL=(ALL)       NOPASSWD: ALL
+          # Gives passwordless sudoer to user
+          {{ ansible_user }}   ALL=(ALL)   NOPASSWD: ALL
 
 - name: System | {{ ansible_distribution }} | Install packages
   ansible.builtin.apt:

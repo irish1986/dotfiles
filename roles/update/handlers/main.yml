@@ -1,8 +1,4 @@
 ---
-- name: Start qemu
-  ansible.builtin.service:
-    name: qemu-guest-agent
-    state: started
 - name: Start unattended-upgrades
   ansible.builtin.systemd:
     name: unattended-upgrades
