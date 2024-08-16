@@ -47,29 +47,11 @@
     state: present
   loop:
     - apt-transport-https
-    - bat
     - curl
     - git
-    - gnupg
-    - gpg
-    - htop
-    - jq
     - nano
-    - nfs-common
-    - open-iscsi
-    - tree
     - wget
   become: true
-
-- name: System | {{ ansible_distribution }} | Install monitoring packages
-  ansible.builtin.apt:
-    name: "{{ item }}"
-    state: present
-  loop:
-    - prometheus-node-exporter
-  become: true
-  when:
-    - not ansible_host_environment_is_wsl
 
 - name: System | {{ ansible_distribution }} | Install qemu-guest-agent
   ansible.builtin.apt:

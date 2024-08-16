@@ -1,30 +1,29 @@
 ---
 default_roles:
   - system
-  - fluxcd
-  - gh
   - git
-  - helm
-  - k9s
-  - kind
-  - kubectl
-  - neofetch
-  - nvm
-  - python
   - ssh
   - timezone
-  - ufw
   - update
-  - vscode
   - zsh
 
 exclude_roles:
   - docker
+  - fluxcd
+  - gh
+  - helm
+  - k9s
+  - kind
+  - kubectl
   - neovim
+  - nvm
   - powershell
+  - python
   - taskfile
   - terraform
   - tmux
+  - ufw
+  - vscode
 
 ansible_user: irish
 system_timezone: America/Toronto
