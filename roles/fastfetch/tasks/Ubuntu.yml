@@ -1,0 +1,26 @@
+---
+- name: Fastfetch | Download Latest Version JSON
+  ansible.builtin.uri:
+    url: https://api.github.com/repos/fastfetch-cli/fastfetch/releases/latest
+  register: fastfetch_latest_version_json
+  changed_when: false
+
+- name: Fastfetch | Registering fastfetch Latest Release
+  ansible.builtin.set_fact:
+    k9s_latest_release: "{{ fastfetch_latest_version_json.json.tag_name }}"
+
+- name: Fastfetch | Registering fastfetch Latest Version
+  ansible.builtin.set_fact:
+    k9s_latest_version: "{{ fastfetch_latest_release.stdout|default('') }}"
+
+- name: Fastfetch | Ubuntu | Install fastfetch
+  ansible.builtin.apt:
+    name: neofetch
+    state: present
+  become: true
+
+- name: Fastfetch | Copy config
+  ansible.builtin.copy:
+    src: .zshrc
+    dest: /home/irish/.config/fastfetch
+    mode: "0644"
