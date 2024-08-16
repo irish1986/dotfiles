@@ -8,14 +8,52 @@
   ansible.builtin.include_tasks: "{{ ansible_distribution }}.yml"
   when: system_distribution_config.stat.exists
 
-- name: Git | Computer Configuration
-  block:
-    - name: ZSH | Ensure git directory exist
-      file:
-        path: /home/irish/git
-        state: directory
-
-    - name: ZSH | Ensure irish1986 directory exist
-      file:
-        path: /home/irish/git/irish1986
-        state: directory
+- name: Git | Update git configuration
+  community.general.git_config:
+    name: "{{ item.name }}"
+    scope: file
+    file: /home/irish/.gitconfig
+    value: "{{ item.value }}"
+  with_items:
+    - name: user.email
+      value: "{{ git_user_email }}"
+    - name: user.name
+      value: "{{ git_user_name }}"
+    - name: user.user
+      value: "{{ git_user_user }}"
+    - name: commit.gpgsign
+      value: false
+    - name: commit.verbose
+      value: true
+    - name: credential.helper
+      value: cache
+    - name: core.autocrlf
+      value: false
+    - name: core.editor
+      value: code --wait
+    - name: diff.algorithm
+      value: histogram
+    - name: diff.colorMoved
+      value: zebra
+    - name: fetch.prune
+      value: true
+    - name: fetch.writeCommitGraph
+      value: true
+    - name: init.defaultBranch
+      value: main
+    - name: pull.ff
+      value: only
+    - name: pull.rebase
+      value: true
+    - name: push.default
+      value: simple
+    - name: rebase.autoStash
+      value: true
+    - name: rerere.autoupdate
+      value: true
+    - name: rerere.enabled
+      value: true
+    - name: status.short
+      value: true
+    - name: tag.gpgsign
+      value: false

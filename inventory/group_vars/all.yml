@@ -28,7 +28,9 @@ exclude_roles:
 ansible_user: irish
 system_timezone: America/Toronto
 loop_host: 127.0.1.1
-
+git_user_name: Simon Harvey
+git_user_user: irish1986
+git_user_email: simon.harvey.86@gmail.com
 github_ssh_keys: https://github.com/irish1986.keys
 launchpad_ssh_keys: ""
 other_ssh_keys: ""
