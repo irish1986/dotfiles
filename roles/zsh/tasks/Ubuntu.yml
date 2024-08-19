@@ -4,7 +4,6 @@
     name:
       - bat
       - eza
-      - fonts-powerline
       - fzf
       - git
       - unzip
