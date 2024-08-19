@@ -65,3 +65,28 @@
     - not ansible_host_environment_is_wsl
     - ansible_virtualization_role == "guest"
   notify: Start qemu
+
+- name: System | {{ ansible_distribution }} | WSL
+  when:
+    - ansible_host_environment_is_wsl
+  block:
+    - name: System | {{ ansible_distribution }} | Copy wsl config file
+      ansible.builtin.copy:
+        src: wsl.conf
+        dest: /etc
+
+# - name: System | {{ ansible_distribution }} | WSL-Work
+#   when:
+#     - ansible_host_environment_is_wsl
+#   block:
+#     - name: System | {{ ansible_distribution }} | Copy wsl-vpnkit config file
+#       ansible.builtin.copy:
+#         src: wsl-vpnkit.service
+#         dest: /etc/systemd/system
+#       notify: Restart wsl-vpnkit
+
+#     - name: System | {{ ansible_distribution }} | Copy CA Certificates
+#       ansible.builtin.copy:
+#         src: cert/
+#         dest: /usr/local/share/ca-certificates/
+#       notify: Update CA certificates
