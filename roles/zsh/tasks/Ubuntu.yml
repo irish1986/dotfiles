@@ -5,6 +5,7 @@
       - bat
       - eza
       - fonts-powerline
+      - fzf
       - git
       - unzip
       - zoxide
