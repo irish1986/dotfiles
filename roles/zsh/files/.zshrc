@@ -7,7 +7,7 @@ export PATH=$HOME/bin:/usr/local/bin:$PATH:$HOME/.local/bin
 export ZSH="$HOME/.oh-my-zsh"
 
 ZSH_THEME="powerlevel10k/powerlevel10k"
-ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=#663399,standout"
+# ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=#663399,standout"
 
 zstyle ':omz:update' mode auto      # update automatically without asking
 zstyle ':omz:update' frequency 7    # update automatically after x days
@@ -19,7 +19,6 @@ zstyle ':fzf-tab:complete:cd:*' fzf-preview 'eza -1 --color=always $realpath' # 
 zstyle ':fzf-tab:*' switch-group '<' '>' # switch group using `<` and `>`
 
 plugins=(
-  autojump
   command-not-found
   fzf
   fzf-tab
@@ -30,6 +29,7 @@ plugins=(
   z
   zsh-autosuggestions
   zsh-bat
+  zsh-completions
   zsh-eza
   zsh-syntax-highlighting
 )

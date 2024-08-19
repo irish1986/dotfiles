@@ -49,8 +49,7 @@ mkdirg() {
 }
 
 # Automatically do an ls after each cd, z, or zoxide
-cd ()
-{
+cd () {
     if [ -n "$1" ]; then
         builtin cd "$@" && ls
     else
@@ -64,9 +63,7 @@ pwdtail() {
 }
 
 # IP address lookup
-alias whatismyip="whatip"
 function whatip () {
-    # Internal IP Lookup.
     if command -v ip &> /dev/null; then
         echo -n "Internal IP: "
         ip addr show eth0 | grep "inet " | awk '{print $2}' | cut -d/ -f1
