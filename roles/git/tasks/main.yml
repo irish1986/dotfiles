@@ -12,7 +12,7 @@
   community.general.git_config:
     name: "{{ item.name }}"
     scope: file
-    file: /home/irish/.gitconfig
+    file: "{{ ansible_env.HOME }}/.gitconfig"
     value: "{{ item.value }}"
   with_items:
     - name: user.email
@@ -61,15 +61,3 @@
       value: false
     - name: tag.sort
       value: version:refname
-    - name: versionsort.prereleaseSuffix
-      value: -pre
-    - name: versionsort.prereleaseSuffix
-      value: .pre
-    - name: versionsort.prereleaseSuffix
-      value: -beta
-    - name: versionsort.prereleaseSuffix
-      value: .beta
-    - name: versionsort.prereleaseSuffix
-      value: -rc
-    - name: versionsort.prereleaseSuffix
-      value: .rc
