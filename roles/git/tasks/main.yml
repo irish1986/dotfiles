@@ -49,6 +49,8 @@
       value: true
     - name: push.default
       value: simple
+    - name: push.autoSetupRemote
+      value: true
     - name: rebase.autoStash
       value: true
     - name: rerere.autoupdate
