@@ -29,7 +29,7 @@ exclude_roles:
   - vscode
 
 # Role - System Variables
-ansible_user: irish
+ansible_user: username
 loop_host: 127.0.1.1
 hostname: ubuntu-wsl
 
