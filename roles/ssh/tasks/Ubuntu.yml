@@ -12,7 +12,7 @@
     user: "{{ ansible_user }}"
     key: "{{ item }}"
   loop:
-    - "{{ github_ssh_keys }}"
+    - https://github.com/{{ git_user_user }}.keys
     - "{{ launchpad_ssh_keys }}"
     - "{{ other_ssh_keys }}"
 
