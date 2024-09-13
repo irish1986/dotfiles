@@ -7,7 +7,7 @@ ci:
     - ggshield
 repos:
   - repo: https://github.com/gitguardian/ggshield
-    rev: v1.30.2
+    rev: v1.31.0
     hooks:
       - id: ggshield
         language_version: python3
@@ -62,7 +62,7 @@ repos:
           - -c
           - .config/.yaml-lint.yml
   - repo: https://github.com/ansible-community/ansible-lint
-    rev: v24.7.0
+    rev: v24.9.0
     hooks:
       - id: ansible-lint
         files: \.(yaml|yml)$
