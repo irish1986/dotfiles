@@ -1,0 +1,25 @@
+---
+name: Continous Integration - Main
+
+on: # yamllint disable-line rule:truthy
+  pull_request:
+    branches:
+      - main
+    paths-ignore:
+      - 'README.md'
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - 'README.md'
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+
+  # pre-commit:
+  #   uses: ./.github/workflows/pre-commit.yml
+  secret:
+    uses: ./.github/workflows/secret.yml
