@@ -1,0 +1,11 @@
+---
+- name: "VPNKit | Checking for Distribution Config: {{ ansible_distribution }}"
+  ansible.builtin.stat:
+    path: "{{ role_path }}/tasks/{{ ansible_distribution }}.yml"
+  register: system_distribution_config
+
+- name: "VPNKit | Run Tasks: {{ ansible_distribution }}"
+  ansible.builtin.include_tasks: "{{ ansible_distribution }}.yml"
+  when:
+    - system_distribution_config.stat.exists
+    - ansible_host_environment_is_wsl

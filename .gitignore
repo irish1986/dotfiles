@@ -1,3 +1,6 @@
 /.wip
 .env
 .cache_ggshield
+
+!inventory/group_vars/all.yml
+!inventory/group_vars/default.yml
