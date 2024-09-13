@@ -1,0 +1,44 @@
+---
+default_roles:
+  - btop
+  - fastfetch
+  - git
+  - system
+  - timezone
+  - update
+  - zsh
+
+exclude_roles:
+  - docker
+  - fluxcd
+  - helm
+  - k9s
+  - kind
+  - kubectl
+  - neovim
+  - nvm
+  - obsidian
+  - powershell
+  - python
+  - ssh
+  - taskfile
+  - terraform
+  - tmux
+  - ufw
+  - vpnkit
+  - vscode
+
+# Role - System Variables
+ansible_user: username
+loop_host: 127.0.1.1
+hostname: ubuntu-wsl
+
+# Role - Git Variables
+git_user_name: John Doe
+git_user_user: username
+git_user_email: email@example.com
+
+# Ansible config
+ansible_python_interpreter: /usr/bin/python3
+ansible_ssh_common_args: -o StrictHostKeyChecking=no
+ansible_ssh_port: 22
