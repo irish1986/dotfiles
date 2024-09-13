@@ -1,0 +1,15 @@
+---
+- name: VPNKit | {{ ansible_distribution }} | Copy config file
+  ansible.builtin.copy:
+    src: wsl-vpnkit.service
+    dest: /etc/systemd/system/
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: VPNKit | {{ ansible_distribution }} | Enable and check wsl-vpnkit service
+  ansible.builtin.systemd:
+    name: wsl-vpnkit
+    daemon_reload: true
+    state: restarted
+    enabled: true

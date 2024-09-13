@@ -25,25 +25,20 @@ exclude_roles:
   - terraform
   - tmux
   - ufw
+  - vpnkit
   - vscode
 
 # Role - System Variables
-ansible_user: irish
+ansible_user: username
 loop_host: 127.0.1.1
 hostname: ubuntu-wsl
 
-# Role - Timezone Variables
-system_timezone: America/Toronto
-
 # Role - Git Variables
-git_user_name: Simon Harvey
-git_user_user: irish1986
-git_user_email: simon.harvey.86@gmail.com
+git_user_name: John Doe
+git_user_user: username
+git_user_email: email@example.com
 
-# Role - SSH Variables
-github_ssh_keys: https://github.com/irish1986.keys
-launchpad_ssh_keys: ""
-other_ssh_keys: ""
-
-# Role - ZSH Variables
-zsh_fonts: Hack
+# Ansible config
+ansible_python_interpreter: /usr/bin/python3
+ansible_ssh_common_args: -o StrictHostKeyChecking=no
+ansible_ssh_port: 22
