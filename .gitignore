@@ -3,5 +3,4 @@
 .cache_ggshield
 
 inventory/group_vars/
-!inventory/group_vars/all.yml
-!inventory/group_vars/default.yml
+!inventory/group_vars/sample.yml
