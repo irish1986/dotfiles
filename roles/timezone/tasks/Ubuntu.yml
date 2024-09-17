@@ -18,4 +18,4 @@
 
     - name: System | Set local timezone
       community.general.timezone:
-        name: "{{ system_timezone | default('Etc/UTC') }}"
+        name: "{{ timezone.locale | default('Etc/UTC') }}"

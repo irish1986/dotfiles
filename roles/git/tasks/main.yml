@@ -16,11 +16,11 @@
     value: "{{ item.value }}"
   with_items:
     - name: user.email
-      value: "{{ git_user_email }}"
+      value: "{{ git.email }}"
     - name: user.name
-      value: "{{ git_user_name }}"
+      value: "{{ git.name }}"
     - name: user.user
-      value: "{{ git_user_user }}"
+      value: "{{ git.user }}"
     - name: color.ui
       value: auto
     - name: commit.gpgsign

@@ -12,9 +12,10 @@
     user: "{{ ansible_user }}"
     key: "{{ item }}"
   loop:
-    - https://github.com/{{ git_user_user }}.keys
-    - "{{ launchpad_ssh_keys }}"
-    - "{{ other_ssh_keys }}"
+    - https://github.com/{{ git.user }}.keys
+    - "{{ ssh.github }}"
+    - "{{ ssh.launchpad }}"
+    - "{{ ssh.other }}"
 
 - name: SSH | Start SSH service
   ansible.builtin.service:

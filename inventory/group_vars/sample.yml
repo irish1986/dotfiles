@@ -33,12 +33,27 @@ ansible_user: username
 loop_host: 127.0.1.1
 hostname: ubuntu-wsl
 
-# Role - Git Variables
-git_user_name: John Doe
-git_user_user: username
-git_user_email: email@example.com
+# Role - Docker Variables
+docker:
+  enable: true
+  network: 172.10.0.0
 
-# Ansible config
-ansible_python_interpreter: /usr/bin/python3
-ansible_ssh_common_args: -o StrictHostKeyChecking=no
-ansible_ssh_port: 22
+# Role - Git Variables
+git:
+  email: email@example.com
+  name: John Doe
+  user: username
+
+# Role - SSH Variables
+ssh:
+  github: ""
+  launchpad: ""
+  other: ""
+
+# Role - Timezone Variables
+timezone:
+  locale: America/Toronto
+
+# Role - ZSH Variables
+zsh:
+  fonts: Hack
