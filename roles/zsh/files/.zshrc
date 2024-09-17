@@ -3,11 +3,11 @@ if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]
 fi
 
 export PATH=$HOME/bin:/usr/local/bin:$PATH:$HOME/.local/bin
+# export MANPATH="/usr/local/man:$MANPATH"
 
 export ZSH="$HOME/.oh-my-zsh"
 
 ZSH_THEME="powerlevel10k/powerlevel10k"
-# ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=#663399,standout"
 
 zstyle ':omz:update' mode auto      # update automatically without asking
 zstyle ':omz:update' frequency 7    # update automatically after x days
