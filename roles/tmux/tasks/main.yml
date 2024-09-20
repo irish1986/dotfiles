@@ -11,7 +11,9 @@
 - name: Tmux | Install TPM
   ansible.builtin.git:
     repo: https://github.com/tmux-plugins/tpm
+    version: v3.1.0
     dest: ~/.tmux/plugins/tpm
+    depth: 1
 
 - name: Tmux | Configure tmux
   ansible.builtin.copy:

@@ -81,7 +81,7 @@
     - name: ZSH | Install you-should-use plugin
       ansible.builtin.git:
         repo: https://github.com/MichaelAquilina/zsh-you-should-use.git
-        version: 1.7.3
+        version: 1.9.0
         dest: "{{ ansible_env.HOME }}/.oh-my-zsh/custom/plugins/you-should-use"
         depth: 1
 
