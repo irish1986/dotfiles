@@ -31,9 +31,6 @@ exclude_roles:
 implicit_roles:
   - update
 
-# Token - Test
-gh_pat: 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
-
 # Role - System Variables
 ansible_user: username
 loop_host: 127.0.1.1

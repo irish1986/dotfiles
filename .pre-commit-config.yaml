@@ -5,7 +5,7 @@ ci:
   skip:
     - actionlint
     - ansible-lint
-    # - ggshield
+    - ggshield
 repos:
   - repo: https://github.com/commitizen-tools/commitizen
     rev: v3.29.0
