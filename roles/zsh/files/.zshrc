@@ -8,6 +8,7 @@ export PATH=$HOME/bin:/usr/local/bin:$PATH:$HOME/.local/bin
 export ZSH="$HOME/.oh-my-zsh"
 
 ZSH_THEME="powerlevel10k/powerlevel10k"
+ZSH_TMUX_AUTOSTART=true
 
 zstyle ':omz:update' mode auto      # update automatically without asking
 zstyle ':omz:update' frequency 7    # update automatically after x days
@@ -24,6 +25,7 @@ plugins=(
   fzf-tab
   git
   history
+  tmux
   sudo
   you-should-use
   z
