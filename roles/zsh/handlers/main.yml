@@ -1,15 +1,10 @@
 ---
-- name: Remove oh-my-zsh Script
+- name: ZSH | Remove oh-my-zsh script
   ansible.builtin.file:
     path: /tmp/oh-my-zsh.install.sh
     state: absent
 
-- name: Cleanup oh-my-zsh
+- name: ZSH | Cleanup oh-my-zsh
   ansible.builtin.file:
     path: /home/irish/oh-my-zsh.install.sh
     state: absent
-
-- name: Update font-cache
-  ansible.builtin.command: fc-cache -fv
-  register: fontcache
-  changed_when: fontcache.rc != 0

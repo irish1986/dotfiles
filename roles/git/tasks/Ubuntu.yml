@@ -1,21 +1,11 @@
 ---
-- name: Git | Install git | {{ ansible_distribution }}
+- name: Git | Install git
   ansible.builtin.apt:
-    name: "{{ item }}"
+    name:
+      - git
+      - git-lfs
+      - gh
     state: present
-    update_cache: true
-  loop:
-    - git
-    - git-lfs
-  become: true
-
-- name: Git | Install GitHub CLI tool | {{ ansible_distribution }}
-  ansible.builtin.apt:
-    name: "{{ item }}"
-    state: present
-    update_cache: true
-  loop:
-    - gh
   become: true
 
 # - name: Authenticate with GitHub using SSH key

@@ -1,11 +1,11 @@
 ---
-- name: Kind | Download Latest Version JSON
+- name: Kind | Download latest Version JSON
   ansible.builtin.uri:
     url: https://api.github.com/repos/kubernetes-sigs/kind/releases/latest
   register: kind_latest_version_json
   changed_when: false
 
-- name: Kind | Registering Latest Release
+- name: Kind | Registering latest Release
   ansible.builtin.set_fact:
     kind_latest_release: "{{ kind_latest_version_json.json.tag_name }}"
 

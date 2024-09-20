@@ -1,20 +1,21 @@
 ---
-- name: Fastfetch | Download Latest Version JSON
+- name: Fastfetch | Download latest JSON
   ansible.builtin.uri:
     url: https://api.github.com/repos/fastfetch-cli/fastfetch/releases/latest
   register: fastfetch_latest_version_json
   changed_when: false
 
-- name: Fastfetch | Registering fastfetch Latest Release
+- name: Fastfetch | Registering fastfetch latest Release
   ansible.builtin.set_fact:
     k9s_latest_release: "{{ fastfetch_latest_version_json.json.tag_name }}"
 
-- name: Fastfetch | Registering fastfetch Latest Version
+- name: Fastfetch | Registering fastfetch latest Version
   ansible.builtin.set_fact:
-    k9s_latest_version: "{{ fastfetch_latest_release.stdout|default('') }}"
+    k9s_latest_version: "{{ fastfetch_latest_release.stdout | default('') }}"
 
 - name: Fastfetch | Remove neofetch thx for your service
   ansible.builtin.apt:
-    name: neofetch
+    name:
+      - neofetch
     state: absent
   become: true

@@ -1,12 +1,14 @@
 ---
-- name: btop | Ubuntu | Install btop
+- name: Btop | Ubuntu | Install btop
   ansible.builtin.apt:
-    name: btop
+    name:
+      - btop
     state: present
   become: true
 
-- name: btop | Ubuntu | Remove htop thx for your service
+- name: Btop | Remove htop thx for your service
   ansible.builtin.apt:
-    name: htop
+    name:
+      - htop
     state: absent
   become: true

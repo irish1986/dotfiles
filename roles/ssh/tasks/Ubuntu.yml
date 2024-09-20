@@ -19,8 +19,10 @@
 
 - name: SSH | Start SSH service
   ansible.builtin.service:
-    name: ssh
+    name:
+      - ssh
     state: started
+  become: true
 
 - name: SSH | Update SSH configuration
   ansible.builtin.lineinfile:
@@ -47,9 +49,9 @@
       line: GSSAPIAuthentication no
     - regexp: ^X11Forwarding
       line: X11Forwarding no
-  notify: Restart ssh
+  notify: SSH | Restart ssh
 
-- name: Open SSH ports
+- name: SSH | Open SSH ports
   community.general.ufw:
     state: "{{ item.state }}"
     rule: "{{ item.rule }}"
@@ -61,4 +63,4 @@
       rule: allow
       port: "22"
       proto: tcp
-  notify: Reload ufw
+  notify: SSH | Reload ufw

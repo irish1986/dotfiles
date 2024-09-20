@@ -1,5 +1,14 @@
 ---
-- name: VPNKit | {{ ansible_distribution }} | Copy config file
+- name: VPNKit | Install dependencies
+  ansible.builtin.apt:
+    name:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+    state: present
+  become: true
+
+- name: "VPNKit | Copy config file "
   ansible.builtin.copy:
     src: wsl-vpnkit.service
     dest: /etc/systemd/system/
@@ -7,7 +16,7 @@
     group: root
     mode: "0644"
 
-- name: VPNKit | {{ ansible_distribution }} | Enable and check wsl-vpnkit service
+- name: VPNKit | Enable and check wsl-vpnkit service
   ansible.builtin.systemd:
     name: wsl-vpnkit
     daemon_reload: true

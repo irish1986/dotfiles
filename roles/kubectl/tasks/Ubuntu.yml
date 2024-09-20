@@ -1,5 +1,5 @@
 ---
-- name: Kubectl  | Install dependencies
+- name: Kubectl | Install dependencies
   ansible.builtin.apt:
     name:
       - apt-transport-https
@@ -14,33 +14,23 @@
   register: kubectl_latest_release
   changed_when: false
 
-- name: Kubectl | Adding Kubernetes GPG key
+- name: Kubectl | Add GPG key
   ansible.builtin.apt_key:
     url: https://pkgs.k8s.io/core:/stable:/{{ kubectl_latest_release }}/deb/Release.key
     keyring: /etc/apt/keyrings/kubernetes-apt-keyring.gpg
     state: present
   become: true
 
-- name: Kubectl | Adding kubernetes apt repo
+- name: Kubectl | Add APT repository
   ansible.builtin.apt_repository:
     repo: deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/{{ kubectl_latest_release }} /deb/ /
     filename: kubernetes
     mode: "0644"
   become: true
 
-- name: Kubectl | Installing Kubernetes
+- name: Kubectl | Install packages
   ansible.builtin.apt:
-    name: "{{ item }}"
+    name:
+      - kubectl
     state: present
-    update_cache: true
-  loop:
-    - kubectl
   become: true
-
-- name: K8s | Configure .kube/config
-  block:
-    - name: K8s | Ensure .kube directory exists
-      ansible.builtin.file:
-        path: "{{ ansible_env.HOME }}/.kube"
-        state: directory
-        mode: "0755"

@@ -8,7 +8,7 @@
     state: present
   become: true
 
-- name: Helm | Add Helm GPG key
+- name: Helm | Add GPG key
   ansible.builtin.apt_key:
     url: https://baltocdn.com/helm/signing.asc
     keyring: /usr/share/keyrings/helm.gpg
@@ -22,17 +22,15 @@
   failed_when: false
   check_mode: false
 
-- name: Helm | Add Helm APT repository
+- name: Helm | Add APT repository
   ansible.builtin.apt_repository:
     repo: deb [arch={{ dpkg_architecture.stdout }} signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main
     filename: helm
   become: true
 
-- name: Helm | Install Helm Engine
+- name: Helm | Install packages
   ansible.builtin.apt:
-    name: "{{ item }}"
+    name:
+      - helm
     state: present
-    update_cache: true
-  loop:
-    - helm
   become: true

@@ -8,24 +8,22 @@
     state: present
   become: true
 
-- name: Terraform | Add the HashiCorp GPG key | {{ ansible_distribution }}
+- name: Terraform | Add the HashiCorp GPG key
   ansible.builtin.apt_key:
     url: https://apt.releases.hashicorp.com/gpg
     keyring: /usr/share/keyrings/hashicorp-archive-keyring.gpg
     state: present
   become: true
 
-- name: Terraform | Add the official HashiCorp Linux repository | {{ ansible_distribution }}
+- name: Terraform | Add the official HashiCorp Linux repository
   ansible.builtin.apt_repository:
     repo: deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com {{ ansible_distribution_release }} main
     state: present
   become: true
 
-- name: Terraform | Install Terraform | {{ ansible_distribution }}
+- name: Terraform | Install Terraform
   ansible.builtin.apt:
-    name: "{{ item }}"
+    name:
+      - terraform
     state: present
-    update_cache: true
-  loop:
-    - terraform
   become: true

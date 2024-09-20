@@ -9,10 +9,6 @@
   ansible.builtin.set_fact:
     obsidian_latest_release: "{{ obsidian_latest_version_json.json.tag_name }}"
 
-- name: Obsidian | Registering Latest Version
-  ansible.builtin.set_fact:
-    obsidian_latest_version: "{{ obsidian_latest_version_json.stdout | default('') }}"
-
 - name: Obsidian | Show obsidian_latest_version debug
   ansible.builtin.debug:
     var: obsidian_latest_release
@@ -20,10 +16,11 @@
 - name: Obsidian | Clone Obsidian Git Repo
   ansible.builtin.git:
     repo: "{{ obsidian.repository }}"
+    version: "000000"
     dest: "{{ ansible_env.HOME }}/{{ obsidian.directory }}"
     depth: 1
 
-- name: Obsidian | Create Cron Job to Pull, Commit, and Push to Git
+- name: Obsidian | Create Cron Job
   ansible.builtin.cron:
     name: Git Pull, Commit, and Push
     minute: "*"

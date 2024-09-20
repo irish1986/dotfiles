@@ -7,3 +7,11 @@
 - name: "Kubectl | Run Tasks: {{ ansible_distribution }}"
   ansible.builtin.include_tasks: "{{ ansible_distribution }}.yml"
   when: system_distribution_config.stat.exists
+
+- name: Kubectl | Configure .kube/config
+  block:
+    - name: k8s | Ensure .kube directory exists
+      ansible.builtin.file:
+        path: "{{ ansible_env.HOME }}/.kube"
+        state: directory
+        mode: "0755"

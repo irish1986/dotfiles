@@ -1,27 +1,5 @@
 ---
-- name: Start qemu
+- name: System | Start qemu
   ansible.builtin.service:
     name: qemu-guest-agent
     state: started
-- name: Start unattended-upgrades
-  ansible.builtin.systemd:
-    name: unattended-upgrades
-    state: started
-- name: Reboot
-  ansible.builtin.reboot:
-    msg: Rebooting nodes
-    reboot_timeout: 3600
-    test_command: uptime
-- name: Restart unattended-upgrades
-  ansible.builtin.service:
-    name: unattended-upgrades.service
-    daemon_reload: true
-    enabled: true
-    state: restarted
-- name: Restart wsl-vpnkit
-  ansible.builtin.service:
-    name: wsl-vpnkit
-    state: restarted
-- name: Update CA certificates
-  ansible.builtin.command: update-ca-certificates
-  listen: update ca certificates

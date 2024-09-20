@@ -1,22 +1,28 @@
 ---
-- name: PowerShell | Download and Add Powershell Key to Apt-Get Keyring
+- name: PowerShell | Add GPG key
   ansible.builtin.apt_key:
     url: https://packages.microsoft.com/keys/microsoft.asc
     keyring: /etc/apt/trusted.gpg.d/microsoft.gpg
     state: present
   become: true
 
-- name: PowerShell | Add Powershell Repository into /etc/apt/sources.list
+- name: PowerShell | Get System Architecture
+  ansible.builtin.command: dpkg --print-architecture
+  register: dpkg_architecture
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: PowerShell | Add APT repository
   ansible.builtin.apt_repository:
-    repo: deb [arch={{ ansible_machine | replace('x86_64', 'amd64') }}] https://packages.microsoft.com/{{ ansible_distribution | lower }}/{{ ansible_distribution_version
-      }}/prod {{ ansible_distribution_release | lower }} main
+    repo: deb [arch={{ dpkg_architecture.stdout }} signed-by=/usr/share/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/{{ ansible_distribution |
+      lower }}/{{ ansible_distribution_version }}/prod {{ ansible_distribution_release | lower }} main
     state: present
   become: true
 
-- name: PowerShell | Install Powershell
+- name: PowerShell | Install packages
   ansible.builtin.apt:
     name:
       - powershell
-    update_cache: true
     state: present
   become: true

@@ -1,14 +1,14 @@
 ---
-- name: "fastfetch | Checking for Distribution Config: {{ ansible_distribution }}"
+- name: "Fastfetch | Checking for Distribution Config: {{ ansible_distribution }}"
   ansible.builtin.stat:
     path: "{{ role_path }}/tasks/{{ ansible_distribution }}.yml"
   register: fastfetch_distribution_config
 
-- name: "fastfetch | Run Tasks: {{ ansible_distribution }}"
+- name: "Fastfetch | Run Tasks: {{ ansible_distribution }}"
   ansible.builtin.include_tasks: "{{ ansible_distribution }}.yml"
   when: fastfetch_distribution_config.stat.exists
 
-- name: fastfetch | {{ ansible_distribution }} | Ensure .config directory exists
+- name: Fastfetch | Ensure .config directory exists
   ansible.builtin.file:
     path: "{{ ansible_env.HOME }}/{{ item }}"
     state: directory
@@ -17,12 +17,12 @@
     - .config
     - .config/fastfetch
 
-- name: fastfetch | {{ ansible_distribution }} | Remove neofetch thx for your service
+- name: Fastfetch | Remove neofetch thx for your service
   ansible.builtin.file:
     path: "{{ ansible_env.HOME }}/.config/neofetch"
     state: absent
 
-- name: fastfetch | {{ ansible_distribution }} | Copy config file
+- name: Fastfetch | Copy config file
   ansible.builtin.copy:
     src: config.jsonc
     dest: "{{ ansible_env.HOME }}/.config/fastfetch"

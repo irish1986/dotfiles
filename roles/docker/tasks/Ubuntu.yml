@@ -9,7 +9,7 @@
     state: present
   become: true
 
-- name: Docker | Add Docker official GPG key
+- name: Docker | Add GPG key
   ansible.builtin.apt_key:
     url: https://download.docker.com/linux/{{ ansible_distribution | lower }}/gpg
     keyring: /etc/apt/keyrings/docker.gpg
@@ -23,7 +23,7 @@
   failed_when: false
   check_mode: false
 
-- name: Docker | Add Docker stable repository
+- name: Docker | Add APT repository
   ansible.builtin.apt_repository:
     repo: deb [arch={{ dpkg_architecture.stdout }} signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/{{ ansible_distribution | lower }} {{
       ansible_distribution_release }} stable
@@ -31,17 +31,15 @@
     mode: "0644"
   become: true
 
-- name: Docker | Install Docker Engine
+- name: Docker | Install packages
   ansible.builtin.apt:
-    name: "{{ item }}"
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
     state: present
-    update_cache: true
-  loop:
-    - docker-ce
-    - docker-ce-cli
-    - containerd.io
-    - docker-buildx-plugin
-    - docker-compose-plugin
   become: true
 
 - name: Docker | Enable service

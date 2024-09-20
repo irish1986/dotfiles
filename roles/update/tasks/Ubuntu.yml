@@ -1,5 +1,5 @@
 ---
-- name: Update | {{ ansible_distribution }} | Update and Upgrade
+- name: Update and Upgrade
   block:
     - name: Update | Update packages
       ansible.builtin.apt:
@@ -10,16 +10,15 @@
         upgrade: full
       become: true
 
-    - name: Update | Unattended-Upgrades | Install package
+    - name: Unattended-Upgrades | Install package
       ansible.builtin.apt:
-        name: "{{ item }}"
+        name:
+          - unattended-upgrades
         state: present
-        autoclean: true
-      loop:
-        - unattended-upgrades
+      become: true
       notify: Start unattended-upgrades
 
-    - name: Update | Unattended-Upgrades | 2norecommends
+    - name: Unattended-Upgrades | 2norecommends
       ansible.builtin.blockinfile:
         path: /etc/apt/apt.conf.d/2norecommends
         mode: "0644"
@@ -31,7 +30,7 @@
           APT::Install-Suggests "false";
       notify: Restart unattended-upgrades
 
-    - name: Update | Unattended-Upgrades | 10periodic
+    - name: Unattended-Upgrades | 10periodic
       ansible.builtin.blockinfile:
         path: /etc/apt/apt.conf.d/10periodic
         mode: "0644"
@@ -43,7 +42,7 @@
           APT::Periodic::Update-Package-Lists "1";
       notify: Start unattended-upgrades
 
-    - name: Update | Unattended-Upgrades | 50unattended-upgrades
+    - name: Unattended-Upgrades | 50unattended-upgrades
       ansible.builtin.blockinfile:
         path: /etc/apt/apt.conf.d/50unattended-upgrades
         mode: "0644"

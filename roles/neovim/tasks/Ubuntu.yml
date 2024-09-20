@@ -1,5 +1,5 @@
 ---
-- name: Neovim | {{ ansible_distribution }} | Dependencies
+- name: Neovim | Install dependencies
   ansible.builtin.apt:
     name:
       - ansible-lint
@@ -12,7 +12,7 @@
     state: present
   become: true
 
-- name: Neovim | {{ ansible_distribution }} | Install
+- name: Neovim | Install packages
   ansible.builtin.apt_repository:
     repo: ppa:neovim-ppa/unstable
     state: present

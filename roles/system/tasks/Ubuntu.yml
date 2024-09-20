@@ -1,5 +1,5 @@
 ---
-- name: System | Hostname | {{ ansible_distribution }}
+- name: System | Hostname
   when:
     - not ansible_host_environment_is_wsl
   block:
@@ -14,16 +14,16 @@
           127.0.0.1  localhost
           {{ loop_host | default('127.0.1.1') }}  {{ hostname | default('ubuntu') }}
 
-- name: System | {{ ansible_distribution }} | User
+- name: System | Groups and Users
   when:
     - not ansible_host_environment_is_wsl
   block:
     - name: System | Ensure groups are present
       ansible.builtin.group:
-        name: "{{ item }}"
+        name:
+          - sudo
         state: present
-      loop:
-        - sudo
+      become: true
 
     - name: System | Ensure sudo group has sudo privileges
       ansible.builtin.lineinfile:
@@ -41,36 +41,32 @@
           # Gives passwordless sudoer to user
           {{ ansible_user }}   ALL=(ALL)   NOPASSWD: ALL
 
-- name: System | {{ ansible_distribution }} | Install packages
+- name: System | Install default packages
   ansible.builtin.apt:
-    name: "{{ item }}"
+    name:
+      - apt-transport-https
+      - curl
+      - git
+      - nano
+      - wget
     state: present
-  loop:
-    - apt-transport-https
-    - curl
-    - git
-    - nano
-    - wget
   become: true
 
-- name: System | {{ ansible_distribution }} | Install qemu-guest-agent
+- name: System | Install qemu-guest-agent
   ansible.builtin.apt:
-    name: "{{ item }}"
+    name:
+      - qemu-guest-agent
     state: present
-    update_cache: true
-  loop:
-    - qemu-guest-agent
   become: true
   when:
     - not ansible_host_environment_is_wsl
     - ansible_virtualization_role == "guest"
-  notify: Start qemu
+  notify: System | Start qemu
 
-- name: System | {{ ansible_distribution }} | WSL
+- name: System | Copy wsl config file
+  ansible.builtin.copy:
+    src: wsl.conf
+    dest: /etc
+    mode: "0644"
   when:
     - ansible_host_environment_is_wsl
-  block:
-    - name: System | {{ ansible_distribution }} | Copy wsl config file
-      ansible.builtin.copy:
-        src: wsl.conf
-        dest: /etc

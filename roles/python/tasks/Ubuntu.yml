@@ -16,3 +16,4 @@
   loop:
     - poetry
     - pre-commit
+  become: true

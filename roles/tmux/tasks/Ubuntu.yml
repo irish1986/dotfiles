@@ -1,6 +1,7 @@
 ---
-- name: Tmux | {{ ansible_distribution }} | Install tmux
+- name: Tmux | Install tmux
   ansible.builtin.apt:
-    name: tmux
+    name:
+      - tmux
     state: present
   become: true

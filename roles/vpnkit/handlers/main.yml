@@ -1,0 +1,9 @@
+---
+- name: VPNKit | Restart wsl-vpnkit
+  ansible.builtin.service:
+    name: wsl-vpnkit
+    state: restarted
+- name: VPNKit | Update CA certificates
+  ansible.builtin.command: update-ca-certificates
+  listen: update ca certificates
+  changed_when: false

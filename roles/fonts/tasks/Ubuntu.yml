@@ -1,11 +1,11 @@
 ---
-- name: Fonts | Download Latest Version JSON
+- name: Fonts | Download latest JSON
   ansible.builtin.uri:
     url: https://api.github.com/repos/ryanoasis/nerd-fonts/releases/latest
   register: nf_latest_version_json
   changed_when: false
 
-- name: Fonts | Registering Nerd Fonts Latest Release
+- name: Fonts | Registering Nerd Fonts latest release
   ansible.builtin.set_fact:
     nf_latest_release: "{{ nf_latest_version_json.json.tag_name }}"
 
@@ -14,9 +14,10 @@
     var: nf_latest_release
 
 - name: Fonts | Ensure fonts directory
-  file:
+  ansible.builtin.file:
     path: "{{ ansible_env.HOME }}/.local/share/fonts"
     state: directory
+    mode: "0644"
 
 - name: Fonts | Download Hack fonts
   ansible.builtin.unarchive:

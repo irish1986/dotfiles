@@ -8,3 +8,4 @@
   ansible.builtin.include_tasks: "{{ ansible_distribution }}.yml"
   when:
     - system_distribution_config.stat.exists
+    - not ansible_host_environment_is_wsl
