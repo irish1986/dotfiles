@@ -10,11 +10,12 @@ exclude_paths:
   - scripts/
 
 # Ansible-lint does not fail on warnings from the rules or tags listed below
-# warn_list:
-#   - command-instead-of-module
-#   - command-instead-of-shell
+warn_list:
+ - yaml[line-length]
+  # - command-instead-of-module
+  # - command-instead-of-shell
 
 # Ansible-lint will skip and ignore the rules or tags listed below
 # Uncomment next two lines in order to disable YAML syntax violations
-skip_list:
- - yaml[line-length]
+# skip_list:
+#  - yaml[line-length]
