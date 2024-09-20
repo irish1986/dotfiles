@@ -26,7 +26,7 @@ repos:
       # Common errors
       - id: check-json
       - id: check-yaml
-        files: \.(yaml|yml)$
+        files: /.(yaml|yml)$
       - id: end-of-file-fixer
       - id: trailing-whitespace
         args:
