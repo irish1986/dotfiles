@@ -13,6 +13,11 @@ repos:
       - id: ggshield
         language_version: python3
         stages: [commit]
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v3.29.0
+    hooks:
+      - id: commitizen
+        stages: [commit-msg]
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.6.0
     hooks:
@@ -47,13 +52,6 @@ repos:
       - id: alphabetize-codeowners
       - id: fix-smartquotes
       - id: fix-ligatures
-  - repo: https://github.com/commitizen-tools/commitizen
-    rev: v3.29.0
-    hooks:
-      - id: commitizen
-        args:
-          - --config
-          - .config/.cs.yml
   - repo: https://github.com/igorshubovych/markdownlint-cli
     rev: v0.41.0
     hooks:
