@@ -15,7 +15,8 @@
 
 - name: PowerShell | Add APT repository
   ansible.builtin.apt_repository:
-    repo: deb [arch={{ dpkg_architecture.stdout }} signed-by=/usr/share/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/{{ ansible_distribution |
+    repo: |
+      deb [arch={{ dpkg_architecture.stdout }} signed-by=/usr/share/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/{{ ansible_distribution |
       lower }}/{{ ansible_distribution_version }}/prod {{ ansible_distribution_release | lower }} main
     state: present
   become: true
