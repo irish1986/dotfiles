@@ -1,10 +1,13 @@
 ---
 default_roles:
   - btop
+  - cloud-init
   - fastfetch
+  - fonts
   - git
   - system
   - timezone
+  - tmux
   - update
   - zsh
 
@@ -21,9 +24,7 @@ exclude_roles:
   - powershell
   - python
   - ssh
-  - taskfile
   - terraform
-  - tmux
   - ufw
   - vpnkit
   - vscode
