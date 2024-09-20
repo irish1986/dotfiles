@@ -8,16 +8,22 @@
     state: present
   become: true
 
+- name: Kubectl | Get latest kubectl version
+  ansible.builtin.uri:
+    url: https://dl.k8s.io/release/stable.txt
+  register: kubectl_latest_version
+  changed_when: false
+
 - name: Kubectl | Adding Kubernetes GPG key
   ansible.builtin.apt_key:
-    url: https://pkgs.k8s.io/core:/stable:/v1.29/deb/Release.key
+    url: https://pkgs.k8s.io/core:/stable:/{{ kubectl_latest_version }}/deb/Release.key
     keyring: /etc/apt/keyrings/kubernetes-apt-keyring.gpg
     state: present
   become: true
 
 - name: Kubectl | Adding kubernetes apt repo
   ansible.builtin.apt_repository:
-    repo: deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.29/deb/ /
+    repo: deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/{{ kubectl_latest_version }} /deb/ /
     filename: kubernetes
     mode: "0644"
   become: true
@@ -38,9 +44,3 @@
         path: "{{ ansible_env.HOME }}/.kube"
         state: directory
         mode: "0755"
-
-    - name: K8s | Copy .kube/config file
-      ansible.builtin.copy:
-        src: config
-        dest: "{{ ansible_env.HOME }}/.kube/config"
-        mode: "0600"

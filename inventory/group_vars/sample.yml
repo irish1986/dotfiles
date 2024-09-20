@@ -40,9 +40,18 @@ docker:
 
 # Role - Git Variables
 git:
+  directory:
+    - personal
+    - reference
+    - work
   email: email@example.com
   name: John Doe
   user: username
+
+# Role - Obsidian Variables
+obsidian:
+  repository: " git@github.com:user/notes.git"
+  directory: " .notes"
 
 # Role - SSH Variables
 ssh:

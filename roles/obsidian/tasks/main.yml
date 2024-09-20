@@ -13,13 +13,13 @@
 
 - name: Obsidian | Clone Obsidian Git Repo
   ansible.builtin.git:
-    repo: git@github.com:irish1986/notes.git
-    dest: "{{ ansible_env.HOME }}/git/notes"
-  failed_when: false # This only really needs to be run once, ever.
+    repo: "{{ obsidian.repository }}"
+    dest: "{{ ansible_env.HOME }}/{{ obsidian.directory }}"
+    depth: 1
 
-# - name: "Obsidian | Create Cron Job to Pull, Commit, and Push to Git"
-#   ansible.builtin.cron:
-#     name: "Git Pull, Commit, and Push"
-#     minute: "*"
-#     job: "cd {{ ansible_user_dir }}/SecondBrain && git pull && git add -A && git commit -m 'Auto backup from $HOSTNAME' && git push"
-#   become: true
+- name: Obsidian | Create Cron Job to Pull, Commit, and Push to Git
+  ansible.builtin.cron:
+    name: Git Pull, Commit, and Push
+    minute: "*"
+    job: cd {{ ansible_env.HOME }}/{{ obsidian.directory }} && git pull && git add -A && git commit -m 'Auto backup from $HOSTNAME' && git push
+  become: true
