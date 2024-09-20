@@ -1,4 +1,0 @@
----
-- name: Show the uptime
-  ansible.builtin.debug:
-    msg: Uptime {{ now().replace(microsecond=0) - now().fromtimestamp(now(fmt='%s') | int - ansible_uptime_seconds) }}
