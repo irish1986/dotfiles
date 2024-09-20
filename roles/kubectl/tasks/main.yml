@@ -10,7 +10,7 @@
 
 - name: Kubectl | Configure .kube/config
   block:
-    - name: k8s | Ensure .kube directory exists
+    - name: K8s | Ensure .kube directory exists
       ansible.builtin.file:
         path: "{{ ansible_env.HOME }}/.kube"
         state: directory

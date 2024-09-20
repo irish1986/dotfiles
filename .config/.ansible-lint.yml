@@ -19,3 +19,6 @@ warn_list:
 # Uncomment next two lines in order to disable YAML syntax violations
 # skip_list:
 #  - yaml[line-length]
+
+# Allow setting custom prefix for name[prefix] rule
+task_name_prefix: "{stem} | "

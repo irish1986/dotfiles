@@ -28,6 +28,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4.1.7
 
+
+      - name: Run ansible-lint
+        uses: ansible/ansible-lint@v24.9.2
+        # optional (see below):
+        with:
+          args: ""
+          setup_python: "true"
+          working_directory: ""
+          requirements_file: "collections/requirements.yml"
+
   # pre-commit:
   #   uses: ./.github/workflows/pre-commit.yml
   # secret:
