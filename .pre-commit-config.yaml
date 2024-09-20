@@ -27,7 +27,6 @@ repos:
       - id: check-json
       - id: check-yaml
         files: \.(yaml|yml)$
-        exclude: ^k8s/cluster/homelab/base/flux-system
       - id: end-of-file-fixer
       - id: trailing-whitespace
         args:
