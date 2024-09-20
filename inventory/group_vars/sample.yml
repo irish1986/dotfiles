@@ -48,6 +48,10 @@ git:
   name: John Doe
   user: username
 
+# Role - Fonts Variables
+fonts:
+  nf: Nerd
+
 # Role - Obsidian Variables
 obsidian:
   repository: " git@github.com:user/notes.git"

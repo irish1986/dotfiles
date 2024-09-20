@@ -46,22 +46,6 @@
       ansible.builtin.script:
         cmd: /tmp/oh-my-zsh.install.sh
 
-- name: ZSH | Install Nerds Fonts
-  when:
-    - not ansible_host_environment_is_wsl
-  block:
-    - name: ZSH | Ensure fonts directory
-      file:
-        path: "{{ ansible_env.HOME }}/.local/share/fonts"
-        state: directory
-
-    - name: ZSH | Download Hack fonts
-      ansible.builtin.unarchive:
-        src: https://github.com/ryanoasis/nerd-fonts/releases/download/v3.2.1/Hack.zip
-        dest: "{{ ansible_env.HOME }}/.local/share/fonts/"
-        remote_src: true
-      notify: Update font-cache
-
 - name: ZSH | Setup oh-my-zsh plugin
   block:
     - name: ZSH | Install powerlevel10k themes

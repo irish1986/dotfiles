@@ -11,19 +11,19 @@
 - name: Kubectl | Get latest kubectl version
   ansible.builtin.uri:
     url: https://dl.k8s.io/release/stable.txt
-  register: kubectl_latest_version
+  register: kubectl_latest_release
   changed_when: false
 
 - name: Kubectl | Adding Kubernetes GPG key
   ansible.builtin.apt_key:
-    url: https://pkgs.k8s.io/core:/stable:/{{ kubectl_latest_version }}/deb/Release.key
+    url: https://pkgs.k8s.io/core:/stable:/{{ kubectl_latest_release }}/deb/Release.key
     keyring: /etc/apt/keyrings/kubernetes-apt-keyring.gpg
     state: present
   become: true
 
 - name: Kubectl | Adding kubernetes apt repo
   ansible.builtin.apt_repository:
-    repo: deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/{{ kubectl_latest_version }} /deb/ /
+    repo: deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/{{ kubectl_latest_release }} /deb/ /
     filename: kubernetes
     mode: "0644"
   become: true

@@ -13,13 +13,7 @@
   ansible.builtin.set_fact:
     k9s_latest_version: "{{ fastfetch_latest_release.stdout|default('') }}"
 
-# - name: Fastfetch | Ubuntu | Install fastfetch
-#   ansible.builtin.apt:
-#     name: neofetch
-#     state: present
-#   become: true
-
-- name: Fastfetch | Ubuntu | Remove neofetch thx for your service
+- name: Fastfetch | Remove neofetch thx for your service
   ansible.builtin.apt:
     name: neofetch
     state: absent

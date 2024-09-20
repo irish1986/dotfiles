@@ -5,19 +5,15 @@
   register: nvm_latest_version_json
   changed_when: false
 
-- name: NVM | Registering NVM Latest Release
+- name: NVM | Registering Latest Release
   ansible.builtin.set_fact:
     nvm_latest_release: "{{ nvm_latest_version_json.json.tag_name }}"
-
-- name: NVM | Registering NVM Latest Version
-  ansible.builtin.set_fact:
-    nvm_latest_version: "{{ nvm_latest_release.stdout | default('') }}"
 
 - name: NVM | Show nvm_latest_release debug
   ansible.builtin.debug:
     var: nvm_latest_release
 
-- name: Install nvm
+- name: NVM | Install nvm
   ansible.builtin.shell: >
     set -o pipefail && curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/{{ nvm_latest_release }}/install.sh | bash
   args:

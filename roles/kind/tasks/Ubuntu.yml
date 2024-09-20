@@ -1,13 +1,19 @@
 ---
-- name: Kind | Install dependencies
-  ansible.builtin.apt:
-    name:
-      - apt-transport-https
-      - ca-certificates
-      - curl
-    state: present
-  become: true
+- name: Kind | Download Latest Version JSON
+  ansible.builtin.uri:
+    url: https://api.github.com/repos/kubernetes-sigs/kind/releases/latest
+  register: kind_latest_version_json
+  changed_when: false
 
+- name: Kind | Registering Latest Release
+  ansible.builtin.set_fact:
+    kind_latest_release: "{{ kind_latest_version_json.json.tag_name }}"
+
+- name: Kind | Show kind_latest_release debug
+  ansible.builtin.debug:
+    var: kind_latest_version
+
+# - name: Kind | Install kind
 # [ $(uname -m) = x86_64 ] && curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.23.0/kind-linux-amd64
 # chmod +x ./kind
 # sudo mv ./kind /usr/local/bin/kind
