@@ -8,6 +8,17 @@
   ansible.builtin.include_tasks: "{{ ansible_distribution }}.yml"
   when: system_distribution_config.stat.exists
 
+- name: Git | Create directories
+  file:
+    path: "{{ ansible_home }}/{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: 0775
+  loop:
+    - /data/directory
+    - /data/another
+
 - name: Git | Update git configuration
   community.general.git_config:
     name: "{{ item.name }}"
