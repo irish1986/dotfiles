@@ -44,10 +44,10 @@ docker:
 
 # Role - Git Variables
 git:
-  directory:
-    - personal
-    - reference
-    - work
+  dir:
+    personal:
+    reference:
+    work:
   email: email@example.com
   name: John Doe
   user: username

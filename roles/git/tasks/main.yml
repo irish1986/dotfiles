@@ -10,14 +10,13 @@
 
 - name: Git | Create directories
   file:
-    path: "{{ ansible_home }}/{{ item }}"
+    path: "{{ ansible_home }}/git/{{ item }}"
     state: directory
     owner: root
     group: root
     mode: 0775
   loop:
-    - /data/directory
-    - /data/another
+    - "{{ git.user }}"
 
 - name: Git | Update git configuration
   community.general.git_config:
