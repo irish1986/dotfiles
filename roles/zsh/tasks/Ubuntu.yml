@@ -41,11 +41,13 @@
         dest: /tmp/oh-my-zsh.install.sh
         force: true
         mode: "0755"
-      notify: Cleanup oh-my-zsh
+      notify: ZSH | Cleanup oh-my-zsh
 
     - name: ZSH | Run the install script
       ansible.builtin.script:
         cmd: /tmp/oh-my-zsh.install.sh
+      become: yes
+      become_user: "{{ ansible_user }}"
 
 - name: ZSH | Setup plugins
   block:
@@ -53,56 +55,61 @@
       ansible.builtin.git:
         repo: https://github.com/romkatv/powerlevel10k.git
         version: v1.20.0
-        dest: "{{ ohmyzsh }}/custom/themes/powerlevel10k"
+        dest: "{{ ansible_home }}/.oh-my-zsh/custom/themes/powerlevel10k"
         depth: 1
 
     - name: ZSH | Install you-should-use
       ansible.builtin.git:
         repo: https://github.com/MichaelAquilina/zsh-you-should-use.git
         version: 1.9.0
-        dest: "{{ ohmyzsh }}/custom/plugins/you-should-use"
+        dest: "{{ ansible_home }}/.oh-my-zsh/custom/plugins/you-should-use"
         depth: 1
 
     - name: ZSH | Install zsh-autosuggestions
       ansible.builtin.git:
         repo: https://github.com/zsh-users/zsh-autosuggestions
         version: v0.7.0
-        dest: "{{ ohmyzsh }}/custom/plugins/zsh-autosuggestions"
+        dest: "{{ ansible_home }}/.oh-my-zsh/custom/plugins/zsh-autosuggestions"
         depth: 1
 
     - name: ZSH | Install zsh-bat
       ansible.builtin.git:
         repo: https://github.com/fdellwing/zsh-bat.git
         version: c47f2de
-        dest: "{{ ohmyzsh }}/custom/plugins/zsh-bat"
+        dest: "{{ ansible_home }}/.oh-my-zsh/custom/plugins/zsh-bat"
         depth: 1
 
     - name: ZSH | Install zsh-completions
       ansible.builtin.git:
         repo: https://github.com/zsh-users/zsh-completions
         version: 0.35.0
-        dest: "{{ ohmyzsh }}/custom/plugins/zsh-completions"
+        dest: "{{ ansible_home }}/.oh-my-zsh/custom/plugins/zsh-completions"
         depth: 1
 
     - name: ZSH | Install zsh-eza
       ansible.builtin.git:
         repo: https://github.com/renovate-bot/z-shell-_-zsh-eza
         version: b0b0b02
-        dest: "{{ ohmyzsh }}/custom/plugins/zsh-eza"
+        dest: "{{ ansible_home }}/.oh-my-zsh/custom/plugins/zsh-eza"
         depth: 1
 
     - name: ZSH | Install zsh-syntax-highlighting
       ansible.builtin.git:
         repo: https://github.com/zsh-users/zsh-syntax-highlighting.git
         version: 0.8.0
-        dest: "{{ ohmyzsh }}/custom/plugins/zsh-syntax-highlighting"
+        dest: "{{ ansible_home }}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting"
         depth: 1
 
     - name: ZSH | Install zsh-z
       ansible.builtin.git:
         repo: https://github.com/agkozak/zsh-z
         version: afaf29
-        dest: "{{ ohmyzsh }}/custom/plugins/zsh-z"
+        dest: "{{ ansible_home }}/.oh-my-zsh/custom/plugins/zsh-z"
+
+    - name: ZSH | Fix permissions
+      ansible.builtin.file:
+        path: "{{ ansible_home }}/.oh-my-zsh/"
+        mode: "0755"
 
 - name: ZSH | Copy .zshrc
   ansible.builtin.copy:
