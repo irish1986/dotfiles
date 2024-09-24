@@ -1,9 +1,26 @@
 ---
 - name: Register Current User
   ansible.builtin.set_fact:
-    host_user: "{{ ansible_env['USER']}}"
+    ansible_user: "{{ ansible_env['USER'] }}"
   when:
-    - host_user is not defined
+    - ansible_user is not defined
+  changed_when: false
+
+- name: Show Current User
+  ansible.builtin.debug:
+    msg: "User is: '{{ ansible_user }}'"
+
+- name: Register Current User
+  ansible.builtin.set_fact:
+    ansible_home: "{{ ansible_env['HOME'] }}"
+  when:
+    - ansible_home is not defined
+  changed_when: false
+
+- name: debug output
+  debug: 
+    msg: "User is: '{{ ansible_home }}'"
+
 - name: Detect WSL
   ansible.builtin.shell: |
     if [[ $(cat /proc/version | grep microsoft-standard-WSL) ]]; then

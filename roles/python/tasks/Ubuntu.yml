@@ -16,6 +16,8 @@
     name: "{{ item }}"
     state: present
   loop:
+    - commitizen
+    - ggshield
     - poetry
     - pre-commit
   become: true
@@ -28,7 +30,7 @@
     state: present
   loop:
     - commitizen
-    - ggshielf
+    - ggshield
     - poetry
     - pre-commit
   become: true

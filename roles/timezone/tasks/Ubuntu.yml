@@ -12,7 +12,7 @@
       - ntp
     state: present
   become: true
-  notify: Start ntp
+  notify: Timezone | Start ntp
 
 - name: Timezone | Set local timezone
   community.general.timezone:

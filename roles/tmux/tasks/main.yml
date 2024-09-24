@@ -18,7 +18,7 @@
 - name: Tmux | Configure tmux
   ansible.builtin.copy:
     src: tmux
-    dest: "{{ ansible_env.HOME }}/.config/"
+    dest: "{{ ansible_home }}/.config/"
     mode: "0644"
     directory_mode: "0755"
     force: true

@@ -12,7 +12,7 @@
   community.general.git_config:
     name: "{{ item.name }}"
     scope: file
-    file: "{{ ansible_env.HOME }}/.gitconfig"
+    file: "{{ ansible_home }}/.gitconfig"
     value: "{{ item.value }}"
   with_items:
     - name: user.email

@@ -21,10 +21,6 @@
         var: run_roles
     - name: Run roles
       ansible.builtin.include_role:
-        apply:
-          tags:
-            - update
-            - "{{ roles_item }}"
         name: "{{ roles_item }}"
       loop_control:
         loop_var: roles_item

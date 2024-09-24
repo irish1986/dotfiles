@@ -12,6 +12,6 @@
   block:
     - name: K8s | Ensure .kube directory exists
       ansible.builtin.file:
-        path: "{{ ansible_env.HOME }}/.kube"
+        path: "{{ ansible_home }}/.kube"
         state: directory
         mode: "0755"

@@ -1,0 +1,5 @@
+---
+- name: Timezone | Start ntp
+  ansible.builtin.service:
+    name: ntp
+    state: started

@@ -10,7 +10,7 @@
 
 - name: Btop | Ensure .config directory exists
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/{{ item }}"
+    path: "{{ ansible_home }}/{{ item }}"
     state: directory
     mode: "0755"
   loop:
@@ -20,5 +20,5 @@
 - name: Btop | Copy config file
   ansible.builtin.copy:
     src: btop.conf
-    dest: "{{ ansible_env.HOME }}/.config/btop/"
+    dest: "{{ ansible_home }}/.config/btop/"
     mode: "0644"

@@ -33,6 +33,7 @@ implicit_roles:
 
 # Role - System Variables
 ansible_user: username
+ansible_home: "/home/{{ ansible_user }}/"
 loop_host: 127.0.1.1
 hostname: ubuntu-wsl
 

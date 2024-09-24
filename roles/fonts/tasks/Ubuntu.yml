@@ -15,13 +15,13 @@
 
 - name: Fonts | Ensure fonts directory
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/.local/share/fonts"
+    path: "{{ ansible_home }}/.local/share/fonts"
     state: directory
     mode: "0644"
 
 - name: Fonts | Download Hack fonts
   ansible.builtin.unarchive:
     src: https://github.com/ryanoasis/nerd-fonts/releases/download/{{ nf_latest_release }}/{{ fonts.nf }}.zip
-    dest: "{{ ansible_env.HOME }}/.local/share/fonts/"
+    dest: "{{ ansible_home }}/.local/share/fonts/"
     remote_src: true
   notify: Update font-cache

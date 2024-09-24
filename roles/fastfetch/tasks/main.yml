@@ -10,7 +10,7 @@
 
 - name: Fastfetch | Ensure .config directory exists
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/{{ item }}"
+    path: "{{ ansible_home }}/{{ item }}"
     state: directory
     mode: "0755"
   loop:
@@ -19,11 +19,11 @@
 
 - name: Fastfetch | Remove neofetch thx for your service
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/.config/neofetch"
+    path: "{{ ansible_home }}/.config/neofetch"
     state: absent
 
 - name: Fastfetch | Copy config file
   ansible.builtin.copy:
     src: config.jsonc
-    dest: "{{ ansible_env.HOME }}/.config/fastfetch"
+    dest: "{{ ansible_home }}/.config/fastfetch"
     mode: "0644"

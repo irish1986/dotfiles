@@ -20,7 +20,7 @@
 
 - name: ZSH | Detect oh-my-zsh
   ansible.builtin.stat:
-    path: "{{ ansible_env.HOME }}/.oh-my-zsh"
+    path: "{{ ansible_home }}/.oh-my-zsh"
   register: ohmyzsh
 
 - name: ZSH | Register oh-my-zsh state
@@ -53,77 +53,77 @@
       ansible.builtin.git:
         repo: https://github.com/romkatv/powerlevel10k.git
         version: v1.20.0
-        dest: "{{ ansible_env.HOME }}/.oh-my-zsh/custom/themes/powerlevel10k"
+        dest: "{{ ohmyzsh }}/custom/themes/powerlevel10k"
         depth: 1
 
     - name: ZSH | Install you-should-use
       ansible.builtin.git:
         repo: https://github.com/MichaelAquilina/zsh-you-should-use.git
         version: 1.9.0
-        dest: "{{ ansible_env.HOME }}/.oh-my-zsh/custom/plugins/you-should-use"
+        dest: "{{ ohmyzsh }}/custom/plugins/you-should-use"
         depth: 1
 
     - name: ZSH | Install zsh-autosuggestions
       ansible.builtin.git:
         repo: https://github.com/zsh-users/zsh-autosuggestions
         version: v0.7.0
-        dest: "{{ ansible_env.HOME }}/.oh-my-zsh/custom/plugins/zsh-autosuggestions"
+        dest: "{{ ohmyzsh }}/custom/plugins/zsh-autosuggestions"
         depth: 1
 
     - name: ZSH | Install zsh-bat
       ansible.builtin.git:
         repo: https://github.com/fdellwing/zsh-bat.git
         version: c47f2de
-        dest: "{{ ansible_env.HOME }}/.oh-my-zsh/custom/plugins/zsh-bat"
+        dest: "{{ ohmyzsh }}/custom/plugins/zsh-bat"
         depth: 1
 
     - name: ZSH | Install zsh-completions
       ansible.builtin.git:
         repo: https://github.com/zsh-users/zsh-completions
         version: 0.35.0
-        dest: "{{ ansible_env.HOME }}/.oh-my-zsh/custom/plugins/zsh-completions"
+        dest: "{{ ohmyzsh }}/custom/plugins/zsh-completions"
         depth: 1
 
     - name: ZSH | Install zsh-eza
       ansible.builtin.git:
         repo: https://github.com/renovate-bot/z-shell-_-zsh-eza
         version: b0b0b02
-        dest: "{{ ansible_env.HOME }}/.oh-my-zsh/custom/plugins/zsh-eza"
+        dest: "{{ ohmyzsh }}/custom/plugins/zsh-eza"
         depth: 1
 
     - name: ZSH | Install zsh-syntax-highlighting
       ansible.builtin.git:
         repo: https://github.com/zsh-users/zsh-syntax-highlighting.git
         version: 0.8.0
-        dest: "{{ ansible_env.HOME }}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting"
+        dest: "{{ ohmyzsh }}/custom/plugins/zsh-syntax-highlighting"
         depth: 1
 
     - name: ZSH | Install zsh-z
       ansible.builtin.git:
         repo: https://github.com/agkozak/zsh-z
         version: afaf29
-        dest: "{{ ansible_env.HOME }}/.oh-my-zsh/custom/plugins/zsh-z"
+        dest: "{{ ohmyzsh }}/custom/plugins/zsh-z"
 
 - name: ZSH | Copy .zshrc
   ansible.builtin.copy:
     src: .zshrc
-    dest: "{{ ansible_env.HOME }}/.zshrc"
+    dest: "{{ ansible_home }}/.zshrc"
     mode: "0644"
 
 - name: ZSH | Copy .zsh_aliases
   ansible.builtin.copy:
     src: .zsh_aliases
-    dest: "{{ ansible_env.HOME }}/.zsh_aliases"
+    dest: "{{ ansible_home }}/.zsh_aliases"
     mode: "0644"
 
-- name: ZSH | Copy .profile
-  ansible.builtin.copy:
-    src: .profile
-    dest: "{{ ansible_env.HOME }}/.profile"
-    mode: "0644"
+# - name: ZSH | Copy .profile
+#   ansible.builtin.copy:
+#     src: .profile
+#     dest: "{{ ansible_home }}/.profile"
+#     mode: "0644"
 
-- name: ZSH | Copy .p10k.zsh
-  ansible.builtin.copy:
-    src: .p10k.zsh
-    dest: "{{ ansible_env.HOME }}/.p10k.zsh"
-    mode: "0644"
+# - name: ZSH | Copy .p10k.zsh
+#   ansible.builtin.copy:
+#     src: .p10k.zsh
+#     dest: "{{ ansible_home }}/.p10k.zsh"
+#     mode: "0644"
