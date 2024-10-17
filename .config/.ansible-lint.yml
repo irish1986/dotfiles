@@ -1,24 +1,11 @@
 ---
-# Profiles gradually increase the strictness of rules as your Ansible content lifecycle.
-# We set it to "production" in order to ensure that content meets requirements for inclusion in Ansible Automation Platform (AAP) as validated or certified content
 profile: production
-
-# exclude_paths included in this file are parsed relative to this file's location and not relative to the CWD of execution.
 exclude_paths:
   - .github/
   - .config/
   - scripts/
-
-# Ansible-lint does not fail on warnings from the rules or tags listed below
 warn_list:
  - yaml[line-length]
-  # - command-instead-of-module
-  # - command-instead-of-shell
-
-# Ansible-lint will skip and ignore the rules or tags listed below
-# Uncomment next two lines in order to disable YAML syntax violations
 # skip_list:
 #  - yaml[line-length]
-
-# Allow setting custom prefix for name[prefix] rule
 task_name_prefix: "{stem} | "

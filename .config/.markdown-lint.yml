@@ -1,17 +1,10 @@
 ---
-# Default state for all rules
 default: true
-
-# MD004/ul-style
 MD004:
   style: dash
-
-# MD007/ul-indent
 MD007:
   indent: 2
   start_indented: false
-
-# MD013/line-length
 MD013:
   code_block_line_length: 80
   heading_line_length: 40
@@ -21,32 +14,21 @@ MD013:
   stern: false
   strict: false
   tables: false
-
-# MD025/front-matter
 MD025:
   level: 1
   front_matter_title: ""
-
-# MD033/inline-html
 MD033:
   allowed_elements: [a, br, p, img]
-# MD041/first-line-heading/first-line-h1
 MD041:
   level: 1
   front_matter_title: ""
-
-# MD044/proper-names
 MD044:
   names:
     - DevOps
     - DevSecOps
     - Git
   code_blocks: false
-
-# MD046/code-block-style
 MD046:
   style: fenced
-
-# MD048/code-fence-style
 MD048:
   style: backtick
