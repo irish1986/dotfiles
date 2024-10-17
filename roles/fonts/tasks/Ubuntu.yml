@@ -1,17 +1,19 @@
 ---
-- name: Fonts | Download latest JSON
-  ansible.builtin.uri:
-    url: https://api.github.com/repos/ryanoasis/nerd-fonts/releases/latest
-  register: nf_latest_version_json
-  changed_when: false
+- name: Fonts | Install
+  block:
+    - name: Fonts | Download latest JSON
+      ansible.builtin.uri:
+        url: https://api.github.com/repos/ryanoasis/nerd-fonts/releases/latest
+      register: fonts_latest_version_json
+      changed_when: false
 
-- name: Fonts | Registering Nerd Fonts latest release
-  ansible.builtin.set_fact:
-    nf_latest_release: "{{ nf_latest_version_json.json.tag_name }}"
+    - name: Fonts | Registering Nerd Fonts latest release
+      ansible.builtin.set_fact:
+        fonts_latest_release: "{{ fonts_latest_version_json.json.tag_name }}"
 
-- name: Fonts | Show nf_latest_release debug
-  ansible.builtin.debug:
-    var: nf_latest_release
+    - name: Fonts | Show nf_latest_release debug
+      ansible.builtin.debug:
+        var: fonts_latest_release
 
 - name: Fonts | Ensure fonts directory
   ansible.builtin.file:
@@ -21,7 +23,7 @@
 
 - name: Fonts | Download Hack fonts
   ansible.builtin.unarchive:
-    src: https://github.com/ryanoasis/nerd-fonts/releases/download/{{ nf_latest_release }}/{{ fonts.nf }}.zip
+    src: https://github.com/ryanoasis/nerd-fonts/releases/download/{{ fonts_latest_release }}/{{ fonts.nf }}.zip
     dest: "{{ ansible_home }}/.local/share/fonts/"
     remote_src: true
   notify: Update font-cache

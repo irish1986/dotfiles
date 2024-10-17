@@ -5,3 +5,30 @@
       - tmux
     state: present
   become: true
+
+- name: Tmux | Install TPM
+  block:
+    - name: Tmux | Download latest JSON
+      ansible.builtin.uri:
+        url: https://api.github.com/repos/tmux-plugins/tpm/releases/latest
+      register: tpm_latest_version_json
+      changed_when: false
+
+    - name: Fastfetch | Registering latest release
+      ansible.builtin.set_fact:
+        tpm_latest_release: "{{ tpm_latest_version_json.json.tag_name }}"
+
+    - name: Fastfetch | Registering latest release
+      ansible.builtin.set_fact:
+        tpm_latest_version: "{{ tpm_latest_release.stdout | default('') }}"
+
+    - name: Tmux | Show latest release
+      ansible.builtin.debug:
+        var: tpm_latest_release
+
+    - name: Tmux | Install TPM
+      ansible.builtin.git:
+        repo: https://github.com/tmux-plugins/tpm
+        version: "{{ tpm_latest_release }}"
+        dest: ~/.tmux/plugins/tpm
+        depth: 1

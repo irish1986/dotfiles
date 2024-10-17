@@ -1,19 +1,31 @@
 ---
-- name: Kind | Download latest Version JSON
-  ansible.builtin.uri:
-    url: https://api.github.com/repos/kubernetes-sigs/kind/releases/latest
-  register: kind_latest_version_json
-  changed_when: false
+- name: Kind | Detect previous install
+  ansible.builtin.stat:
+    path: /usr/local/bin/kind
+  register: kind
 
-- name: Kind | Registering latest Release
+- name: Kind | Register state
   ansible.builtin.set_fact:
-    kind_latest_release: "{{ kind_latest_version_json.json.tag_name }}"
+    kind_is_installed: "{{ kind.stat.exists }}"
 
-- name: Kind | Show kind_latest_release debug
-  ansible.builtin.debug:
-    var: kind_latest_version
+- name: Fastfetch | Install
+  when:
+    - not kind_is_installed
+  block:
+    - name: Kind | Download latest JSON
+      ansible.builtin.uri:
+        url: https://api.github.com/repos/kubernetes-sigs/kind/releases/latest
+      register: kind_latest_version_json
+      changed_when: false
 
-# - name: Kind | Install kind
-# [ $(uname -m) = x86_64 ] && curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.23.0/kind-linux-amd64
-# chmod +x ./kind
-# sudo mv ./kind /usr/local/bin/kind
+    - name: Kind | Registering latest Release
+      ansible.builtin.set_fact:
+        kind_latest_release: "{{ kind_latest_version_json.json.tag_name }}"
+
+    - name: Kind | Registering latest version
+      ansible.builtin.set_fact:
+        fastfetch_latest_version: "{{ kind_latest_release.stdout | default('') }}"
+
+    - name: Kind | Show latest release
+      ansible.builtin.debug:
+        var: kind_latest_release

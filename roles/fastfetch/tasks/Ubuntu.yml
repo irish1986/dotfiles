@@ -1,21 +1,38 @@
 ---
-- name: Fastfetch | Download latest JSON
-  ansible.builtin.uri:
-    url: https://api.github.com/repos/fastfetch-cli/fastfetch/releases/latest
-  register: fastfetch_latest_version_json
-  changed_when: false
+- name: Fastfetch | Detect previous install
+  ansible.builtin.stat:
+    path: /usr/local/bin/fastfetch
+  register: fastfetch
 
-- name: Fastfetch | Registering fastfetch latest Release
+- name: Fastfetch | Register state
   ansible.builtin.set_fact:
-    k9s_latest_release: "{{ fastfetch_latest_version_json.json.tag_name }}"
+    fastfetch_is_installed: "{{ fastfetch.stat.exists }}"
 
-- name: Fastfetch | Registering fastfetch latest Version
-  ansible.builtin.set_fact:
-    k9s_latest_version: "{{ fastfetch_latest_release.stdout | default('') }}"
+- name: Fastfetch | Install
+  when:
+    - not fastfetch_is_installed
+  block:
+    - name: Fastfetch | Download latest JSON
+      ansible.builtin.uri:
+        url: https://api.github.com/repos/fastfetch-cli/fastfetch/releases/latest
+      register: fastfetch_latest_version_json
+      changed_when: false
 
-- name: Fastfetch | Remove neofetch thx for your service
-  ansible.builtin.apt:
-    name:
-      - neofetch
-    state: absent
-  become: true
+    - name: Fastfetch | Registering latest release
+      ansible.builtin.set_fact:
+        fastfetch_latest_release: "{{ fastfetch_latest_version_json.json.tag_name }}"
+
+    - name: Fastfetch | Registering latest release
+      ansible.builtin.set_fact:
+        fastfetch_latest_version: "{{ fastfetch_latest_release.stdout | default('') }}"
+
+    - name: Fastfetch | Show latest release
+      ansible.builtin.debug:
+        var: fastfetch_latest_release
+
+    - name: Fastfetch | Remove neofetch thx for your service
+      ansible.builtin.apt:
+        name:
+          - neofetch
+        state: absent
+      become: true

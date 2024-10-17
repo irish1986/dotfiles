@@ -122,15 +122,3 @@
     src: .zsh_aliases
     dest: "{{ ansible_home }}/.zsh_aliases"
     mode: "0644"
-
-# - name: ZSH | Copy .profile
-#   ansible.builtin.copy:
-#     src: .profile
-#     dest: "{{ ansible_home }}/.profile"
-#     mode: "0644"
-
-# - name: ZSH | Copy .p10k.zsh
-#   ansible.builtin.copy:
-#     src: .p10k.zsh
-#     dest: "{{ ansible_home }}/.p10k.zsh"
-#     mode: "0644"

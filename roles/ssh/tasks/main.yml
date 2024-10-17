@@ -7,11 +7,3 @@
 - name: "SSH | Run Tasks: {{ ansible_distribution }}"
   ansible.builtin.include_tasks: "{{ ansible_distribution }}.yml"
   when: system_distribution_config.stat.exists
-
-# ssh-keygen  -o -a 100 -t ed25519 -f ~/.ssh/id_ed25519 -C "{{ ansible_user }}@{{ ansible_host }}"
-# eval "$(ssh-agent -s)"
-# cat "/home/irish/.ssh/id_ed25519.pub" | clip.exe
-# cp -r /mnt/c/Users/irish/.ssh ~/.ssh
-# chmod 600 ~/.ssh/id_ed25519
-# eval ``keychain  --quiet --eval --agents ssh id_ed25519
-# nano ~/.zshrc -> eval ``keychain  --quiet --eval --agents ssh id_ed25519

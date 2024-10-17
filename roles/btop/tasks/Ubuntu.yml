@@ -1,5 +1,5 @@
 ---
-- name: Btop | Ubuntu | Install btop
+- name: Btop | Install btop
   ansible.builtin.apt:
     name:
       - btop

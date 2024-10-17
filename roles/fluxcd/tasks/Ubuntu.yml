@@ -8,16 +8,18 @@
     state: present
   become: true
 
-- name: Flux | Detect flux
+- name: Flux | Detect previous install
   ansible.builtin.stat:
     path: /usr/local/bin/flux
   register: fluxcd
 
-- name: Flux | Register flux state
+- name: Flux | Register state
   ansible.builtin.set_fact:
     fluxcd_is_installed: "{{ fluxcd.stat.exists }}"
 
 - name: Flux | Install fluxcd
+  when:
+    - not fluxcd_is_installed
   block:
     - name: Flux | Download flux install script
       ansible.builtin.get_url:

@@ -12,8 +12,7 @@
   ansible.builtin.file:
     path: "{{ ansible_home }}/git/{{ item }}"
     state: directory
-    owner: root
-    group: root
+    owner: "{{ ansible_user }}"
     mode: "0700"
   loop:
     - "{{ git.user }}"
