@@ -21,26 +21,23 @@ repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
-      # Git style
       - id: check-added-large-files
         args: [--maxkb=2048]
+      - id: check-case-conflict
+      - id: check-json
       - id: check-merge-conflict
       - id: check-vcs-permalinks
-      - id: forbid-new-submodules
-      - id: forbid-submodules
-      # Common errors
-      - id: check-json
       - id: check-yaml
         files: /.(yaml|yml)$
       - id: end-of-file-fixer
-      - id: trailing-whitespace
-        args:
-          - --markdown-linebreak-ext=md
-      # Cross platform
-      - id: check-case-conflict
+      - id: forbid-new-submodules
+      - id: forbid-submodules
       - id: mixed-line-ending
         args:
           - --fix=lf
+      - id: trailing-whitespace
+        args:
+          - --markdown-linebreak-ext=md
   - repo: https://github.com/Lucas-C/pre-commit-hooks
     rev: v1.5.5
     hooks:

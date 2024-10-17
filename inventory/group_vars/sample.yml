@@ -5,6 +5,7 @@ default_roles:
   - fastfetch
   - fonts
   - git
+  - python
   - system
   - timezone
   - tmux
@@ -13,6 +14,7 @@ default_roles:
 exclude_roles:
   - docker
   - fluxcd
+  - ggshield
   - helm
   - k9s
   - kind
@@ -21,19 +23,16 @@ exclude_roles:
   - nvm
   - obsidian
   - powershell
-  - python
   - ssh
   - terraform
+  - trufflehog
   - ufw
   - vpnkit
   - vscode
 
-implicit_roles:
-  - update
-
 # Role - System Variables
 ansible_user: username
-ansible_home: "/home/{{ ansible_user }}/"
+ansible_home: /home/{{ ansible_user }}/
 loop_host: 127.0.1.1
 hostname: ubuntu-wsl
 

@@ -9,12 +9,12 @@
   when: system_distribution_config.stat.exists
 
 - name: Git | Create directories
-  file:
+  ansible.builtin.file:
     path: "{{ ansible_home }}/git/{{ item }}"
     state: directory
     owner: root
     group: root
-    mode: 0775
+    mode: "0700"
   loop:
     - "{{ git.user }}"
 

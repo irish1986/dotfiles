@@ -13,34 +13,46 @@
 
 ## Goals
 
-Provide idempotent deployment mechanism for my computers from a versioned controlled source targeting `Ubuntu` that is easy to set up and maintain.
+Provide idempotent deployment mechanism for my computers from a versioned controlled source targeting `Ubuntu` that is easy to set up and maintain.  I am mostly using this setup with WSL2 on Windows 11 to sync various workstation and laptops; both for personal and professional usage.
 
 ## Getting Started
 
-### System Upgrade
+### Generate ssh-key
 
-Verify your `Ubuntu` installation has all latest packages installed before running the playbook.  OTE: This might take some time.
+You will need to add a valid ssh-key to your GitHub account.  I am still working on automating this.
 
 ```bash
-# Ubuntu
+ssh-keygen -o -a 100 -t ed25519 -f ~/.ssh/id_ed25519 -N '' -C $USER@$HOSTNAME
+```
+
+### Install
+
+This playbook includes a custom shell script located at `scripts/dotfiles`.  This shell script is used to initialize your environment after installing `Ubuntu`.  It is not mandatory but recommended to perform a full system upgrade although recommended.  By default, the only included roles is `update`.  Ansible Galaxy dependencies collection are installed automatically although given some issue occurs, you can run it maually as following.
+
+```bash
 sudo apt-get update && sudo apt-get upgrade -y && sudo apt autoremove -y && sudo apt autoclean -y
+ansible-galaxy install -r ~/.dotfiles/collections/requirements.yml
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/irish1986/dotfiles/main/scripts/setup)"
 ```
 
 ### Setup
 
-The `sample.yml` [file](https://raw.githubusercontent.com/irish1986/dotfiles/main/inventory/group_vars/sample.yml) contains generic variable required for common setup.  These can be modified but not often.
-
-### Install
-
-This playbook includes a custom shell script located at `scripts/dotfiles`. This script is added to your $PATH after installation and can be run multiple times while making sure any Ansible dependencies are installed and updated.
-
-This shell script is also used to initialize your environment after installing `Ubuntu` and performing a full system upgrade as mentioned above.
+The `sample.yml` [file](https://raw.githubusercontent.com/irish1986/dotfiles/main/inventory/group_vars/sample.yml) contains an exemple configuration.  Create a copy of this named `all.yml` and make the recommended ajustment.
 
 ```bash
-# Ubuntu
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/irish1986/dotfiles/main/scripts/setup)"
+cp ~/.dotfiles/inventory/group_vars/sample.yml ~/.dotfiles/inventory/group_vars/all.yml
 ```
+
+## To Do
+
+A quick list of todo's I need to automate.
+
+ 1. `pipx ensurepath`
+ 2. `ggshield auth login`
 
 ## Reference
 
-This repo is heavily influenced by [ALT-F4-LLC](https://github.com/ALT-F4-LLC/dotfiles) and [TechDufus](https://github.com/TechDufus/dotfiles)'s repo. Go check them out !
+This repo is heavily influenced by:
+
+ 1. [ALT-F4-LLC](https://github.com/ALT-F4-LLC/dotfiles)
+ 2. [TechDufus](https://github.com/TechDufus/dotfiles)

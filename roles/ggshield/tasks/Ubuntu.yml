@@ -1,5 +1,5 @@
 ---
-- name: Python | Install
+- name: GGShield | Install
   ansible.builtin.apt:
     name:
       - pipx
@@ -9,15 +9,12 @@
     state: present
   become: true
 
-- name: Python | Install pipx packages
+- name: GGShield | Install pipx packages
   when:
     - ansible_distribution_major_version | int >= 22
   community.general.pipx:
     name: "{{ item }}"
     state: present
   loop:
-    - commitizen
     - ggshield
-    - poetry
-    - pre-commit
   become: true

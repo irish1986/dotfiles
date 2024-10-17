@@ -15,7 +15,7 @@ MD007:
 MD013:
   code_block_line_length: 80
   heading_line_length: 40
-  line_length: 400
+  line_length: 1600
   code_blocks: false
   headings: true
   stern: false

@@ -121,13 +121,15 @@ case $ID in
     ;;
 esac
 
-# if ! [[ -f "$SSH_DIR/authorized_keys" ]]; then
-#   _task "Generating SSH keys"
-#   _cmd "mkdir -p $SSH_DIR"
-#   _cmd "chmod 700 $SSH_DIR"
-#   _cmd "ssh-keygen -o -a 100 -t ed25519 -f $SSH_DIR/id_ed25519 -N '' -C $USER@$HOSTNAME"
-#   _cmd "cat $SSH_DIR/id_ed25519.pub >> $SSH_DIR/authorized_keys"
-# fi
+generate_ssh_key() {
+  if ! [[ -f "$SSH_DIR/authorized_keys" ]]; then
+    _task "Generating SSH keys"
+    _cmd "mkdir -p $SSH_DIR"
+    _cmd "chmod 700 $SSH_DIR"
+    _cmd "ssh-keygen -o -a 100 -t ed25519 -f $SSH_DIR/id_ed25519 -N '' -C $USER@$HOSTNAME"
+    _cmd "cat $SSH_DIR/id_ed25519.pub >> $SSH_DIR/authorized_keys"
+  fi
+}
 
 if ! [[ -d "$DOTFILES_DIR" ]]; then
   _task "Cloning repository"

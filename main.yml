@@ -10,30 +10,30 @@
       ansible.builtin.import_tasks: pre_tasks/whoami.yml
 
   tasks:
-  - name: Set roles
-    block:
-      - name: Set roles
-        ansible.builtin.set_fact:
-          run_roles: "{{ ansible_run_tags != ['all'] and ansible_run_tags or default_roles | difference(exclude_roles | default([])) }}"
-      - name: Display roles
-        ansible.builtin.debug:
-          var: run_roles
-      - name: Run roles
-        ansible.builtin.include_role:
-          name: "{{ roles_item }}"
-        loop_control:
-          loop_var: roles_item
-        with_items: "{{ run_roles }}"
+    - name: Set roles
+      block:
+        - name: Set roles
+          ansible.builtin.set_fact:
+            run_roles: "{{ ansible_run_tags != ['all'] and ansible_run_tags or default_roles | difference(exclude_roles | default([])) }}"
+        - name: Display roles
+          ansible.builtin.debug:
+            var: run_roles
+        - name: Run roles
+          ansible.builtin.include_role:
+            name: "{{ roles_item }}"
+          loop_control:
+            loop_var: roles_item
+          with_items: "{{ run_roles }}"
 
-    rescue:
-      - name: Rescue roles | Update
-        ansible.builtin.debug:
-          msg: Playbook encountered an issue while setting role, only update role will be run.
+      rescue:
+        - name: Rescue roles | Update
+          ansible.builtin.debug:
+            msg: Playbook encountered an issue while setting role, only update role will be run.
 
-    always:
-      - name: Default roles | Update
-        ansible.builtin.include_role:
-          name: "update"
+      always:
+        - name: Default roles | Update
+          ansible.builtin.include_role:
+            name: update
 
   post_tasks:
     - name: Status message

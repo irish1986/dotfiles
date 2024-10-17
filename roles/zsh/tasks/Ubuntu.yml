@@ -46,7 +46,7 @@
     - name: ZSH | Run the install script
       ansible.builtin.script:
         cmd: /tmp/oh-my-zsh.install.sh
-      become: yes
+      become: true
       become_user: "{{ ansible_user }}"
 
 - name: ZSH | Setup plugins

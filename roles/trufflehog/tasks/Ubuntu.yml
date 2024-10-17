@@ -1,0 +1,27 @@
+---
+- name: Trufflehog | Detect previous install
+  ansible.builtin.stat:
+    path: /usr/local/bin/trufflehog
+  register: trufflehog
+
+- name: Trufflehog | Register state
+  ansible.builtin.set_fact:
+    trufflehog_is_installed: "{{ trufflehog.stat.exists }}"
+
+- name: Trufflehog | Install
+  when:
+    - not trufflehog_is_installed
+  block:
+    - name: Trufflehog | Download latest JSON
+      ansible.builtin.uri:
+        url: https://api.github.com/repos/trufflesecurity/trufflehog/releases/latest
+      register: trufflehog_latest_version_json
+      changed_when: false
+
+    - name: Trufflehog | Registering latest Release
+      ansible.builtin.set_fact:
+        trufflehog_latest_release: "{{ trufflehog_latest_version_json.json.tag_name }}"
+
+    - name: Trufflehog | Registering latest Version
+      ansible.builtin.set_fact:
+        trufflehog_latest_version: "{{ trufflehog_latest_release.stdout | default('') }}"
