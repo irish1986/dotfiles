@@ -1,0 +1,19 @@
+---
+- name: Chocolatey | Install
+  ansible.builtin.apt:
+    name:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+    state: present
+  become: true
+
+- name: Chocolatey | Install
+  community.win_chocolatey:
+    name:
+      - 7zip
+      - googlechrome
+      - qbittorrent
+      - steam
+      - vlc
+    state: present

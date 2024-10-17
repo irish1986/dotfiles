@@ -1,0 +1,18 @@
+---
+- name: Tailscale | Install dependencies
+  ansible.builtin.apt:
+    name:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+    state: present
+  become: true
+
+- name: Tailscale | Detect previous install
+  ansible.builtin.stat:
+    path: /usr/local/bin/tailscale
+  register: tailscale
+
+- name: Tailscale | Register state
+  ansible.builtin.set_fact:
+    tailscale_is_installed: "{{ tailscale.stat.exists }}"

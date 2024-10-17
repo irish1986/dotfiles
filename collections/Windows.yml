@@ -1,0 +1,4 @@
+---
+collections:
+  - name: community.win_chocolatey
+    version: 1.5.3

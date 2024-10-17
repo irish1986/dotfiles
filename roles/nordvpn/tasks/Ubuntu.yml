@@ -1,0 +1,9 @@
+---
+- name: NordVPN | Install dependencies
+  ansible.builtin.apt:
+    name:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+    state: present
+  become: true

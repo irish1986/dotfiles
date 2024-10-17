@@ -21,4 +21,5 @@
     - ggshield
     - poetry
     - pre-commit
+    - pywinrm
   become: true
