@@ -1,4 +1,4 @@
 ---
 collections:
-  - name: community.win_chocolatey
+  - name: chocolatey.chocolatey
     version: 1.5.3

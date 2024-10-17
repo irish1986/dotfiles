@@ -9,15 +9,6 @@
     ":semanticCommits",
     "config:recommended"
   ],
-  "platformAutomerge": true,
-  "packageRules": [
-    {
-      "description": "Automerge non-major updates",
-      "matchUpdateTypes": ["minor", "patch"],
-      "automerge": true,
-      "automergeType": "branch"
-    }
-  ],
   "ansible-galaxy": {
     "fileMatch": [
       "(^|/)collections/.+\\.ya?ml(?:\\.j2)?$"
