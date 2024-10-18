@@ -50,6 +50,7 @@ A quick list of todo's I need to automate.
  1. `pipx ensurepath`
  2. `ggshield auth login`
  3. Tmux TPM repo install issue
+ 4. CHOWN -R user:group ~/.config issue
 
 ## Reference
 
