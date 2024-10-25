@@ -17,6 +17,14 @@ Provide idempotent deployment mechanism for my computers from a versioned contro
 
 ## Getting Started
 
+### Setup WSL2
+
+```powershell
+wsl --unregister ${existing-distro}
+wsl --install -d ${target-distro}
+wsl --setdefault ${target-distro}
+```
+
 ### Generate ssh-key
 
 You will need to add a valid ssh-key to your GitHub account.  I am still working on automating this.
