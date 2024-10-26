@@ -1,12 +1,12 @@
 # alias - terminal
 alias c="clear"
 alias x="exit"
-alias r="source ~/.zshrc"
+alias r="source $HOME/.zshrc"
 
 # alias - edit config terminal
-alias zshrc="nn ~/.zshrc"
-alias aliases="nn ~/.zshrc_aliases"
-alias func="nn ~/.zshrc_func"
+alias zshrc="nn $HOME/.zshrc"
+alias aliases="nn $CONFIG/zsh/.zsh_aliases"
+alias func="nn $CONFIG/zsh/.zshrc_func"
 
 # alias - date
 alias da='date "+%Y-%m-%d %A %T %Z"'
@@ -19,7 +19,7 @@ alias htop="btop"
 alias nn='nano'
 
 # alias - change directory
-alias home='cd ~'
+alias home='cd $HOME'
 alias cd..='cd ..'
 alias ..='cd ..'
 alias ...='cd ../..'

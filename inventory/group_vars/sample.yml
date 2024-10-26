@@ -1,8 +1,6 @@
 ---
 default_roles:
-  - btop
   - cloudinit
-  - fastfetch
   - fonts
   - git
   - python
@@ -13,7 +11,9 @@ default_roles:
 
 exclude_roles:
   - argocd
+  - btop
   - docker
+  - fastfetch
   - fluxcd
   - ggshield
   - helm
