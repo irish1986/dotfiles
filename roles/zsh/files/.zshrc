@@ -37,9 +37,12 @@ plugins=(
 source $ZSH/oh-my-zsh.sh
 source $CONFIG/zsh/.zsh_aliases
 
+eval "$(register-python-argcomplete pipx)"
 eval "$(zoxide init zsh)"
 
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh # run `p10k configure`
 
 autoload -U compinit
+autoload -U bashcompinit
 compinit -i
+bashcompinit

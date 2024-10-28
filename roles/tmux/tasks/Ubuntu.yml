@@ -10,6 +10,9 @@
   ansible.builtin.file:
     path: "{{ ansible_home }}/{{ item }}"
     state: directory
+    recurse: true
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
     mode: "0755"
   loop:
     - .config
@@ -20,5 +23,6 @@
     - name: Tmux | Install TPM
       ansible.builtin.git:
         repo: https://github.com/tmux-plugins/tpm
-        version: v3.1.0
-        dest: ~/.config/tmux/plugins/tpm
+        version: 7bdb7ca
+        dest: "{{ ansible_home }}/.config/tmux/plugins/tpm"
+        depth: 1
