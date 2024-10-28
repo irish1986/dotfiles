@@ -38,9 +38,7 @@ ssh-keygen -o -a 100 -t ed25519 -f ~/.ssh/id_ed25519 -N '' -C $USER@$HOSTNAME
 This playbook includes a custom shell script located at `scripts/dotfiles`.  This shell script is used to initialize your environment after installing `Ubuntu`.  It is not mandatory but recommended to perform a full system upgrade although recommended.  By default, the only included roles is `update`.  Ansible Galaxy dependencies collection are installed automatically although given some issue occurs, you can run it maually as following.
 
 ```bash
-git clone https://github.com/irish1986/dotfiles.git ~/.dotfiles
-sudo apt-get update && sudo apt-get upgrade -y && sudo apt autoremove -y && sudo apt autoclean -y
-sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/irish1986/dotfiles/main/scripts/setup)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/irish1986/dotfiles/main/scripts/setup)"
 ```
 
 ### Setup
@@ -50,15 +48,6 @@ The `sample.yml` [file](https://raw.githubusercontent.com/irish1986/dotfiles/mai
 ```bash
 cp ~/.dotfiles/inventory/group_vars/sample.yml ~/.dotfiles/inventory/group_vars/all.yml
 ```
-
-## To Do
-
-A quick list of todo's I need to automate.
-
- 1. `pipx ensurepath`
- 2. `ggshield auth login`
- 3. Tmux TPM repo install issue
- 4. CHOWN -R user:group ~/.config issue
 
 ## Reference
 
