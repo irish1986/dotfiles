@@ -38,6 +38,7 @@ source $ZSH/oh-my-zsh.sh
 source $CONFIG/zsh/.zsh_aliases
 
 eval "$(register-python-argcomplete pipx)"
+eval "$(register-python-argcomplete cz)"
 eval "$(zoxide init zsh)"
 
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh # run `p10k configure`
