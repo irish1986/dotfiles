@@ -13,7 +13,7 @@ repos:
       - id: commitizen
         stages: [commit-msg]
   - repo: https://github.com/gitguardian/ggshield
-    rev: v1.32.2
+    rev: v1.33.0
     hooks:
       - id: ggshield
         language_version: python3
