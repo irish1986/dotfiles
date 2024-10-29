@@ -3,7 +3,7 @@
   "dependencyDashboardTitle": "Renovate Dashboard",
   "dependencyDashboardApproval": true,
   "extends": [
-    "config:base",
+    "config:recommended",
     ":disableRateLimiting",
     ":timezone(America/New_York)",
     ":semanticCommits",
