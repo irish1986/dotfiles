@@ -1,13 +1,11 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "dependencyDashboardTitle": "Renovate Dashboard",
-  "dependencyDashboardApproval": true,
   "extends": [
     "config:recommended",
     ":disableRateLimiting",
     ":timezone(America/New_York)",
-    ":semanticCommits",
-    "config:recommended"
+    ":semanticCommits"
   ],
   "ansible-galaxy": {
     "fileMatch": [
