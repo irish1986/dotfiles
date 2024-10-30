@@ -21,9 +21,20 @@ concurrency:
 jobs:
 
   main:
-    name: Call Ansible-Lint
-    uses: irishlab-io/admin/.github/workflows/reusable-ansible-lint.yml@main
-    with:
-      configuration_file: "-c .config/.ansible-lint.yml"
-      requirements_file: ""
-      working_directory: "collections/requirements.yml"
+    name: Main Workflow
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Run ansible-lint
+        uses: ansible/ansible-lint@v24.9.2
+        with:
+          args: "-c ./.config/.ansible-lint.yml"
+          setup_python: "true"
+          working_directory: ""
+          requirements_file: "./collections/requirements.yml"
