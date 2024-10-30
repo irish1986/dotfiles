@@ -26,4 +26,3 @@ jobs:
     with:
       configuration_file: "-c ./.config/.ansible-lint.yml"
       requirements_file: "./collections/requirements.yml"
-      working_directory: ""
