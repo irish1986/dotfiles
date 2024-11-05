@@ -3,8 +3,7 @@ if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]
 fi
 
 export CONFIG="$HOME/.config"
-# export MANPATH="/usr/local/man:$MANPATH"
-# export PATH=$HOME/bin:/usr/local/bin:$PATH:$HOME/.local/bin
+export EDITOR="nano"
 export ZSH="$HOME/.oh-my-zsh"
 
 ZSH_THEME="powerlevel10k/powerlevel10k"
@@ -35,7 +34,7 @@ plugins=(
   )
 
 source $ZSH/oh-my-zsh.sh
-source $CONFIG/zsh/.zsh_aliases
+source $HOME/.zshaliases
 
 eval "$(register-python-argcomplete pipx)"
 eval "$(register-python-argcomplete cz)"

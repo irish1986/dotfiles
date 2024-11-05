@@ -1,7 +1,9 @@
 # alias - terminal
 alias c="clear"
-alias x="exit"
+alias e=$EDITOR
+alias h='history | grep '
 alias r="source $HOME/.zshrc"
+alias x="exit"
 
 # alias - edit config terminal
 alias zshrc="nn $HOME/.zshrc"
@@ -15,11 +17,9 @@ alias da='date "+%Y-%m-%d %A %T %Z"'
 alias top="btop"
 alias htop="btop"
 
-# alias - nano
-alias nn='nano'
-
 # alias - change directory
 alias home='cd $HOME'
+alias cd='z'
 alias cd..='cd ..'
 alias ..='cd ..'
 alias ...='cd ../..'
@@ -27,8 +27,6 @@ alias ....='cd ../../..'
 alias .....='cd ../../../..'
 
 # alias - history search
-alias h='history | grep '
-
 # alias - reboot
 alias rebootsafe='sudo shutdown -r now'
 alias rebootforce='sudo shutdown -r -n now'

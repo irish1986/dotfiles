@@ -1,20 +1,18 @@
 ---
 default_roles:
-  - cloudinit
-  - fonts
   - git
-  - python
   - system
-  - timezone
   - tmux
   - zsh
 
 exclude_roles:
   - argocd
   - btop
+  - cloudinit
   - docker
   - fastfetch
   - fluxcd
+  - fonts
   - ggshield
   - helm
   - k9s
@@ -24,8 +22,10 @@ exclude_roles:
   - nvm
   - obsidian
   - powershell
+  - python
   - ssh
   - terraform
+  - timezone
   - trufflehog
   - ufw
   - vpnkit

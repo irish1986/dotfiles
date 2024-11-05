@@ -54,6 +54,8 @@
       value: true
     - name: init.defaultBranch
       value: main
+    - name: pull.ff
+      value: only
     - name: pull.rebase
       value: true
     - name: push.default
