@@ -4,9 +4,8 @@
     name:
       - bat
       - eza
-      - fzf
       - git
-      - unzip
+      - trash-cli
       - zoxide
       - zsh
     state: present

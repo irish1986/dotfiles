@@ -26,7 +26,6 @@ alias ...='cd ../..'
 alias ....='cd ../../..'
 alias .....='cd ../../../..'
 
-# alias - history search
 # alias - reboot
 alias rebootsafe='sudo shutdown -r now'
 alias rebootforce='sudo shutdown -r -n now'
@@ -35,6 +34,9 @@ alias rebootforce='sudo shutdown -r -n now'
 alias diskspace="du -S | sort -n -r |more"
 alias tree='tree -CAhF --dirsfirst'
 alias treed='tree -CAFd'
+
+# alias - rm to trash
+alias rm='trash -v'
 
 # alias - archive
 alias mktar='tar -cvf'
