@@ -1,1 +1,1 @@
-GH_TOKEN="your-github-token-goes-here"
+export GH_TOKEN="your-github-token-goes-here"
