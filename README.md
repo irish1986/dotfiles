@@ -33,6 +33,12 @@ You will need to add a valid ssh-key to your GitHub account.  I am still working
 ssh-keygen -o -a 100 -t ed25519 -f ~/.ssh/id_ed25519 -N '' -C $USER@$HOSTNAME
 ```
 
+Sometimes it is useful to pull your existing public keys from GitHub.
+
+```bash
+curl https://github.com/irish1986.keys >> ~/.ssh/authorized_keys
+```
+
 ### Install
 
 This playbook includes a custom shell script located at `scripts/dotfiles`.  This shell script is used to initialize your environment after installing `Ubuntu`.  It is not mandatory but recommended to perform a full system upgrade although recommended.  By default, the only included roles is `update`.  Ansible Galaxy dependencies collection are installed automatically although given some issue occurs, you can run it maually as following.

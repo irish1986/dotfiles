@@ -1,0 +1,9 @@
+---
+- name: Chrome | Install dependencies # figure something out
+  ansible.builtin.apt:
+    name:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+    state: present
+  become: true

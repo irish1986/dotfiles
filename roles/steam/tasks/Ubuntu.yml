@@ -1,0 +1,7 @@
+---
+- name: Steam | Install dependencies
+  ansible.builtin.apt:
+    name:
+      - steam
+    state: present
+  become: true

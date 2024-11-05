@@ -20,7 +20,7 @@ concurrency:
 
 jobs:
 
-  main:
+  ansible-lint:
     name: Call Ansible-Lint
     uses: irishlab-io/admin/.github/workflows/reusable-ansible-lint.yml@main
     with:
