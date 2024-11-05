@@ -223,6 +223,10 @@ cp ~/.dotfiles/inventory/group_vars/sample.yml ~/.dotfiles/inventory/group_vars/
 
 ## PIPX
 
+I like to install the following tool for my workflow.
+
 ```bash
+sudo apt install pipx -y
+pipx install ggshield pre-commit
 export PATH="/home/irish/.local/bin:$PATH"
 ```
