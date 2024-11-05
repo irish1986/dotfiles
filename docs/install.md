@@ -7,7 +7,7 @@ This repo is build with automation and fast execution as a key principal.  Altho
 > [!NOTE]
 > Windows Terminal requires Windows 10 2004 (build 19041) or later
 
-Install the [Windows Terminal from the Microsoft Store][store-install-link].  This allows you to always be on the latest version when we release new builds with automatic upgrades.
+Install the [Windows Terminal from the Microsoft Store](store-install-link).  This allows you to always be on the latest version when we release new builds with automatic upgrades.
 
 ## Setup additionals fonts
 
@@ -29,7 +29,7 @@ wsl --install -d Ubuntu-24.04
 wsl --setdefault Ubuntu-24.04
 ```
 
-## Setup Ubuntu-24.04 
+## Setup Ubuntu-24.04
 
 There are not much that needs to be done by default.  Start by updating the default installation.
 
@@ -99,7 +99,7 @@ git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-m
 **zsh-completions** => additional completion definitions
 
 ```bash
-git clone https://github.com/zsh-users/zsh-completions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-completions 
+git clone https://github.com/zsh-users/zsh-completions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-completions
 ```
 
 **zsh-syntax-highlightings** => syntax highlighting
@@ -179,7 +179,6 @@ tmux is a terminal multiplexer. It lets you switch easily between several progra
 sudo apt install tmux -y
 ```
 
-
 ### Setup TPM
 
 Tmux Plugin Manager (TPM) is a TMUX plugin manager, just like OMZ but for TMUX.
@@ -220,4 +219,10 @@ If you plan to run this automated playbook and edit `all.yml` configuration file
 ```bash
 sudo apt install ansible -y
 cp ~/.dotfiles/inventory/group_vars/sample.yml ~/.dotfiles/inventory/group_vars/all.yml
+```
+
+## PIPX
+
+```bash
+export PATH="/home/irish/.local/bin:$PATH"
 ```
