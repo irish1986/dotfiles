@@ -54,6 +54,8 @@
       value: true
     - name: init.defaultBranch
       value: main
+    - name: init.templateDir
+      value: "{{ ansible_home }}/.git-template"
     - name: pull.ff
       value: only
     - name: pull.rebase

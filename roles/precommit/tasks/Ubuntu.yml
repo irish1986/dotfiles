@@ -18,3 +18,9 @@
   loop:
     - pre-commit
   become: true
+
+- name: Precommit | Run the setup script
+  ansible.builtin.command: |
+    pre-commit init-templatedir {{ ansible_user }}/.git-template
+  register: precommit_setup
+  changed_when: precommit_setup.rc != 0

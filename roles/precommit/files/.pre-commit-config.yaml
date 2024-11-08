@@ -2,25 +2,10 @@
 fail_fast: false
 default_install_hook_types:
   - pre-commit
-  - pre-push
   - commit-msg
 ci:
   autoupdate_schedule: monthly
-  skip:
-    - ansible-lint
-    - ggshield
 repos:
-  - repo: https://github.com/commitizen-tools/commitizen
-    rev: v3.30.0
-    hooks:
-      - id: commitizen
-        stages: [commit-msg]
-  - repo: https://github.com/gitguardian/ggshield
-    rev: v1.33.0
-    hooks:
-      - id: ggshield
-        language_version: python3
-        stages: [pre-commit]
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
@@ -30,8 +15,6 @@ repos:
       - id: check-json
       - id: check-merge-conflict
       - id: check-vcs-permalinks
-      - id: check-yaml
-        files: /.(yaml|yml)$
       - id: end-of-file-fixer
       - id: forbid-new-submodules
       - id: forbid-submodules
@@ -46,36 +29,10 @@ repos:
     hooks:
       - id: remove-crlf
       - id: remove-tabs
+        args: [--whitespaces-count, "2"]
   - repo: https://github.com/sirosen/texthooks
     rev: 0.6.7
     hooks:
       - id: alphabetize-codeowners
       - id: fix-ligatures
       - id: fix-smartquotes
-  - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.42.0
-    hooks:
-      - id: markdownlint
-        args:
-          - --config
-          - .config/.markdown-lint.yml
-  - repo: https://github.com/adrienverge/yamllint
-    rev: v1.35.1
-    hooks:
-      - id: yamllint
-        args:
-          - -c
-          - .config/.yaml-lint.yml
-  - repo: https://github.com/ansible-community/ansible-lint
-    rev: v24.9.2
-    hooks:
-      - id: ansible-lint
-        files: \.(yaml|yml)$
-        args:
-          - -c
-          - .config/.ansible-lint.yml
-          - --fix
-  - repo: https://github.com/rhysd/actionlint
-    rev: v1.7.4
-    hooks:
-      - id: actionlint
