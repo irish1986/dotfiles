@@ -1,5 +1,5 @@
 ---
-- name: Python | Install
+- name: Precommit | Install
   ansible.builtin.apt:
     name:
       - pipx
@@ -9,14 +9,12 @@
     state: present
   become: true
 
-- name: Python | Install pipx packages
+- name: Precommit | Install pipx packages
   when:
     - ansible_distribution_major_version | int >= 22
   community.general.pipx:
     name: "{{ item }}"
     state: present
   loop:
-    - ansible-lint
-    - commitizen
-    - poetry
+    - pre-commit
   become: true
