@@ -30,7 +30,7 @@ alias tree='tree -CAhF --dirsfirst'
 alias treed='tree -CAFd'
 
 # alias - rm to trash
-alias bfg='java -jar bfg.jar'
+alias bfg='java -jar /usr/local/bin/bfg'
 
 # alias - trufflehog
 alias trufflehog='trufflehog --no-update'
