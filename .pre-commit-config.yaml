@@ -1,9 +1,12 @@
 ---
 fail_fast: false
+default_install_hook_types:
+  - pre-commit
+  - pre-push
+  - commit-msg
 ci:
   autoupdate_schedule: monthly
   skip:
-    - actionlint
     - ansible-lint
     - ggshield
 repos:

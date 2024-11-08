@@ -1,0 +1,41 @@
+---
+- name: BFG | Install dependencies
+  ansible.builtin.apt:
+    name:
+      - openjdk-11-jdk
+    state: present
+  become: true
+
+- name: BFG | Detect previous install
+  ansible.builtin.stat:
+    path: /usr/local/bin/bfg
+  register: bfg
+
+- name: BFG | Register state
+  ansible.builtin.set_fact:
+    bfg_is_installed: "{{ bfg.stat.exists }}"
+
+- name: BFG | Install
+  when:
+    - not bfg_is_installed
+  block:
+    - name: BFG | Download latest JSON
+      ansible.builtin.uri:
+        url: https://api.github.com/repos/rtyley/bfg-repo-cleaner/releases/latest
+      register: bfg_latest_json
+      changed_when: false
+
+    - name: BFG | Registering latest Tag
+      ansible.builtin.set_fact:
+        bfg_latest_tag: "{{ bfg_latest_json.json.tag_name[1:] }}"
+
+    - name: BFG | Display latest tag
+      ansible.builtin.debug:
+        var: bfg_latest_tag
+
+    - name: BFG | Download binary
+      ansible.builtin.get_url:
+        url: https://repo1.maven.org/maven2/com/madgag/bfg/{{ bfg_latest_tag }}/bfg-{{ bfg_latest_tag }}.jar
+        dest: /usr/local/bin/bfg
+        force: true
+        mode: "0755"

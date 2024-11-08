@@ -15,13 +15,35 @@
     - name: Trufflehog | Download latest JSON
       ansible.builtin.uri:
         url: https://api.github.com/repos/trufflesecurity/trufflehog/releases/latest
-      register: trufflehog_latest_version_json
+      register: trufflehog_latest_json
       changed_when: false
 
-    - name: Trufflehog | Registering latest Release
+    - name: Trufflehog | Registering latest Tag
       ansible.builtin.set_fact:
-        trufflehog_latest_release: "{{ trufflehog_latest_version_json.json.tag_name }}"
+        trufflehog_latest_tag: "{{ trufflehog_latest_json.json.tag_name[1:] }}"
 
-    - name: Trufflehog | Registering latest Version
-      ansible.builtin.set_fact:
-        trufflehog_latest_version: "{{ trufflehog_latest_release.stdout | default('') }}"
+    - name: Trufflehog | Display latest Tag
+      ansible.builtin.debug:
+        var: trufflehog_latest_tag
+
+    - name: Trufflehog | Get System Architecture
+      ansible.builtin.command: dpkg --print-architecture
+      register: dpkg_architecture
+      changed_when: false
+      failed_when: false
+      check_mode: false
+
+    - name: Trufflehog | Download and Unpack binary
+      ansible.builtin.unarchive:
+        src: https://github.com/trufflesecurity/trufflehog/releases/download/v{{ trufflehog_latest_tag }}/trufflehog_{{ trufflehog_latest_tag }}_linux_{{ dpkg_architecture.stdout
+          }}.tar.gz
+        dest: /tmp
+        remote_src: true
+
+    - name: Trufflehog | Move binary
+      ansible.builtin.copy:
+        src: /tmp/trufflehog
+        dest: /usr/local/bin/trufflehog
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0755"

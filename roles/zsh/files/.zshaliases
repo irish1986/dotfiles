@@ -5,17 +5,11 @@ alias h='history | grep '
 alias r="source $HOME/.zshrc"
 alias x="exit"
 
-# alias - edit config terminal
-alias zshrc="nn $HOME/.zshrc"
-alias aliases="nn $CONFIG/zsh/.zsh_aliases"
-alias func="nn $CONFIG/zsh/.zshrc_func"
-
 # alias - date
 alias da='date "+%Y-%m-%d %A %T %Z"'
 
 # alias - *top
-alias top="btop"
-alias htop="btop"
+alias top="htop"
 
 # alias - change directory
 alias home='cd $HOME'
@@ -34,6 +28,12 @@ alias rebootforce='sudo shutdown -r -n now'
 alias diskspace="du -S | sort -n -r |more"
 alias tree='tree -CAhF --dirsfirst'
 alias treed='tree -CAFd'
+
+# alias - rm to trash
+alias bfg='java -jar bfg.jar'
+
+# alias - trufflehog
+alias trufflehog='trufflehog --no-update'
 
 # alias - rm to trash
 alias rm='trash -v'

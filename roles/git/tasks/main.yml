@@ -72,5 +72,3 @@
       value: true
     - name: tag.gpgsign
       value: false
-    - name: tag.sort
-      value: version:refname

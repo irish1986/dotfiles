@@ -5,7 +5,9 @@
       - bat
       - eza
       - git
+      - htop
       - trash-cli
+      - tree
       - zoxide
       - zsh
     state: present
@@ -116,20 +118,20 @@
     dest: "{{ ansible_home }}/.zshrc"
     mode: "0644"
 
-- name: ZSH | Ensure .config directory exists
-  ansible.builtin.file:
-    path: "{{ ansible_home }}/{{ item }}"
-    state: directory
-    recurse: true
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
-    mode: "0755"
-  loop:
-    - .config
-    - .config/zsh
-
-- name: ZSH | Copy .zsh_aliases
+- name: ZSH | Copy .zshaliases
   ansible.builtin.copy:
-    src: .zsh_aliases
-    dest: "{{ ansible_home }}/.config/zsh/.zsh_aliases"
+    src: .zshaliases
+    dest: "{{ ansible_home }}/.zshaliases"
+    mode: "0644"
+
+- name: ZSH | Copy .zshenv
+  ansible.builtin.copy:
+    src: .zshenv
+    dest: "{{ ansible_home }}/.zshenv"
+    mode: "0644"
+
+- name: ZSH | Copy .zshfunc
+  ansible.builtin.copy:
+    src: .zshfunc
+    dest: "{{ ansible_home }}/.zshfunc"
     mode: "0644"
