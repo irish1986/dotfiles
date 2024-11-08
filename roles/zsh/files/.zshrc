@@ -18,7 +18,6 @@ ZSH_TMUX_AUTOSTART=true
 
 plugins=(
   command-not-found
-  fzf
   git
   history
   sudo
@@ -36,13 +35,13 @@ plugins=(
 source $ZSH/oh-my-zsh.sh
 source $HOME/.zshaliases
 
-eval "$(register-python-argcomplete pipx)"
 eval "$(register-python-argcomplete cz)"
+eval "$(register-python-argcomplete pipx)"
+
 eval "$(zoxide init zsh)"
 
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh # run `p10k configure`
 
-autoload -U compinit
-autoload -U bashcompinit
-compinit -i
-bashcompinit
+# Load completions
+autoload -U +X bashcompinit && bashcompinit
+autoload -Uz compinit && compinit
