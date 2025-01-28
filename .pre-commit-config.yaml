@@ -67,7 +67,7 @@ repos:
           - -c
           - .config/.yaml-lint.yml
   - repo: https://github.com/ansible-community/ansible-lint
-    rev: v25.1.0
+    rev: v25.1.1
     hooks:
       - id: ansible-lint
         files: \.(yaml|yml)$
