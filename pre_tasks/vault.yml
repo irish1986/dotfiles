@@ -1,0 +1,12 @@
+---
+- name: Install pipx packages
+  when:
+    - ansible_distribution_major_version | int >= 22
+  community.general.pipx:
+    name: "{{ item }}"
+    state: present
+    install_deps: true
+    force: true
+  loop:
+    - bitwarden-sdk
+  become: true
