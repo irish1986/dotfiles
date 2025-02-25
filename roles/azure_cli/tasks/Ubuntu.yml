@@ -1,0 +1,5 @@
+---
+- name: Azure_cli | Detect previous install
+  ansible.builtin.stat:
+    path: /usr/local/bin/az
+  register: az
