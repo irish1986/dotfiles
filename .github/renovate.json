@@ -27,11 +27,5 @@
         "patch"
       ]
     }
-  ],
-  "minor": {
-    "automerge": true
-  },
-  "patch": {
-    "automerge": true
-  }
+  ]
 }
