@@ -1,35 +1,6 @@
 ---
-default_roles:
-  - git
-  - system
-  - tmux
-  - zsh
-
-exclude_roles:
-  - argocd
-  - bfg
-  - btop
-  - cloudinit
-  - docker
-  - fastfetch
-  - fluxcd
-  - fonts
-  - ggshield
-  - helm
-  - k9s
-  - kind
-  - kubectl
-  - neovim
-  - nvm
-  - obsidian
-  - powershell
-  - python
-  - ssh
-  - terraform
-  - timezone
-  - trufflehog
-  - ufw
-  - vscode
+# Role - System Variables
+secret_bws_access_token: "{{ lookup('env', 'BWS_ACCESS_TOKEN') }}"
 
 # Role - System Variables
 ansible_user: username
