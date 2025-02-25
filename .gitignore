@@ -1,4 +1,5 @@
 /.wip
+.ansible
 .env
 .cache_ggshield
 
