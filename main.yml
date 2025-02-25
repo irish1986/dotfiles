@@ -19,6 +19,7 @@
             - git
             - system
             - zsh
+            - env
 
       rescue:
         - name: Rescue roles | Update

@@ -1,8 +1,4 @@
 ---
-- name: ZSH | Echo secret
-  ansible.builtin.debug:
-    msg: "Secret value is: {{ lookup('bitwarden.secrets.lookup', zsh_id_tailscale) }}"
-
 - name: ZSH | Install dependencies
   ansible.builtin.apt:
     name:
@@ -133,12 +129,9 @@
     mode: "0644"
 
 - name: ZSH | Setup .zshenv
-  ansible.builtin.blockinfile:
+  ansible.builtin.stat:
     path: "{{ ansible_home }}/.zshenv"
-    block: | # pragma: allowlist secret
-      export GH_TOKEN="{{ lookup('bitwarden.secrets.lookup', zsh_id_gh_token) }}"
-      export GITGUARDIAN_API_TOKEN="{{ lookup('bitwarden.secrets.lookup', zsh_id_gitguardian_api_token) }}"
-      export TAILSCALE_TOKEN="{{ lookup('bitwarden.secrets.lookup', zsh_id_tailscale) }}"
+  register: zshenv
 
 - name: ZSH | Copy .zshfunc
   ansible.builtin.copy:

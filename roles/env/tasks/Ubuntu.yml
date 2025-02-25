@@ -1,0 +1,8 @@
+---
+- name: Env | Setup .zshenv
+  ansible.builtin.blockinfile:
+    path: "{{ ansible_home }}/.zshenv"
+    block: | # pragma: allowlist secret
+      export GH_TOKEN="{{ lookup('bitwarden.secrets.lookup', env_id_gh_token) }}"
+      export GITGUARDIAN_API_TOKEN="{{ lookup('bitwarden.secrets.lookup', env_id_gitguardian_api_token) }}"
+      export TAILSCALE_TOKEN="{{ lookup('bitwarden.secrets.lookup', env_id_tailscale) }}"
