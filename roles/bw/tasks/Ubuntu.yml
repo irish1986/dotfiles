@@ -1,0 +1,48 @@
+---
+- name: BW | Detect previous install
+  ansible.builtin.stat:
+    path: /usr/local/bin/bw
+  register: bw
+
+- name: BW | Register state
+  ansible.builtin.set_fact:
+    bw_is_installed: "{{ bw.stat.exists }}"
+
+- name: BW | Install
+  when:
+    - not bw_is_installed
+  block:
+    - name: BW | Download latest JSON
+      ansible.builtin.uri:
+        url: https://api.github.com/repos/bitwarden/clients/releases/latest
+      register: bw_latest_json
+      changed_when: false
+
+    - name: BW | Registering latest Tag
+      ansible.builtin.set_fact:
+        bw_latest_tag: "{{ bw_latest_json.json.tag_name[1:] }}"
+
+    - name: BW | Display latest Tag
+      ansible.builtin.debug:
+        var: bw_latest_tag
+
+    - name: BW | Get System Architecture
+      ansible.builtin.command: dpkg --print-architecture
+      register: dpkg_architecture
+      changed_when: false
+      failed_when: false
+      check_mode: false
+
+    - name: BW | Download and Unpack binary
+      ansible.builtin.unarchive:
+        src: https://github.com/bitwarden/clients/releases/download/cli-v2025.1.3/bw-linux-2025.1.3.zip
+        dest: /tmp
+        remote_src: true
+
+    - name: BW | Move binary
+      ansible.builtin.copy:
+        src: /tmp/bw
+        dest: /usr/local/bin/bw
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0755"

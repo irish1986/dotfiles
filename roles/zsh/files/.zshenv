@@ -1,2 +1,5 @@
-export BWS_ACCESS_TOKEN="your-bitwarden-token-goes-here"
-export GH_TOKEN="your-github-token-goes-here"
+export BW_SESSION="<your-bw-session-token-here>"
+export BWS_ACCESS_TOKEN="<your-bws-access-token-here>"
+export GH_TOKEN="{{ lookup('bitwarden.secrets.lookup', zsh_id_gh_token) }}"
+export GITGUARDIAN_API_TOKEN="{{ lookup('bitwarden.secrets.lookup', zsh_id_gitguardian_api_token) }}"
+export TAILSCALE_TOKEN="{{ lookup('bitwarden.secrets.lookup', zsh_id_tailscale) }}"

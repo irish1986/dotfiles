@@ -1,4 +1,8 @@
 ---
+- name: ZSH | Echo secret
+  ansible.builtin.debug:
+    msg: "Secret value is: {{ lookup('bitwarden.secrets.lookup', zsh_id_tailscale) }}"
+
 - name: ZSH | Install dependencies
   ansible.builtin.apt:
     name:
@@ -12,7 +16,7 @@
       - tree
       - whois
       - yq
-      - zoxide2
+      - zoxide
       - zsh
     state: present
   become: true
