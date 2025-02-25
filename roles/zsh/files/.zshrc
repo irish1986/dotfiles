@@ -34,6 +34,7 @@ plugins=(
 
 source $ZSH/oh-my-zsh.sh
 source $HOME/.zshaliases
+source $HOME/.zshenv
 
 eval "$(register-python-argcomplete cz)"
 eval "$(register-python-argcomplete pipx)"

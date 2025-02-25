@@ -47,6 +47,15 @@ This playbook includes a custom shell script located at `scripts/dotfiles`.  Thi
 bash -c "$(curl -fsSL https://raw.githubusercontent.com/irish1986/dotfiles/main/scripts/setup)"
 ```
 
+### Secrets
+
+I am using Bitwarden integration with Ansible to retrieve secrets from Secrets Manager and inject them into the Ansible playbook. The lookup plugin will inject retrieved secrets as masked environment variables inside an Ansible playbook. To setup the collection:
+
+```bash
+pip install bitwarden-sdk
+export BWS_ACCESS_TOKEN="<your-bws-access-token>"
+```
+
 ### Setup
 
 The `sample.yml` [file](https://raw.githubusercontent.com/irish1986/dotfiles/main/inventory/group_vars/sample.yml) contains an exemple configuration.  Create a copy of this named `all.yml` and make the recommended ajustment.

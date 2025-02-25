@@ -132,11 +132,13 @@
     dest: "{{ ansible_home }}/.zshaliases"
     mode: "0644"
 
-- name: ZSH | Copy .zshenv
-  ansible.builtin.copy:
-    src: .zshenv
-    dest: "{{ ansible_home }}/.zshenv"
-    mode: "0644"
+- name: ZSH | Setup .zshenv
+  ansible.builtin.blockinfile:
+    path: "{{ ansible_home }}/.zshenv"
+    block: | # pragma: allowlist secret
+      export GH_TOKEN="{{ lookup('bitwarden.secrets.lookup', zsh_id_gh_token) }}"
+      export GITGUARDIAN_API_TOKEN="{{ lookup('bitwarden.secrets.lookup', zsh_id_gitguardian_api_token) }}"
+      export TAILSCALE_TOKEN="{{ lookup('bitwarden.secrets.lookup', zsh_id_tailscale) }}"
 
 - name: ZSH | Copy .zshfunc
   ansible.builtin.copy:
