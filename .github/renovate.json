@@ -14,5 +14,24 @@
   },
   "pre-commit": {
     "enabled": true
+  },
+  "packageRules": [
+    {
+      "groupName": "all non-major dependencies",
+      "groupSlug": "all-minor-patch",
+      "matchPackageNames": [
+        "*"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ]
+    }
+  ],
+  "minor": {
+    "automerge": true
+  },
+  "patch": {
+    "automerge": true
   }
 }
