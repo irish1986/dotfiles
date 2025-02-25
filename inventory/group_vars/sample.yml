@@ -29,7 +29,6 @@ exclude_roles:
   - timezone
   - trufflehog
   - ufw
-  - vpnkit
   - vscode
 
 # Role - System Variables

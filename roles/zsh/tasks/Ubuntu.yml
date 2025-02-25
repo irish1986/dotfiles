@@ -6,9 +6,13 @@
       - eza
       - git
       - htop
+      - jq
       - trash-cli
       - tree
-      - zoxide
+      - tree
+      - whois
+      - yq
+      - zoxide2
       - zsh
     state: present
   become: true

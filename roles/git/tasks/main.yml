@@ -30,6 +30,8 @@
       value: "{{ git.name }}"
     - name: user.user
       value: "{{ git.user }}"
+    - name: advice.diverging
+      value: false
     - name: color.ui
       value: auto
     - name: commit.gpgsign
@@ -54,8 +56,6 @@
       value: true
     - name: init.defaultBranch
       value: main
-    - name: init.templateDir
-      value: "{{ ansible_home }}/.git-template"
     - name: pull.ff
       value: only
     - name: pull.rebase

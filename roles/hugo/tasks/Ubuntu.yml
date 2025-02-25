@@ -1,0 +1,7 @@
+---
+- name: Hugo | Install package
+  ansible.builtin.apt:
+    name:
+      - hugo
+    state: present
+  become: true
