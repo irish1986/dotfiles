@@ -29,7 +29,7 @@ fonts:
 
 # Role - Obsidian Variables
 obsidian:
-  repository: " git@github.com:user/notes.git"
+  repository: "https://github.com/irish1986/notes"
   directory: " .notes"
 
 # Role - SSH Variables
