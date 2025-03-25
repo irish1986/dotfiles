@@ -1,0 +1,30 @@
+---
+- name: Ansible | Setup repo
+  ansible.builtin.apt_repository:
+    repo: ppa:ansible/ansible
+    state: present
+
+- name: Ansible | Install
+  ansible.builtin.apt:
+    name:
+      - ansible
+      - libssl-dev
+      - software-properties-common
+      - python3
+      - python3-argcomplete
+      - python3-pip
+    state: present
+  become: true
+
+- name: Ansible | Install pipx packages
+  when:
+    - ansible_distribution_major_version | int >= 22
+  community.general.pipx:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - ansible-core
+    - ansible-dev-tools
+    - ansible-lint
+    - molecule
+  become: true
