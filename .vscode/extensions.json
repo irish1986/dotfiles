@@ -1,0 +1,18 @@
+{
+    "recommendations": [
+        "bierner.markdown-mermaid",
+        "drcika.apc-extension",
+        "littlefoxteam.vscode-python-test-adapter",
+        "ms-azuretools.vscode-docker",
+        "ms-python.debugpy",
+        "ms-python.python",
+        "ms-vscode-remote.remote-ssh",
+        "ms-vscode-remote.remote-wsl",
+        "pomdtr.excalidraw-editor",
+        "redhat.vscode-yaml",
+        "vscode-icons-team.vscode-icons",
+        "yzhang.markdown-all-in-one",
+        "github.copilot",
+        "github.copilot-chat",
+    ]
+}

@@ -1,0 +1,38 @@
+{
+  "apc.sidebar.titlebar": {
+    "fontSize": 11,
+    "fontWeight": "bold"
+  },
+  "apc.stylesheet": {
+    ".tabs-container .tab.active": {
+      "border-radius": "7px !important"
+    },
+    ".scrollbar": {
+      "background": "#21222f !important"
+    }
+  },
+  "breadcrumbs.enabled": true,
+  "editor.fontFamily": "Hack Nerd Font, monospace, 'Courier New'",
+  "editor.fontLigatures": true,
+  "editor.formatOnPaste": true,
+  "editor.formatOnSave": true,
+  "excalidraw.theme": "dark",
+  "editor.formatOnType": true,
+  "editor.minimap.enabled": false,
+  "editor.scrollbar.horizontal": "visible",
+  "editor.scrollbar.horizontalScrollbarSize": 10,
+  "editor.scrollbar.vertical": "visible",
+  "editor.scrollbar.verticalScrollbarSize": 10,
+  "explorer.confirmDelete": false,
+  "files.exclude": {
+    "**/.git": false
+  },
+  "window.commandCenter": false,
+  "window.density.editorTabHeight": "compact",
+  "window.zoomLevel": 1,
+  "workbench.activityBar.location": "top",
+  "workbench.editor.editorActionsLocation": "hidden",
+  "workbench.iconTheme": "vscode-icons",
+  "workbench.layoutControl.enabled": false,
+  "workbench.sideBar.location": "right",
+}
