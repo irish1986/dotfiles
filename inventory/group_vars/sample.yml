@@ -27,8 +27,8 @@ git:
 fonts:
   nf: Nerd
 
-# Role - Obsidian Variables
-obsidian:
+# Role - Notes Variables
+notes:
   repository: "https://github.com/irish1986/notes"
   directory: " .notes"
 
