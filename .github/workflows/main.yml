@@ -6,12 +6,12 @@ on: # yamllint disable-line rule:truthy
     branches:
       - main
     paths-ignore:
-      - 'README.md'
+      - "README.md"
   push:
     branches:
       - main
     paths-ignore:
-      - 'README.md'
+      - "README.md"
   workflow_dispatch:
 
 concurrency:
@@ -19,7 +19,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-
   ansible-lint:
     name: Call Ansible-Lint
     uses: irishlab-io/admin/.github/workflows/reusable-ansible-lint.yml@main

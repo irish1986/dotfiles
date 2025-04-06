@@ -1,0 +1,37 @@
+---
+# Areas
+area/ansible:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "ansible.cfg"
+          - -".config/.ansible-lint.yml"
+          - "collections/**/*"
+          - "main.yml"
+          - "post_tasks/**/*"
+          - "pre_tasks/**/*"
+          - "roles/**/*"
+area/config:
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".config/**/*"
+area/docs:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "docs/**/*"
+          - "README.md"
+area/github:
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".github/**/*"
+area/pre-commit:
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".pre-commit-config.yaml"
+area/scripts:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "scripts/**/*"
+area/vscode:
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".vscode/**/*"

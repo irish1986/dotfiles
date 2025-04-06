@@ -5,7 +5,5 @@ exclude_paths:
   - .config/
   - scripts/
 warn_list:
- - yaml[line-length]
-# skip_list:
-#  - yaml[line-length]
+  - yaml[line-length]
 task_name_prefix: "{stem} | "
