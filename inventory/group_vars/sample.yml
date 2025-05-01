@@ -22,6 +22,7 @@ git:
   email: email@example.com
   name: John Doe
   user: username
+  signing_key: id_ed25519.pub
 
 # Role - Fonts Variables
 fonts:

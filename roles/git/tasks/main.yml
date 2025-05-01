@@ -8,6 +8,18 @@
   ansible.builtin.include_tasks: "{{ ansible_distribution }}.yml"
   when: system_distribution_config.stat.exists
 
+- name: Git | Global .gitignore file
+  ansible.builtin.copy:
+    src: .gitignore
+    dest: "{{ ansible_home }}/.gitignore"
+    mode: "0644"
+
+- name: Git | SSH Signing Key file
+  ansible.builtin.copy:
+    src: allowed_signers
+    dest: "{{ ansible_home }}/.ssh/allowed_signers"
+    mode: "0644"
+
 - name: Git | Create directories
   ansible.builtin.file:
     path: "{{ ansible_home }}/git/{{ item }}"
@@ -28,41 +40,61 @@
       value: "{{ git.email }}"
     - name: user.name
       value: "{{ git.name }}"
+    - name: user.signingkey
+      value: "{{ ansible_home }}.ssh/{{ git.signing_key }}"
     - name: user.user
       value: "{{ git.user }}"
     - name: advice.diverging
       value: false
+    - name: branch.sort
+      value: -committerdate
     - name: color.ui
       value: auto
+    - name: column.ui
+      value: auto
     - name: commit.gpgsign
-      value: false
+      value: true
     - name: commit.verbose
       value: true
-    - name: credential.helper
-      value: cache
     - name: core.autocrlf
       value: false
     - name: core.editor
       value: code --wait
+    - name: core.excludesfile
+      value: "{{ ansible_home }}.gitignore"
+    - name: credential.helper
+      value: cache --timeout=3600
     - name: diff.algorithm
       value: histogram
     - name: diff.colorMoved
       value: zebra
+    - name: fetch.all
+      value: true
     - name: fetch.prune
+      value: true
+    - name: fetch.pruneTags
       value: true
     - name: fetch.writeCommitGraph
       value: true
-    - name: log.abbrevCommit
-      value: true
+    - name: gpg.format
+      value: ssh
+    - name: gpg.ssh.allowedSignersFile
+      value: "{{ ansible_home }}.ssh/allowed_signers"
+    - name: help.autocorrect
+      value: prompt
     - name: init.defaultBranch
       value: main
+    - name: log.abbrevCommit
+      value: true
     - name: pull.ff
       value: only
     - name: pull.rebase
       value: true
+    - name: push.autoSetupRemote
+      value: true
     - name: push.default
       value: simple
-    - name: push.autoSetupRemote
+    - name: push.followTags
       value: true
     - name: rebase.autoStash
       value: true
@@ -73,4 +105,6 @@
     - name: status.short
       value: true
     - name: tag.gpgsign
-      value: false
+      value: true
+    - name: tag.sort
+      value: version:refname

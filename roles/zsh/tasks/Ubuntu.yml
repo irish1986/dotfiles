@@ -73,28 +73,28 @@
     - name: ZSH | Install zsh-autosuggestions
       ansible.builtin.git:
         repo: https://github.com/zsh-users/zsh-autosuggestions
-        version: v0.7.0
+        version: v0.7.1
         dest: "{{ ansible_home }}/.oh-my-zsh/custom/plugins/zsh-autosuggestions"
         depth: 1
 
     - name: ZSH | Install zsh-bat
       ansible.builtin.git:
         repo: https://github.com/fdellwing/zsh-bat.git
-        version: c47f2de
+        version: 467337613c1c220c0d01d69b19d2892935f43e9f
         dest: "{{ ansible_home }}/.oh-my-zsh/custom/plugins/zsh-bat"
         depth: 1
 
     - name: ZSH | Install zsh-completions
       ansible.builtin.git:
         repo: https://github.com/zsh-users/zsh-completions
-        version: 0.35.0
+        version: 4f6441f9eea702346e0c706f03fd59a20497582a
         dest: "{{ ansible_home }}/.oh-my-zsh/custom/plugins/zsh-completions"
         depth: 1
 
     - name: ZSH | Install zsh-eza
       ansible.builtin.git:
         repo: https://github.com/renovate-bot/z-shell-_-zsh-eza
-        version: b0b0b02
+        version: 79484190e314c0e5bdbcc3e610300589606c45f0
         dest: "{{ ansible_home }}/.oh-my-zsh/custom/plugins/zsh-eza"
         depth: 1
 
@@ -108,7 +108,7 @@
     - name: ZSH | Install zsh-z
       ansible.builtin.git:
         repo: https://github.com/agkozak/zsh-z
-        version: afaf29
+        version: dd94ef04acc41748ba171eb219971cb455e0040b
         dest: "{{ ansible_home }}/.oh-my-zsh/custom/plugins/zsh-z"
 
     - name: ZSH | Fix permissions
