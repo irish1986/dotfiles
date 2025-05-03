@@ -13,6 +13,7 @@
         "pomdtr.excalidraw-editor",
         "redhat.vscode-yaml",
         "vscode-icons-team.vscode-icons",
-        "yzhang.markdown-all-in-one"
+        "yzhang.markdown-all-in-one",
+        "github.vscode-github-actions"
     ]
 }

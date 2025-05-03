@@ -31,7 +31,7 @@ jobs:
           sparse-checkout: .github/labels.yml
 
       - name: Sync Labels
-        uses: EndBug/label-sync@v2
+        uses: EndBug/label-sync@v2.3.3
         with:
           config-file: .github/labels.yml
           delete-other-labels: true
