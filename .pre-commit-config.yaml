@@ -15,7 +15,7 @@ repos:
       - id: commitizen
         stages: [commit-msg]
   - repo: https://github.com/gitguardian/ggshield
-    rev: v1.38.1
+    rev: v1.39.0
     hooks:
       - id: ggshield
         language_version: python3
@@ -52,7 +52,7 @@ repos:
       - id: fix-ligatures
       - id: fix-smartquotes
   - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.42.0
+    rev: v0.44.0
     hooks:
       - id: markdownlint
         args:
