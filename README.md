@@ -13,7 +13,7 @@
 
 ## Goals
 
-Provide idempotent deployment mechanism for my computers from a versioned controlled source targeting `Ubuntu` that is easy to set up and maintain.  I am mostly using this setup with WSL2 on Windows 11 to sync various workstation and laptops; both for personal and professional usage.
+Provide idempotent deployment mechanism for my computers from a versioned controlled source targeting `Ubuntu` that is easy to set up and maintain.  I am mostly using this setup with WSL2 on Windows 11 to sync various workstation and laptops; both for personal and professional usage. Signed
 
 ## Getting Started
 
