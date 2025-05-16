@@ -15,8 +15,8 @@
     mode: "0644"
 
 - name: Git | SSH Signing Key file
-  ansible.builtin.copy:
-    src: allowed_signers
+  ansible.builtin.template:
+    src: allowed_signers.j2
     dest: "{{ ansible_home }}/.ssh/allowed_signers"
     mode: "0644"
 
