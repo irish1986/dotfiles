@@ -10,12 +10,12 @@ ci:
     - ggshield
 repos:
   - repo: https://github.com/commitizen-tools/commitizen
-    rev: v4.6.0
+    rev: v4.7.2
     hooks:
       - id: commitizen
         stages: [commit-msg]
   - repo: https://github.com/gitguardian/ggshield
-    rev: v1.38.1
+    rev: v1.39.0
     hooks:
       - id: ggshield
         language_version: python3
@@ -52,14 +52,14 @@ repos:
       - id: fix-ligatures
       - id: fix-smartquotes
   - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.42.0
+    rev: v0.45.0
     hooks:
       - id: markdownlint
         args:
           - --config
           - .config/.markdown-lint.yml
   - repo: https://github.com/adrienverge/yamllint
-    rev: v1.37.0
+    rev: v1.37.1
     hooks:
       - id: yamllint
         args:
