@@ -25,12 +25,22 @@ wsl --install -d ${target-distro}
 wsl --setdefault ${target-distro}
 ```
 
-### Generate ssh-key
+### ssh-key management
 
-You will need to add a valid ssh-key to your GitHub account.  I am still working on automating this.
+You will need to add a valid ssh-key to your GitHub account.
+
+You can either create a WSL2 owned key as following:
 
 ```bash
 ssh-keygen -o -a 100 -t ed25519 -f ~/.ssh/id_ed25519 -N '' -C $USER@$HOSTNAME
+```
+
+You can also share Windows key with WSL2 owned key as following:
+
+```bash
+cp -r /mnt/c/Users/$USER/.ssh/id_ed25519* ~/.ssh
+chmod 600 ~/.ssh/id_ed25519*
+cat ~/.ssh/id_ed25519.pub | clip.exe
 ```
 
 Sometimes it is useful to pull your existing public keys from GitHub.

@@ -48,6 +48,7 @@
       - curl
       - git
       - nano
+      - pipx
       - wget
     state: present
   become: true
@@ -62,14 +63,6 @@
     - not ansible_host_environment_is_wsl
     - ansible_virtualization_role == "guest"
   notify: System | Start qemu
-
-- name: System | Copy wsl config file
-  ansible.builtin.copy:
-    src: wsl.conf
-    dest: /etc
-    mode: "0644"
-  when:
-    - ansible_host_environment_is_wsl
 
 - name: System | Create .config directory exists
   ansible.builtin.file:

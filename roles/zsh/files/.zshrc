@@ -33,6 +33,7 @@ plugins=(
   )
 
 source $ZSH/oh-my-zsh.sh
+source $HOME/.local/bin/env
 source $HOME/.zshaliases
 source $HOME/.zshenv
 

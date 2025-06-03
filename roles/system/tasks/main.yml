@@ -7,3 +7,11 @@
 - name: "System | Run Tasks: {{ ansible_distribution }}"
   ansible.builtin.include_tasks: "{{ ansible_distribution }}.yml"
   when: system_distribution_config.stat.exists
+
+- name: System | Copy wsl config file
+  ansible.builtin.copy:
+    src: wsl.conf
+    dest: /etc
+    mode: "0644"
+  when:
+    - ansible_host_environment_is_wsl
