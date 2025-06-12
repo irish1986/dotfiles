@@ -14,11 +14,35 @@
     dest: "{{ ansible_home }}/.gitignore"
     mode: "0644"
 
-- name: Git | SSH Signing Key file
-  ansible.builtin.template:
-    src: allowed_signers.j2
-    dest: "{{ ansible_home }}/.ssh/allowed_signers"
-    mode: "0644"
+- name: Git | Detect existing signing key
+  ansible.builtin.stat:
+    path: "{{ ansible_home }}.ssh/{{ git.signing_key }}"
+  register: signing_key
+
+- name: Git | Register state
+  ansible.builtin.set_fact:
+    signing_key_is_installed: "{{ signing_key.stat.exists }}"
+
+- name: Git | Install signing key
+  when:
+    - signing_key_is_installed
+  block:
+    - name: Git | Read SSH key
+      ansible.builtin.slurp:
+        src: "{{ ansible_home }}/.ssh/{{ git.signing_key }}"
+      register: ssh_key
+
+    - name: Print returned information
+      ansible.builtin.debug:
+        msg: "{{ ssh_key.content | b64decode }}"
+
+    - name: Git | Add Allowed Signers
+      ansible.builtin.blockinfile:
+        path: "{{ ansible_home }}/.ssh/allowed_signers"
+        mode: "0644"
+        create: true
+        block: |
+          {{ git.email | default('email@exemple.com') }} {{ ssh_key.content | b64decode | default('ssh-ed25519 AAAA') }}
 
 - name: Git | Create directories
   ansible.builtin.file:
