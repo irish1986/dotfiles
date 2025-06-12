@@ -15,16 +15,13 @@ concurrency:
 
 jobs:
 
-  pre-commit:
-    name: Call Pre-Commit run
-    uses: irishlab-io/.github/.github/workflows/reusable-pre-commit.yml@main
+  # pre-commit:
+  #   name: Call Pre-Commit run
+  #   uses: irishlab-io/.github/.github/workflows/reusable-pre-commit.yml@main
 
   secret:
     name: Call Secret Scanning
     uses: irishlab-io/.github/.github/workflows/reusable-secret.yml@main
-
-    needs:
-      - pre-commit
 
     secrets: inherit
 
@@ -33,7 +30,6 @@ jobs:
     uses: irishlab-io/.github/.github/workflows/reusable-ansible-lint.yml@main
 
     needs:
-      - pre-commit
       - secret
 
     with:
