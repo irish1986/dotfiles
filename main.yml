@@ -17,9 +17,8 @@
             name: "{{ item }}"
           with_items:
             - git
-            - notes
+            - python
             - system
-            - uv
             - zsh
 
       rescue:

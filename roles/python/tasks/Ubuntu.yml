@@ -11,7 +11,7 @@
 
 - name: Python | Install UV
   when:
-    - not ansible_host_environment_is_wsl
+    - python.uv
   block:
     - name: UV | Install dependencies
       ansible.builtin.apt:
@@ -48,26 +48,13 @@
 
 - name: Python | Install Poetry
   when:
-    - not ansible_host_environment_is_wsl
+    - python.poetry
   block:
     - name: Python | Install
       ansible.builtin.apt:
         name:
           - pipx
         state: present
-      become: true
-
-    - name: Python | Install poetry
-      when:
-        - ansible_distribution_major_version | int >= 22
-      community.general.pipx:
-        name: "{{ item }}"
-        state: present
-      loop:
-        - ansible-lint
-        - commitizen
-        - ggshield
-        - poetry
       become: true
 
     - name: Python | Install pipx packages
@@ -79,4 +66,6 @@
       loop:
         - ansible-lint
         - commitizen
+        - ggshield
+        - poetry
       become: true

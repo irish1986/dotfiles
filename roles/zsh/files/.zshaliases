@@ -1,6 +1,5 @@
 # alias - terminal
 alias c="clear"
-alias e=$EDITOR
 alias h='history | grep '
 alias r="source $HOME/.zshrc"
 alias x="exit"
