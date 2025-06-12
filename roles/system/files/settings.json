@@ -43,14 +43,6 @@
     {
       "id": "User.paste",
       "keys": "ctrl+v"
-    },
-    {
-      "id": "User.find",
-      "keys": "ctrl+shift+f"
-    },
-    {
-      "id": "User.splitPane.A6751878",
-      "keys": "alt+shift+d"
     }
   ],
   "launchMode": "focus",
