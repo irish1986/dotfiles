@@ -43,6 +43,9 @@ python:
 
 # Role - SSH Variables
 ssh:
+  private_key: id_ed25519
+  public_key: id_ed25519.pub
+
 # Role - Timezone Variables
 timezone:
   locale: America/Toronto
