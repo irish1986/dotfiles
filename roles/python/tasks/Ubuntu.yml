@@ -11,7 +11,7 @@
 
 - name: Python | Install UV
   when:
-    - python.uv
+    - python.uv.enable
   block:
     - name: UV | Install dependencies
       ansible.builtin.apt:
@@ -24,7 +24,7 @@
 
     - name: UV | Detect previous install
       ansible.builtin.stat:
-        path: /usr/local/bin/uv
+        path: "{{ ansible_home }}.local/bin/uv"
       register: uv
 
     - name: UV | Register state
@@ -46,9 +46,26 @@
           ansible.builtin.script:
             cmd: /tmp/uv.install.sh
 
+    - name: UV | Install python packages
+      when:
+        - uv_is_installed
+      block:
+        - name: "UV | Install python 3.12"
+          ansible.builtin.shell: |
+            uv python install 3.12 --preview --default
+          args:
+            executable: /bin/bash
+          failed_when: true
+          changed_when: false
+
+      rescue:
+        - name: UV | Someting is wrong
+          ansible.builtin.debug:
+            msg: But I couldn't find what # TODO
+
 - name: Python | Install Poetry
   when:
-    - python.poetry
+    - python.poetry.enable
   block:
     - name: Python | Install
       ansible.builtin.apt:
