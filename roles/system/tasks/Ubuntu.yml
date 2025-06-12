@@ -47,7 +47,6 @@
       - curl
       - git
       - nano
-      - pipx
       - wget
     state: present
   become: true
