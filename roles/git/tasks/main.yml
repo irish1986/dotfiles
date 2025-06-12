@@ -32,10 +32,6 @@
         src: "{{ ansible_home }}/.ssh/{{ git.signing_key }}"
       register: ssh_key
 
-    - name: Print returned information
-      ansible.builtin.debug:
-        msg: "{{ ssh_key.content | b64decode }}"
-
     - name: Git | Add Allowed Signers
       ansible.builtin.blockinfile:
         path: "{{ ansible_home }}/.ssh/allowed_signers"

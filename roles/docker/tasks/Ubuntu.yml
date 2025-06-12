@@ -48,13 +48,14 @@
     name: docker
     state: started
   become: true
-  when: not ansible_host_environment_is_wsl
+  when:
+    - not ansible_host_environment_is_wsl
 
 - name: Docker | Add to group
   ansible.builtin.user:
-    append: true
+    name: "{{ ansible_user }}"
     groups: docker
-    name: "{{ ansible_env['USER'] }}"
+    append: true
   become: true
 
 - name: Docker | Ensure docker data directory exists

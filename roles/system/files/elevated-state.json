@@ -1,26 +1,23 @@
 {
-  "persistedWindowLayouts" :
-  [
-          {
-                  "initialPosition" : "48,12",
-                  "initialSize" :
-                  {
-                          "height" : 574,
-                          "width" : 1221
-                  },
-                  "launchMode" : "default",
-                  "tabLayout" :
-                  [
-                          {
-                                  "action" : "newTab",
-                                  "commandline" : "%SystemRoot%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
-                                  "profile" : "Windows PowerShell",
-                                  "sessionId" : "{5b2108da-fb8e-47a7-a17d-2ee9329d20ab}",
-                                  "startingDirectory" : "C:\\Users\\irish",
-                                  "suppressApplicationTitle" : false,
-                                  "tabTitle" : "Windows PowerShell"
-                          }
-                  ]
-          }
+  "persistedWindowLayouts": [
+    {
+      "initialPosition": "48,12",
+      "initialSize": {
+        "height": 574,
+        "width": 1221
+      },
+      "launchMode": "default",
+      "tabLayout": [
+        {
+          "action": "newTab",
+          "commandline": "%SystemRoot%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+          "profile": "Windows PowerShell",
+          "sessionId": "{5b2108da-fb8e-47a7-a17d-2ee9329d20ab}",
+          "startingDirectory": "C:\\Users\\irish",
+          "suppressApplicationTitle": false,
+          "tabTitle": "Windows PowerShell"
+        }
+      ]
+    }
   ]
 }

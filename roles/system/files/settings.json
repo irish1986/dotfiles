@@ -1,91 +1,110 @@
 {
-    "$help": "https://aka.ms/terminal-documentation",
-    "$schema": "https://aka.ms/terminal-profiles-schema",
-    "actions": [
-      {
-        "command": {
-          "action": "copy",
-          "singleLine": false
-        },
-        "id": "User.copy.644BA8F2",
-        "keys": "ctrl+c"
+  "$help": "https://aka.ms/terminal-documentation",
+  "$schema": "https://aka.ms/terminal-profiles-schema",
+  "actions": [
+    {
+      "command": {
+        "action": "copy",
+        "singleLine": false
       },
-      {
-        "command": "paste",
-        "id": "User.paste",
-        "keys": "ctrl+v"
-      },
-      {
-        "command": {
-          "action": "splitPane",
-          "split": "auto",
-          "splitMode": "duplicate"
-        },
-        "id": "User.splitPane.A6751878",
-        "keys": "alt+shift+d"
-      },
-      {
-        "command": "find",
-        "id": "User.find",
-        "keys": "ctrl+shift+f"
-      }
-    ],
-    "centerOnLaunch": false,
-    "copyFormatting": "none",
-    "copyOnSelect": false,
-    "defaultProfile": "{963ff2f7-6aed-5ce3-9d91-90d99571f53a}",
-    "firstWindowPreference": "defaultProfile",
-    "initialCols": 103,
-    "initialPosition": "0,0",
-    "initialRows": 54,
-    "launchMode": "focus",
-    "newTabMenu": [
-      {
-        "type": "remainingProfiles"
-      }
-    ],
-    "profiles": {
-      "defaults": {},
-      "list": [
-        {
-          "font": {
-            "face": "Hack Nerd Font",
-            "size": 12
-          },
-          "commandline": "%SystemRoot%\\System32\\cmd.exe",
-          "guid": "{0caa0dad-35be-5f56-a8ff-afceeeaa6101}",
-          "hidden": true,
-          "name": "Command Prompt"
-        },
-        {
-          "font": {
-            "face": "Hack Nerd Font",
-            "size": 12
-          },
-          "commandline": "%SystemRoot%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
-          "guid": "{61c54bbd-c2c6-5271-96e7-009a87ff44bf}",
-          "hidden": true,
-          "name": "Windows PowerShell"
-        },
-        {
-          "colorScheme": "Campbell",
-          "font": {
-            "face": "Hack Nerd Font",
-            "size": 12
-          },
-          "guid": "{d8e96812-b789-5068-a5ae-10b2fb53e95f}",
-          "hidden": false,
-          "icon": "https://assets.ubuntu.com/v1/49a1a858-favicon-32x32.png",
-          "name": "Ubuntu 24.04.1 LTS",
-          "opacity": 85,
-          "padding": "2",
-          "scrollbarState": "hidden",
-          "source": "CanonicalGroupLimited.Ubuntu24.04LTS_79rhkp1fndgsc"
-        }
-      ]
+      "id": "User.copy.644BA8F2"
     },
-    "schemes": [],
-    "showTabsInTitlebar": false,
-    "startOnUserLogin": false,
-    "themes": []
-  }
+    {
+      "command": "paste",
+      "id": "User.paste"
+    },
+    {
+      "command": {
+        "action": "splitPane",
+        "split": "auto",
+        "splitMode": "duplicate"
+      },
+      "id": "User.splitPane.A6751878"
+    },
+    {
+      "command": "find",
+      "id": "User.find"
+    }
+  ],
+  "centerOnLaunch": false,
+  "compatibility.allowHeadless": true,
+  "copyFormatting": "none",
+  "copyOnSelect": false,
+  "defaultProfile": "{d8e96812-b789-5068-a5ae-10b2fb53e95f}",
+  "firstWindowPreference": "defaultProfile",
+  "initialCols": 95,
+  "initialPosition": "0,0",
+  "initialRows": 53,
+  "keybindings": [
+    {
+      "id": "User.copy.644BA8F2",
+      "keys": "ctrl+c"
+    },
+    {
+      "id": "User.paste",
+      "keys": "ctrl+v"
+    },
+    {
+      "id": "User.find",
+      "keys": "ctrl+shift+f"
+    },
+    {
+      "id": "User.splitPane.A6751878",
+      "keys": "alt+shift+d"
+    }
+  ],
+  "launchMode": "focus",
+  "newTabMenu": [
+    {
+      "type": "remainingProfiles"
+    }
+  ],
+  "profiles": {
+    "defaults": {
+      "colorScheme": "Campbell",
+      "font": {
+        "face": "Hack Nerd Font"
+      }
+    },
+    "list": [
+      {
+        "commandline": "%SystemRoot%\\System32\\cmd.exe",
+        "font": {
+          "face": "Hack Nerd Font",
+          "size": 12
+        },
+        "guid": "{0caa0dad-35be-5f56-a8ff-afceeeaa6101}",
+        "hidden": true,
+        "name": "Command Prompt"
+      },
+      {
+        "commandline": "%SystemRoot%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "font": {
+          "face": "Hack Nerd Font",
+          "size": 12
+        },
+        "guid": "{61c54bbd-c2c6-5271-96e7-009a87ff44bf}",
+        "hidden": true,
+        "name": "Windows PowerShell"
+      },
+      {
+        "colorScheme": "Campbell",
+        "font": {
+          "face": "Hack Nerd Font",
+          "size": 12
+        },
+        "guid": "{d8e96812-b789-5068-a5ae-10b2fb53e95f}",
+        "hidden": false,
+        "icon": "https://assets.ubuntu.com/v1/49a1a858-favicon-32x32.png",
+        "name": "Ubuntu 24.04.1 LTS",
+        "opacity": 85,
+        "padding": "2",
+        "scrollbarState": "hidden",
+        "source": "CanonicalGroupLimited.Ubuntu24.04LTS_79rhkp1fndgsc"
+      }
+    ]
+  },
+  "schemes": [],
+  "showTabsInTitlebar": false,
+  "themes": []
+}

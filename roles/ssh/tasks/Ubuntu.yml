@@ -49,37 +49,3 @@
         owner: "{{ ansible_user }}"
         group: "{{ ansible_user }}"
         mode: "0600"
-
-- name: SSH | Start SSH service
-  ansible.builtin.service:
-    name:
-      - ssh
-    state: started
-  become: true
-
-- name: SSH | Update SSH configuration
-  ansible.builtin.lineinfile:
-    dest: /etc/ssh/sshd_config
-    regexp: "{{ item.regexp }}"
-    line: "{{ item.line }}"
-    state: present
-    validate: sshd -T -f %s
-    mode: "0644"
-  with_items:
-    - regexp: ^PasswordAuthentication
-      line: PasswordAuthentication no
-    - regexp: ^PermitRootLogin
-      line: PermitRootLogin yes
-    - regexp: ^Port
-      line: Port 22
-    - regexp: ^UseDNS
-      line: UseDNS no
-    - regexp: ^PermitEmptyPasswords
-      line: PermitEmptyPasswords no
-    - regexp: ^ChallengeResponseAuthentication
-      line: ChallengeResponseAuthentication no
-    - regexp: ^GSSAPIAuthentication
-      line: GSSAPIAuthentication no
-    - regexp: ^X11Forwarding
-      line: X11Forwarding no
-  notify: SSH | Restart ssh
