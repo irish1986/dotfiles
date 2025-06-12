@@ -16,10 +16,10 @@
           ansible.builtin.include_role:
             name: "{{ item }}"
           with_items:
-            - python
             - git
-            # - system
-            # - zsh
+            - python
+            - system
+            - zsh
 
       rescue:
         - name: Rescue roles | Update
