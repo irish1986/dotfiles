@@ -35,7 +35,8 @@
 
     - name: Trufflehog | Download and Unpack binary
       ansible.builtin.unarchive:
-        src: https://github.com/trufflesecurity/trufflehog/releases/download/v{{ trufflehog_latest_tag }}/trufflehog_{{ trufflehog_latest_tag }}_linux_{{ dpkg_architecture.stdout
+        src: >-
+          https://github.com/trufflesecurity/trufflehog/releases/download/v{{ trufflehog_latest_tag }}/trufflehog_{{ trufflehog_latest_tag }}_linux_{{ dpkg_architecture.stdout
           }}.tar.gz
         dest: /tmp
         remote_src: true
