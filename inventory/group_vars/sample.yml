@@ -33,6 +33,14 @@ notes:
   repository: "https://github.com/irish1986/notes"
   directory: " .notes"
 
+# Role - Python Variables
+python:
+  pyver: "3.12"
+  poetry:
+    enable: false
+  uv:
+    enable: true
+
 # Role - SSH Variables
 ssh:
   github: ""
