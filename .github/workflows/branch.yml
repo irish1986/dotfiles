@@ -22,4 +22,5 @@ jobs:
     name: Call Secret Scanning
     uses: irishlab-io/.github/.github/workflows/reusable-secret.yml@main
 
-    secrets: inherit
+    secrets:
+      GITGUARDIAN_API_KEY: ${{ secrets.GITGUARDIAN_API_KEY }}
