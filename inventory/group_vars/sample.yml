@@ -43,10 +43,6 @@ python:
 
 # Role - SSH Variables
 ssh:
-  github: ""
-  launchpad: ""
-  other: ""
-
 # Role - Timezone Variables
 timezone:
   locale: America/Toronto

@@ -1,8 +1,4 @@
 ---
-- name: SSH | Reload ufw
-  ansible.builtin.service:
-    name: ufw
-    state: restarted
 - name: SSH | Restart ssh
   ansible.builtin.service:
     name: ssh

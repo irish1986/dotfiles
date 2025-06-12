@@ -18,6 +18,7 @@
           with_items:
             - git
             - python
+            - ssh
             - system
             - zsh
 

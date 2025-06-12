@@ -2,7 +2,8 @@
 - name: SSH | Install packages
   ansible.builtin.apt:
     name:
-      - openssh-server
+      - openssh-client
+      # - openssh-server
     state: present
   become: true
 
@@ -12,9 +13,42 @@
     key: "{{ item }}"
   loop:
     - https://github.com/{{ git.user }}.keys
-    - "{{ ssh.github }}"
-    - "{{ ssh.launchpad }}"
-    - "{{ ssh.other }}"
+
+- name: SSH | Detect existing private key
+  ansible.builtin.stat:
+    path: "/mnt/c/Users/{{ windows_user }}/.ssh/{{ ssh.private_key }}"
+  register: win_private_key
+
+- name: SSH | Detect existing public key
+  ansible.builtin.stat:
+    path: "/mnt/c/Users/{{ windows_user }}/.ssh/{{ ssh.public_key }}"
+  register: win_public_key
+
+- name: SSH | Register state
+  ansible.builtin.set_fact:
+    win_private_key_is_installed: "{{ win_private_key.stat.exists }}"
+    win_public_key_is_installed: "{{ win_public_key.stat.exists }}"
+
+- name: SSH | Install Windows ssh key to WSL host
+  when:
+    - ansible_host_environment_is_wsl
+    - win_private_key_is_installed
+    - win_public_key_is_installed
+  block:
+    - name: SSH | Copy public key
+      ansible.builtin.copy:
+        src: "/mnt/c/Users/{{ windows_user }}/.ssh/{{ ssh.public_key }}"
+        dest: "{{ ansible_home }}.ssh/{{ ssh.public_key }}"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0600"
+    - name: SSH | Copy private key
+      ansible.builtin.copy:
+        src: "/mnt/c/Users/{{ windows_user }}/.ssh/{{ ssh.private_key }}"
+        dest: "{{ ansible_home }}.ssh/{{ ssh.private_key }}"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0600"
 
 - name: SSH | Start SSH service
   ansible.builtin.service:
@@ -49,17 +83,3 @@
     - regexp: ^X11Forwarding
       line: X11Forwarding no
   notify: SSH | Restart ssh
-
-- name: SSH | Open SSH ports
-  community.general.ufw:
-    state: "{{ item.state }}"
-    rule: "{{ item.rule }}"
-    port: "{{ item.port }}"
-    proto: "{{ item.proto }}"
-  with_items:
-    - name: SSH
-      state: enabled
-      rule: allow
-      port: "22"
-      proto: tcp
-  notify: SSH | Reload ufw
