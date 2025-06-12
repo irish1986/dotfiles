@@ -8,8 +8,8 @@
     ":semanticCommits"
   ],
   "ansible-galaxy": {
-    "fileMatch": [
-      "(^|/)collections/.+\\.ya?ml(?:\\.j2)?$"
+    "managerFilePatterns": [
+      "/(^|/)collections/.+\\.ya?ml(?:\\.j2)?$/"
     ]
   },
   "pre-commit": {
