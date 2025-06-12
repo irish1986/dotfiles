@@ -4,6 +4,7 @@ secret_bws_access_token: "{{ lookup('env', 'BWS_ACCESS_TOKEN') }}"
 
 # Role - System Variables
 ansible_user: username
+windows_user: username
 ansible_home: /home/{{ ansible_user }}/
 loop_host: 127.0.1.1
 hostname: ubuntu-wsl
