@@ -32,7 +32,7 @@ fonts:
 # Role - Notes Variables
 notes:
   repository: "https://github.com/{{ git.user }}/notes"
-  directory: " .notes"
+  directory: ".notes"
 
 # Role - Python Variables
 python:
