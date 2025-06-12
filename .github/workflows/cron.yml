@@ -1,12 +1,9 @@
 ---
-name: CI - Main
+name: CI - Cron
 
 on: # yamllint disable-line rule:truthy
-  push:
-    branches:
-      - main
-    paths-ignore:
-      - "README.md"
+  schedule:
+    - cron: '32 6 * * *' # set random cron
   workflow_dispatch:
 
 concurrency:

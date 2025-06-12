@@ -1,12 +1,12 @@
 ---
-name: CI - Main
+name: CI - Pull Request
 
 on: # yamllint disable-line rule:truthy
-  push:
+  pull_request:
     branches:
       - main
     paths-ignore:
-      - "README.md"
+      - 'README.md'
   workflow_dispatch:
 
 concurrency:

@@ -15,8 +15,6 @@
           {{ loop_host | default('127.0.1.1') }}  {{ hostname | default('ubuntu') }}
 
 - name: System | Groups and Users
-  when:
-    - not ansible_host_environment_is_wsl
   block:
     - name: System | Ensure groups are present
       ansible.builtin.group:
@@ -45,6 +43,7 @@
   ansible.builtin.apt:
     name:
       - apt-transport-https
+      - bind9-dnsutils
       - curl
       - git
       - nano
