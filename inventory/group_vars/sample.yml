@@ -31,7 +31,7 @@ fonts:
 
 # Role - Notes Variables
 notes:
-  repository: "https://github.com/irish1986/notes"
+  repository: "https://github.com/{{ git.user }}/notes"
   directory: " .notes"
 
 # Role - Python Variables
