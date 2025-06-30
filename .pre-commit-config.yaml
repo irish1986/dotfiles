@@ -1,4 +1,5 @@
 ---
+# pre-commit install --allow-missing-config &&  pre-commit autoupdate && pre-commit run --all-files --color auto
 exclude: |
   (?x)^(
     \.pre-commit-config\.yaml$
@@ -12,6 +13,7 @@ default_install_hook_types:
   - commit-msg
   - pre-commit
 ci:
+  autoupdate_schedule: monthly
   skip:
     - ansible-lint
     - ggshield
@@ -20,6 +22,8 @@ repos:
     hooks:
       - id: identity
         name: "meta | pre-commit hooks"
+        stages:
+          - manual
   - repo: https://github.com/commitizen-tools/commitizen
     rev: v4.8.3
     hooks:
@@ -36,8 +40,8 @@ repos:
     rev: v5.0.0
     hooks:
       - id: check-added-large-files
-        args: [--maxkb=2048]
         name: "git | block large files"
+        args: [--maxkb=2048]
       - id: check-json
         name: "general | check JSON files"
       - id: check-toml
@@ -53,48 +57,48 @@ repos:
       - id: forbid-submodules
         name: "git | forbid submodules usage"
       - id: mixed-line-ending
+        name: "general | fix line ending"
         args:
           - --fix=auto
-        name: "general | fix line ending"
       - id: no-commit-to-branch
+        name: "git | protect main branch"
         args:
           - --branch=main
-        name: "git | protect main branch"
         stages:
           - manual
       - id: pretty-format-json
+        name: "general | prettify JSON files"
         args:
           - --autofix
           - --no-ensure-ascii
-        name: "general | prettify JSON files"
       - id: trailing-whitespace
         name: "general | remove trailing whitespace"
   - repo: https://github.com/igorshubovych/markdownlint-cli
     rev: v0.45.0
     hooks:
       - id: markdownlint
+        name: "md | lint: run markdownlint-cli"
         args:
           - --config
           - .config/.markdown-lint.yml
-        name: "md | lint: run markdownlint-cli"
   - repo: https://github.com/adrienverge/yamllint
     rev: v1.37.1
     hooks:
       - id: yamllint
+        name: "yaml | lint: run yamllint"
         args:
           - -c
           - .config/.yaml-lint.yml
-        name: "yaml | lint: run yamllint"
   - repo: https://github.com/ansible-community/ansible-lint
     rev: v25.6.1
     hooks:
       - id: ansible-lint
+        name: "ansible | lint: run ansible-lint"
         files: \.(yaml|yml)$
         args:
           - -c
           - .config/.ansible-lint.yml
           - --fix
-        name: "ansible | lint: run ansible-lint"
   - repo: https://github.com/rhysd/actionlint
     rev: v1.7.7
     hooks:
