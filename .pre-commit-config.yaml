@@ -1,52 +1,74 @@
 ---
+exclude: |
+  (?x)^(
+    \.pre-commit-config\.yaml$
+  )
 fail_fast: false
+default_stages:
+  - pre-commit
+default_language_version:
+  python: python3.12
 default_install_hook_types:
+  - commit-msg
   - pre-commit
 ci:
   skip:
     - ansible-lint
     - ggshield
 repos:
+  - repo: meta
+    hooks:
+      - id: identity
+        name: "meta | pre-commit hooks"
   - repo: https://github.com/commitizen-tools/commitizen
     rev: v4.8.3
     hooks:
       - id: commitizen
+        name: "git | validate commit messages"
+        stages:
+          - commit-msg
   - repo: https://github.com/gitguardian/ggshield
     rev: v1.41.0
     hooks:
       - id: ggshield
-        language_version: python3
+        name: "security | scan for secrets"
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
       - id: check-added-large-files
         args: [--maxkb=2048]
-      - id: check-case-conflict
+        name: "git | block large files"
       - id: check-json
-      - id: check-merge-conflict
-      - id: check-vcs-permalinks
+        name: "general | check JSON files"
+      - id: check-toml
+        name: "general | check TOML files"
+      - id: check-xml
+        name: "general | check XML files"
       - id: check-yaml
-        files: /.(yaml|yml)$
+        name: "general | check YAML files"
       - id: end-of-file-fixer
+        name: "general | fix end of file"
       - id: forbid-new-submodules
+        name: "git | forbid new submodules"
       - id: forbid-submodules
+        name: "git | forbid submodules usage"
       - id: mixed-line-ending
         args:
-          - --fix=lf
-      - id: trailing-whitespace
+          - --fix=auto
+        name: "general | fix line ending"
+      - id: no-commit-to-branch
         args:
-          - --markdown-linebreak-ext=md
-  - repo: https://github.com/Lucas-C/pre-commit-hooks
-    rev: v1.5.5
-    hooks:
-      - id: remove-crlf
-      - id: remove-tabs
-  - repo: https://github.com/sirosen/texthooks
-    rev: 0.6.8
-    hooks:
-      - id: alphabetize-codeowners
-      - id: fix-ligatures
-      - id: fix-smartquotes
+          - --branch=main
+        name: "git | protect main branch"
+        stages:
+          - manual
+      - id: pretty-format-json
+        args:
+          - --autofix
+          - --no-ensure-ascii
+        name: "general | prettify JSON files"
+      - id: trailing-whitespace
+        name: "general | remove trailing whitespace"
   - repo: https://github.com/igorshubovych/markdownlint-cli
     rev: v0.45.0
     hooks:
@@ -54,6 +76,7 @@ repos:
         args:
           - --config
           - .config/.markdown-lint.yml
+        name: "md | lint: run markdownlint-cli"
   - repo: https://github.com/adrienverge/yamllint
     rev: v1.37.1
     hooks:
@@ -61,6 +84,7 @@ repos:
         args:
           - -c
           - .config/.yaml-lint.yml
+        name: "yaml | lint: run yamllint"
   - repo: https://github.com/ansible-community/ansible-lint
     rev: v25.6.1
     hooks:
@@ -70,7 +94,9 @@ repos:
           - -c
           - .config/.ansible-lint.yml
           - --fix
+        name: "ansible | lint: run ansible-lint"
   - repo: https://github.com/rhysd/actionlint
     rev: v1.7.7
     hooks:
       - id: actionlint
+        name: "gh-action | lint: run actionlint"
