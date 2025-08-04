@@ -4,11 +4,11 @@
     "fontWeight": "bold"
   },
   "apc.stylesheet": {
-    ".tabs-container .tab.active": {
-      "border-radius": "7px !important"
-    },
     ".scrollbar": {
       "background": "#21222f !important"
+    },
+    ".tabs-container .tab.active": {
+      "border-radius": "7px !important"
     }
   },
   "breadcrumbs.enabled": true,
@@ -16,13 +16,13 @@
   "editor.fontLigatures": true,
   "editor.formatOnPaste": true,
   "editor.formatOnSave": true,
-  "excalidraw.theme": "dark",
   "editor.formatOnType": true,
   "editor.minimap.enabled": false,
   "editor.scrollbar.horizontal": "visible",
   "editor.scrollbar.horizontalScrollbarSize": 10,
   "editor.scrollbar.vertical": "visible",
   "editor.scrollbar.verticalScrollbarSize": 10,
+  "excalidraw.theme": "dark",
   "explorer.confirmDelete": false,
   "files.exclude": {
     "**/.git": false
