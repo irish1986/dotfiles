@@ -32,7 +32,7 @@ repos:
         stages:
           - commit-msg
   - repo: https://github.com/gitguardian/ggshield
-    rev: v1.41.0
+    rev: v1.42.0
     hooks:
       - id: ggshield
         name: "security | scan for secrets"
@@ -90,7 +90,7 @@ repos:
           - -c
           - .config/.yaml-lint.yml
   - repo: https://github.com/ansible-community/ansible-lint
-    rev: v25.6.1
+    rev: v25.7.0
     hooks:
       - id: ansible-lint
         name: "ansible | lint: run ansible-lint"
