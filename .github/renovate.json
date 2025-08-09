@@ -1,5 +1,10 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "ansible-galaxy": {
+    "managerFilePatterns": [
+      "/(^|/)collections/.+\\.ya?ml(?:\\.j2)?$/"
+    ]
+  },
   "dependencyDashboardTitle": "Renovate Dashboard",
   "extends": [
     "config:recommended",
@@ -7,14 +12,6 @@
     ":timezone(America/New_York)",
     ":semanticCommits"
   ],
-  "ansible-galaxy": {
-    "managerFilePatterns": [
-      "/(^|/)collections/.+\\.ya?ml(?:\\.j2)?$/"
-    ]
-  },
-  "pre-commit": {
-    "enabled": true
-  },
   "packageRules": [
     {
       "groupName": "all non-major dependencies",
@@ -27,5 +24,8 @@
         "patch"
       ]
     }
-  ]
+  ],
+  "pre-commit": {
+    "enabled": true
+  }
 }
