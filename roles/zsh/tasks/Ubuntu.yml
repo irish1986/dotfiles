@@ -4,6 +4,7 @@
     name:
       - bat
       - eza
+      - fzf
       - git
       - htop
       - jq

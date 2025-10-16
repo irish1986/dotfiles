@@ -14,6 +14,7 @@
     "redhat.vscode-yaml",
     "vscode-icons-team.vscode-icons",
     "yzhang.markdown-all-in-one",
-    "github.vscode-github-actions"
+    "github.vscode-github-actions",
+    "razroel.task-master-vscode-extension"
   ]
 }

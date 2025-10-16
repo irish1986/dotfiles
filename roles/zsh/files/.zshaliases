@@ -34,6 +34,9 @@ alias bfg='java -jar /usr/local/bin/bfg'
 # alias - trufflehog
 alias trufflehog='trufflehog --no-update'
 
+# alias - pre-commit|prek
+alias pre-commit='prek'
+
 # alias - rm to trash
 alias rm='trash -v'
 
@@ -47,3 +50,6 @@ alias ungz='tar -xvzf'
 
 # alias - logs
 alias logs="sudo find /var/log -type f -exec file {} \; | grep 'text' | cut -d' ' -f1 | sed -e's/:$//g' | grep -v '[0-9]$' | xargs tail -f"
+
+# alias - ensure pin
+alias pin-github-action='docker run --rm -v $(pwd):/workflows -e GITHUB_TOKEN mheap/pin-github-action'

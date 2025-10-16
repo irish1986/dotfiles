@@ -1,5 +1,5 @@
 ---
-profile: production
+profile: min
 exclude_paths:
   - .github/
   - .config/

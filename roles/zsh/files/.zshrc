@@ -5,6 +5,7 @@ fi
 plugins=(
   command-not-found
   git
+  kubectl
   history
   sudo
   tmux
