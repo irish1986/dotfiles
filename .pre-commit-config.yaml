@@ -90,7 +90,7 @@ repos:
           - -c
           - .config/.yaml-lint.yml
   - repo: https://github.com/ansible-community/ansible-lint
-    rev: v25.9.2
+    rev: v26.1.1
     hooks:
       - id: ansible-lint
         name: "ansible | lint: run ansible-lint"
