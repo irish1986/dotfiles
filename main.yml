@@ -16,9 +16,10 @@
           ansible.builtin.include_role:
             name: "{{ item }}"
           with_items:
-            - btop
             - docker
             - git
+            - hugo
+            - nvm
             - python
             - ssh
             - system

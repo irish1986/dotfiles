@@ -1,0 +1,16 @@
+---
+- name: NVM | Install
+  block:
+    - name: Prek | Download latest JSON
+      ansible.builtin.uri:
+        url: https://api.github.com/repos/j178/prek/releases/latest
+      register: prek_latest_version_json
+      changed_when: false
+
+    - name: Prek | Registering latest release
+      ansible.builtin.set_fact:
+        prek_latest_release: "{{ prek_latest_version_json.json.tag_name }}"
+
+    - name: Prek | Show latest release
+      ansible.builtin.debug:
+        var: prek_latest_release

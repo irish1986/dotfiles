@@ -36,9 +36,7 @@ notes:
 
 # Role - Python Variables
 python:
-  pyver: "3.12"
-  poetry:
-    enable: false
+  pyver: "3.14"
   uv:
     enable: true
 

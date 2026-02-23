@@ -129,12 +129,6 @@
     dest: "{{ ansible_home }}/.zshaliases"
     mode: "0644"
 
-- name: ZSH | Setup .zshenv
-  ansible.builtin.copy:
-    src: .zshenv
-    dest: "{{ ansible_home }}/.zshenv"
-    mode: "0644"
-
 - name: ZSH | Copy .zshfunc
   ansible.builtin.copy:
     src: .zshfunc

@@ -1,38 +1,31 @@
 ---
-# pre-commit install --allow-missing-config &&  pre-commit autoupdate && pre-commit run --all-files --color auto
+# pre-commit install --allow-missing-config
+# pre-commit autoupdate
+# pre-commit run --all-files --color auto
 exclude: |
   (?x)^(
     \.pre-commit-config\.yaml$
   )
-fail_fast: false
+fail_fast: true
 default_stages:
   - pre-commit
-default_language_version:
-  python: python3.12
 default_install_hook_types:
   - commit-msg
   - pre-commit
-ci:
-  autoupdate_schedule: monthly
-  skip:
-    - ansible-lint
-    - ggshield
 repos:
   - repo: meta
     hooks:
       - id: identity
         name: "meta | pre-commit hooks"
-        stages:
-          - manual
   - repo: https://github.com/commitizen-tools/commitizen
-    rev: v4.9.1
+    rev: v4.13.8
     hooks:
       - id: commitizen
-        name: "git | validate commit messages"
+        name: "commitizen | validate commit messages"
         stages:
           - commit-msg
   - repo: https://github.com/gitguardian/ggshield
-    rev: v1.43.0
+    rev: v1.48.0
     hooks:
       - id: ggshield
         name: "security | scan for secrets"
@@ -46,35 +39,21 @@ repos:
         name: "general | check JSON files"
       - id: check-toml
         name: "general | check TOML files"
-      - id: check-xml
-        name: "general | check XML files"
-      - id: check-yaml
-        name: "general | check YAML files"
       - id: end-of-file-fixer
         name: "general | fix end of file"
-      - id: forbid-new-submodules
-        name: "git | forbid new submodules"
-      - id: forbid-submodules
-        name: "git | forbid submodules usage"
       - id: mixed-line-ending
         name: "general | fix line ending"
         args:
           - --fix=auto
-      - id: no-commit-to-branch
-        name: "git | protect main branch"
-        args:
-          - --branch=main
-        stages:
-          - manual
+      - id: trailing-whitespace
+        name: "general | remove trailing whitespace"
       - id: pretty-format-json
         name: "general | prettify JSON files"
         args:
           - --autofix
           - --no-ensure-ascii
-      - id: trailing-whitespace
-        name: "general | remove trailing whitespace"
   - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.45.0
+    rev: v0.47.0
     hooks:
       - id: markdownlint
         name: "md | lint: run markdownlint-cli"
@@ -82,7 +61,7 @@ repos:
           - --config
           - .config/.markdown-lint.yml
   - repo: https://github.com/adrienverge/yamllint
-    rev: v1.37.1
+    rev: v1.38.0
     hooks:
       - id: yamllint
         name: "yaml | lint: run yamllint"
@@ -90,7 +69,7 @@ repos:
           - -c
           - .config/.yaml-lint.yml
   - repo: https://github.com/ansible-community/ansible-lint
-    rev: v25.9.2
+    rev: v26.1.1
     hooks:
       - id: ansible-lint
         name: "ansible | lint: run ansible-lint"

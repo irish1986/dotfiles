@@ -51,9 +51,9 @@
       when:
         - uv_is_installed
       block:
-        - name: "UV | Install python 3.12"
+        - name: "UV | Install python {{ python.pyver }}"
           ansible.builtin.shell: |
-            uv python install 3.12 --preview --default
+            uv python install {{ python.pyver }} --default
           args:
             executable: /bin/bash
           failed_when: true
@@ -63,27 +63,3 @@
         - name: UV | Someting is wrong
           ansible.builtin.debug:
             msg: But I couldn't find what # TODO
-
-- name: Python | Install Poetry
-  when:
-    - python.poetry.enable
-  block:
-    - name: Python | Install
-      ansible.builtin.apt:
-        name:
-          - pipx
-        state: present
-      become: true
-
-    - name: Python | Install pipx packages
-      when:
-        - ansible_distribution_major_version | int >= 22
-      community.general.pipx:
-        name: "{{ item }}"
-        state: present
-      loop:
-        - ansible-lint
-        - commitizen
-        - ggshield
-        - poetry
-      become: true
