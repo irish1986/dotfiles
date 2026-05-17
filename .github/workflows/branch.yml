@@ -18,10 +18,25 @@ concurrency:
 
 jobs:
 
+  pre-commit:
+    name: Call Pre-Commit run
+    uses: irishlab-io/.github/.github/workflows/reusable-pre-commit.yml@main
+
   secret:
     name: Call Secret Scanning
     uses: irishlab-io/.github/.github/workflows/reusable-secret.yml@main
-    continue-on-error: true
 
     secrets:
       GITGUARDIAN_API_KEY: ${{ secrets.GITGUARDIAN_API_KEY }}
+
+  ansible-lint:
+    name: Call Ansible-Lint
+    uses: irishlab-io/.github/.github/workflows/reusable-ansible-lint.yml@main
+
+    needs:
+      - pre-commit
+      - secret
+
+    with:
+      configuration_file: "-c ./.config/.ansible-lint.yml"
+      requirements_file: "./collections/requirements.yml"
