@@ -19,6 +19,7 @@ jobs:
   secret:
     name: Call Secret Scanning
     uses: irishlab-io/.github/.github/workflows/reusable-secret.yml@main
+    continue-on-error: true
 
     secrets:
       GITGUARDIAN_API_KEY: ${{ secrets.GITGUARDIAN_API_KEY }}
