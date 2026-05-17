@@ -16,7 +16,7 @@
 
 - name: Git | Detect existing signing key
   ansible.builtin.stat:
-    path: "{{ ansible_home }}.ssh/{{ git.signing_key }}"
+    path: "{{ ansible_home }}/.ssh/{{ git.signing_key }}"
   register: signing_key
 
 - name: Git | Register state
@@ -61,7 +61,7 @@
     - name: user.name
       value: "{{ git.name }}"
     - name: user.signingkey
-      value: "{{ ansible_home }}.ssh/{{ git.signing_key }}"
+      value: "{{ ansible_home }}/.ssh/{{ git.signing_key }}"
     - name: user.user
       value: "{{ git.user }}"
     - name: advice.diverging
@@ -81,7 +81,7 @@
     - name: core.editor
       value: code --wait
     - name: core.excludesfile
-      value: "{{ ansible_home }}.gitignore"
+      value: "{{ ansible_home }}/.gitignore"
     - name: credential.helper
       value: cache --timeout=3600
     - name: diff.algorithm
@@ -99,7 +99,7 @@
     - name: gpg.format
       value: ssh
     - name: gpg.ssh.allowedSignersFile
-      value: "{{ ansible_home }}.ssh/allowed_signers"
+      value: "{{ ansible_home }}/.ssh/allowed_signers"
     - name: help.autocorrect
       value: prompt
     - name: init.defaultBranch

@@ -1,12 +1,12 @@
 #!/bin/bash
 
 # Colors Code
-RESTORE='\033[0m'
 NC='\033[0m'
 BLACK='\033[00;30m'
 RED='\033[00;31m'
 GREEN='\033[00;32m'
 YELLOW='\033[00;33m'
+ORANGE='\033[00;33m'
 BLUE='\033[00;34m'
 PURPLE='\033[00;35m'
 CYAN='\033[00;36m'
@@ -131,6 +131,8 @@ generate_ssh_key() {
   fi
 }
 
+generate_ssh_key
+
 if ! [[ -d "$DOTFILES_DIR" ]]; then
   _task "Cloning repository"
   _cmd "git clone --quiet https://github.com/irish1986/dotfiles.git $DOTFILES_DIR"
@@ -139,7 +141,7 @@ else
   _cmd "git -C $DOTFILES_DIR pull --quiet"
 fi
 
-pushd "$DOTFILES_DIR" 2>&1 > /dev/null
+pushd "$DOTFILES_DIR" > /dev/null 2>&1
 update_ansible_galaxy $ID
 
 _task "Running playbook"; _task_done
@@ -149,7 +151,7 @@ else
   ansible-playbook "$DOTFILES_DIR/main.yml" "$@"
 fi
 
-popd 2>&1 > /dev/null
+popd > /dev/null 2>&1
 
 if ! [[ -f "$DOTFILES_FIRST_RUN" ]]; then
   echo -e "${CHECK_MARK} ${GREEN}First run complete!${NC}"

@@ -8,10 +8,8 @@ plugins=(
   kubectl
   history
   sudo
-  tmux
   vscode
   you-should-use
-  z
   zsh-autosuggestions
   zsh-bat
   zsh-completions
@@ -20,7 +18,6 @@ plugins=(
   )
 
 ZSH_THEME="powerlevel10k/powerlevel10k"
-ZSH_TMUX_AUTOSTART=true
 
 export CONFIG="$HOME/.config"
 export ZSH="$HOME/.oh-my-zsh"
