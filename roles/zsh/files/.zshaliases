@@ -12,7 +12,6 @@ alias top="htop"
 
 # alias - change directory
 alias home='cd $HOME'
-alias cd='z'
 alias cd..='cd ..'
 alias ..='cd ..'
 alias ...='cd ../..'
@@ -28,7 +27,7 @@ alias diskspace="du -S | sort -n -r |more"
 alias tree='tree -CAhF --dirsfirst'
 alias treed='tree -CAFd'
 
-# alias - rm to trash
+# alias - bfg
 alias bfg='java -jar /usr/local/bin/bfg'
 
 # alias - trufflehog

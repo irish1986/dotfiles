@@ -1,9 +1,4 @@
 ---
-- name: ZSH | Remove oh-my-zsh script
-  ansible.builtin.file:
-    path: /tmp/oh-my-zsh.install.sh
-    state: absent
-
 - name: ZSH | Cleanup oh-my-zsh
   ansible.builtin.file:
     path: "{{ ansible_home }}/oh-my-zsh.install.sh"

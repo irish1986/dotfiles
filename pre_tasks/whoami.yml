@@ -4,22 +4,20 @@
     ansible_user: "{{ ansible_env['USER'] }}"
   when:
     - ansible_user is not defined
-  changed_when: false
 
 - name: Show Current User
   ansible.builtin.debug:
     msg: "User is: '{{ ansible_user }}'"
 
-- name: Register Current User
+- name: Register Current Home
   ansible.builtin.set_fact:
     ansible_home: "{{ ansible_env['HOME'] }}"
   when:
     - ansible_home is not defined
-  changed_when: false
 
-- name: debug output
-  debug:
-    msg: "User is: '{{ ansible_home }}'"
+- name: Show Current Home
+  ansible.builtin.debug:
+    msg: "Home is: '{{ ansible_home }}'"
 
 - name: Detect WSL
   ansible.builtin.shell: |

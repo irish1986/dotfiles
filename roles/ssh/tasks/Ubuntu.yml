@@ -38,14 +38,14 @@
     - name: SSH | Copy public key
       ansible.builtin.copy:
         src: "/mnt/c/Users/{{ windows_user }}/.ssh/{{ ssh.public_key }}"
-        dest: "{{ ansible_home }}.ssh/{{ ssh.public_key }}"
+        dest: "{{ ansible_home }}/.ssh/{{ ssh.public_key }}"
         owner: "{{ ansible_user }}"
         group: "{{ ansible_user }}"
         mode: "0600"
     - name: SSH | Copy private key
       ansible.builtin.copy:
         src: "/mnt/c/Users/{{ windows_user }}/.ssh/{{ ssh.private_key }}"
-        dest: "{{ ansible_home }}.ssh/{{ ssh.private_key }}"
+        dest: "{{ ansible_home }}/.ssh/{{ ssh.private_key }}"
         owner: "{{ ansible_user }}"
         group: "{{ ansible_user }}"
         mode: "0600"

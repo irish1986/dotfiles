@@ -25,7 +25,7 @@
 
     - name: UV | Detect previous install
       ansible.builtin.stat:
-        path: "{{ ansible_home }}.local/bin/uv"
+        path: "{{ ansible_home }}/.local/bin/uv"
       register: uv
 
     - name: UV | Register state
@@ -48,18 +48,16 @@
             cmd: /tmp/uv.install.sh
 
     - name: UV | Install python packages
-      when:
-        - uv_is_installed
       block:
         - name: "UV | Install python {{ python.pyver }}"
           ansible.builtin.shell: |
             uv python install {{ python.pyver }} --default
           args:
             executable: /bin/bash
-          failed_when: true
+          failed_when: false
           changed_when: false
 
       rescue:
-        - name: UV | Someting is wrong
+        - name: UV | Something went wrong
           ansible.builtin.debug:
-            msg: But I couldn't find what # TODO
+            msg: UV python install failed, check uv is in PATH and the version is valid.
