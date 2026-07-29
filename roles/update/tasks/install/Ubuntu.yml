@@ -1,0 +1,63 @@
+---
+- name: Update | Upgrade the installed packages
+  ansible.builtin.apt:
+    upgrade: "{{ update_upgrade }}"
+    update_cache: true
+    cache_valid_time: 3600
+    autoclean: "{{ update_autoclean }}"
+    autoremove: "{{ update_autoremove }}"
+    lock_timeout: "{{ update_apt_lock_timeout }}"
+  become: true
+
+- name: Update | Configure unattended upgrades
+  when: update_unattended_enabled | bool
+  block:
+    - name: Update | Install unattended-upgrades
+      ansible.builtin.apt:
+        name: "{{ update_unattended_packages }}"
+        state: present
+        lock_timeout: "{{ update_apt_lock_timeout }}"
+      become: true
+      notify: Update | Restart unattended-upgrades
+
+    - name: Update | Deploy the apt configuration
+      ansible.builtin.template:
+        src: "{{ update_apt_conf }}.j2"
+        dest: "/etc/apt/apt.conf.d/{{ update_apt_conf }}"
+        owner: root
+        group: root
+        mode: "0644"
+      become: true
+      loop:
+        - 2norecommends
+        - 10periodic
+        - 50unattended-upgrades
+      loop_control:
+        loop_var: update_apt_conf
+      notify: Update | Restart unattended-upgrades
+
+- name: Update | Check whether a reboot is required
+  ansible.builtin.stat:
+    path: "{{ update_reboot_marker }}"
+  register: update_reboot_required
+
+# Gated on dotfiles_can_reboot: `reboot` terminates a WSL distro and kills a CI
+# container, in both cases taking the playbook run with it.
+- name: Update | Reboot
+  ansible.builtin.reboot:
+    msg: Rebooting to complete the system upgrade
+    reboot_timeout: 120
+  become: true
+  when:
+    - update_reboot_required.stat.exists
+    - dotfiles_can_reboot | bool
+
+- name: Update | Report a pending reboot
+  ansible.builtin.debug:
+    msg: >-
+      A reboot is required to complete the upgrade, but this environment cannot
+      be rebooted by Ansible. Restart it yourself
+      {{ "(from Windows: wsl --shutdown)" if dotfiles_is_wsl | bool else "" }}.
+  when:
+    - update_reboot_required.stat.exists
+    - not (dotfiles_can_reboot | bool)

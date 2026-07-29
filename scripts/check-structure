@@ -1,0 +1,164 @@
+#!/usr/bin/env python3
+"""Structural checks for the role tree.
+
+Catches the class of mistake that ansible-lint cannot: a role whose install
+tasks are named after a different role, a dispatcher that has grown module
+calls, a deprecated module creeping back in, or a role listed in dotfiles_roles
+that does not exist. Every one of these has actually occurred in this repo.
+
+Exit status is 1 when any check fails, 0 otherwise.
+"""
+
+from __future__ import annotations
+
+import re
+import sys
+from pathlib import Path
+
+import yaml
+
+ROOT = Path(__file__).resolve().parent.parent
+ROLES = ROOT / "roles"
+
+# Roles that are internal helpers rather than user-selectable entries.
+HELPER_ROLES = {"apt_repo"}
+
+# Modules that must not come back. apt-key is gone in Ubuntu 24.04+; the pip
+# ones break under PEP 668 on 24.04+.
+BANNED = {
+    "ansible.builtin.apt_key": "removed in Ubuntu 24.04+; use the apt_repo role",
+    "apt_key": "removed in Ubuntu 24.04+; use the apt_repo role",
+    "--break-system-packages": "PEP 668 escape hatch; use uv instead",
+}
+
+# tasks/main.yml is an orchestrator: only these keys may appear as modules.
+ORCHESTRATOR_ALLOWED = {
+    "ansible.builtin.include_vars",
+    "ansible.builtin.include_tasks",
+    "ansible.builtin.import_tasks",
+}
+
+failures: list[str] = []
+
+
+def fail(msg: str) -> None:
+    failures.append(msg)
+
+
+def load(path: Path):
+    try:
+        return yaml.safe_load(path.read_text()) or []
+    except yaml.YAMLError as exc:  # pragma: no cover - surfaced to the user
+        fail(f"{path.relative_to(ROOT)}: cannot parse: {exc}")
+        return []
+
+
+def task_names(tasks, acc: list[str]) -> None:
+    """Collect every task name, descending into block/rescue/always."""
+    for task in tasks or []:
+        if not isinstance(task, dict):
+            continue
+        if "name" in task:
+            acc.append(task["name"])
+        for key in ("block", "rescue", "always"):
+            if key in task:
+                task_names(task[key], acc)
+
+
+def modules_used(tasks, acc: list[str]) -> None:
+    for task in tasks or []:
+        if not isinstance(task, dict):
+            continue
+        for key in ("block", "rescue", "always"):
+            if key in task:
+                modules_used(task[key], acc)
+        for key in task:
+            if "." in key and not key.startswith(("loop", "with_", "when", "vars")):
+                acc.append(key)
+
+
+def check_role(role: Path) -> None:
+    rel = role.relative_to(ROOT)
+
+    # 1. Required files.
+    for required in ("tasks/main.yml", "defaults/main.yml", "meta/main.yml"):
+        if not (role / required).is_file():
+            fail(f"{rel}: missing {required}")
+
+    # 2. An OS-specific install file must exist for the supported platform.
+    install_dir = role / "tasks" / "install"
+    if install_dir.is_dir() and not list(install_dir.glob("*.yml")):
+        fail(f"{rel}: tasks/install/ exists but is empty")
+
+    # 3. verify.yml is mandatory for anything that installs software. This is
+    #    what stops a role silently downloading and never installing.
+    main = role / "tasks" / "main.yml"
+    if main.is_file():
+        body = main.read_text()
+        if "tasks/verify.yml" not in body and role.name not in HELPER_ROLES:
+            fail(f"{rel}: tasks/main.yml does not include tasks/verify.yml")
+
+        # 4. The orchestrator holds no module calls beyond includes. Helper
+        #    roles are invoked with include_role and have no phase split.
+        used: list[str] = []
+        if role.name not in HELPER_ROLES:
+            modules_used(load(main), used)
+        for module in used:
+            if module not in ORCHESTRATOR_ALLOWED:
+                fail(f"{rel}: tasks/main.yml calls {module}; move it into a phase file")
+
+    # 5. Every task name carries the role's own prefix. `kind` shipped a block
+    #    named "Fastfetch | Install" and `prek` one named "NVM | Install".
+    prefixes: set[str] = set()
+    for path in sorted((role / "tasks").rglob("*.yml")):
+        names: list[str] = []
+        task_names(load(path), names)
+        for name in names:
+            if "|" in name:
+                prefixes.add(name.split("|", 1)[0].strip())
+    if len(prefixes) > 1:
+        fail(f"{rel}: mixed task-name prefixes {sorted(prefixes)}; expected one")
+
+    # 6. No banned modules or flags anywhere in the role.
+    for path in sorted(role.rglob("*.yml")):
+        text = "\n".join(
+            re.sub(r"#.*$", "", line) for line in path.read_text().splitlines()
+        )
+        for needle, why in BANNED.items():
+            if re.search(rf"\b{re.escape(needle)}\b", text):
+                fail(f"{path.relative_to(ROOT)}: uses {needle} ({why})")
+
+
+def check_role_selection() -> None:
+    example = ROOT / "docs" / "examples" / "group_vars-all.yml"
+    if not example.is_file():
+        fail("docs/examples/group_vars-all.yml is missing")
+        return
+    data = yaml.safe_load(example.read_text()) or {}
+    for name in data.get("dotfiles_roles") or []:
+        if not (ROLES / name / "tasks" / "main.yml").is_file():
+            fail(f"docs/examples/group_vars-all.yml lists unknown role '{name}'")
+
+
+def main() -> int:
+    if not ROLES.is_dir():
+        print("no roles/ directory", file=sys.stderr)
+        return 1
+
+    roles = sorted(p for p in ROLES.iterdir() if p.is_dir())
+    for role in roles:
+        check_role(role)
+    check_role_selection()
+
+    if failures:
+        print(f"check-structure: {len(failures)} problem(s)\n", file=sys.stderr)
+        for line in failures:
+            print(f"  {line}", file=sys.stderr)
+        return 1
+
+    print(f"check-structure: {len(roles)} roles OK")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

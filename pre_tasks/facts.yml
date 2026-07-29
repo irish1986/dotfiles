@@ -91,14 +91,3 @@
       systemd={{ dotfiles_has_systemd }}
       container={{ dotfiles_in_container }}
       reboot={{ dotfiles_can_reboot }}
-
-# Temporary shims so roles that have not been migrated to the dotfiles_* names
-# keep working. Removed once every role is migrated.
-- name: Facts | Legacy variable aliases
-  ansible.builtin.set_fact:
-    ansible_home: "{{ dotfiles_home }}"
-    ansible_host_environment_is_wsl: "{{ dotfiles_is_wsl }}"
-    ansible_user: "{{ dotfiles_user }}"
-    hostname: "{{ dotfiles_hostname }}"
-    loop_host: "{{ dotfiles_loopback_address }}"
-    windows_user: "{{ dotfiles_windows_user }}"

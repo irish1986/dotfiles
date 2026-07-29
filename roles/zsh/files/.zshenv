@@ -1,1 +1,0 @@
-export GITHUB_TOKEN="<your_github_token>"
