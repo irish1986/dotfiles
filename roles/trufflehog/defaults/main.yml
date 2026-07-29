@@ -1,0 +1,4 @@
+---
+trufflehog_version: "" # empty resolves the latest release
+trufflehog_release_api: https://api.github.com/repos/trufflesecurity/trufflehog/releases/latest
+trufflehog_install_dir: /usr/local/bin

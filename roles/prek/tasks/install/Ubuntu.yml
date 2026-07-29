@@ -1,0 +1,32 @@
+---
+- name: Prek | Assert uv is available
+  ansible.builtin.assert:
+    that:
+      - (prek_uv_binary) is file
+    fail_msg: >-
+      uv is not installed. The python role provides it; list python before prek
+      in dotfiles_roles.
+    quiet: true
+
+# Keyed on what uv actually manages rather than on whether the binary exists:
+# `uv tool install` refuses to overwrite an executable it did not create, so a
+# prek installed by any other means makes a plain install fail every run.
+# --force adopts such a binary once, and the guard keeps this a no-op after.
+- name: Prek | List the uv managed tools
+  ansible.builtin.command: "{{ prek_uv_binary }} tool list"
+  # NO_COLOR: uv wraps each entry in ANSI escapes, so an anchored match on the
+  # package name never fires and the install runs on every pass.
+  environment:
+    NO_COLOR: "1"
+  register: prek_uv_tools
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Prek | Install prek
+  ansible.builtin.command:
+    cmd: >-
+      {{ prek_uv_binary }} tool install --force
+      {{ prek_package }}{{ ('==' ~ prek_version) if prek_version | length > 0 else '' }}
+  when: prek_uv_tools.stdout is not search('^' ~ prek_package, multiline=True)
+  changed_when: true

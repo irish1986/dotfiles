@@ -1,0 +1,14 @@
+---
+- name: Prek | Query the installed version
+  ansible.builtin.command: "{{ dotfiles_home }}/.local/bin/{{ prek_binary }} --version"
+  register: prek_version_check
+  changed_when: false
+  failed_when: false
+
+- name: Prek | Assert prek is usable
+  ansible.builtin.assert:
+    that:
+      - prek_version_check.rc == 0
+    fail_msg: "prek did not install correctly: {{ prek_version_check.stderr | default('no output') }}"
+    success_msg: "{{ prek_version_check.stdout | trim }}"
+    quiet: true

@@ -1,0 +1,47 @@
+---
+- name: Flux | Install dependencies
+  ansible.builtin.apt:
+    name: "{{ fluxcd_dependencies }}"
+    state: present
+  become: true
+
+- name: Flux | Detect an existing install
+  ansible.builtin.stat:
+    path: "{{ fluxcd_binary_path }}"
+  register: fluxcd_existing
+
+# The upstream installer is fetched to a private temp file rather than a fixed
+# /tmp path: a predictable name in a world-writable directory is a symlink
+# attack waiting to happen, and the old `force: true` re-downloaded it on every
+# run even when flux was already installed.
+- name: Flux | Install flux
+  when: not fluxcd_existing.stat.exists
+  block:
+    - name: Flux | Create a staging file
+      ansible.builtin.tempfile:
+        state: file
+        suffix: fluxcd-install.sh
+      register: fluxcd_script
+      changed_when: false
+
+    - name: Flux | Download the install script
+      ansible.builtin.get_url:
+        url: "{{ fluxcd_install_script_url }}"
+        dest: "{{ fluxcd_script.path }}"
+        mode: "0755"
+        force: true
+      changed_when: false
+
+    - name: Flux | Run the install script
+      ansible.builtin.command: "{{ fluxcd_script.path }}"
+      environment:
+        BIN_DIR: "{{ fluxcd_install_dir }}"
+      become: true
+      changed_when: true
+  always:
+    - name: Flux | Remove the staging file
+      ansible.builtin.file:
+        path: "{{ fluxcd_script.path | default('') }}"
+        state: absent
+      when: fluxcd_script.path is defined
+      changed_when: false

@@ -1,0 +1,71 @@
+---
+- name: BW | Install dependencies
+  ansible.builtin.apt:
+    name: unzip
+    state: present
+  become: true
+
+- name: BW | Resolve the release to install
+  when: bw_version | length == 0
+  block:
+    - name: BW | Query the published releases
+      ansible.builtin.uri:
+        url: "{{ bw_releases_api }}"
+        headers: "{{ dotfiles_github_headers }}"
+      register: bw_releases
+      changed_when: false
+      check_mode: false
+
+    - name: BW | Register the latest CLI release
+      ansible.builtin.set_fact:
+        bw_resolved_version: >-
+          {{ (bw_releases.json | map(attribute='tag_name')
+              | select('match', '^cli-v')
+              | first) | regex_replace('^cli-v', '') }}
+
+- name: BW | Register the pinned release
+  ansible.builtin.set_fact:
+    bw_resolved_version: "{{ bw_version | regex_replace('^cli-v', '') }}"
+  when: bw_version | length > 0
+
+- name: BW | Query the installed version
+  ansible.builtin.command: "{{ bw_binary_path }} --version"
+  register: bw_installed
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: BW | Install the release
+  when: (bw_installed.stdout | default('') | trim) != bw_resolved_version
+  block:
+    - name: BW | Create a staging directory
+      ansible.builtin.tempfile:
+        state: directory
+        suffix: bw
+      register: bw_staging
+      changed_when: false
+
+    - name: BW | Download and unpack the release
+      ansible.builtin.unarchive:
+        src: >-
+          https://github.com/bitwarden/clients/releases/download/cli-v{{ bw_resolved_version }}/bw-linux{{ bw_arch_suffix }}-{{ bw_resolved_version }}.zip
+        dest: "{{ bw_staging.path }}"
+        remote_src: true
+      changed_when: false
+
+    - name: BW | Install the binary
+      ansible.builtin.copy:
+        src: "{{ bw_staging.path }}/bw"
+        dest: "{{ bw_binary_path }}"
+        remote_src: true
+        owner: root
+        group: root
+        mode: "0755"
+      become: true
+  always:
+    - name: BW | Remove the staging directory
+      ansible.builtin.file:
+        path: "{{ bw_staging.path | default('') }}"
+        state: absent
+      when: bw_staging.path is defined
+      changed_when: false

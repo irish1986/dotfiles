@@ -1,0 +1,3 @@
+---
+fluxcd_binary: flux
+fluxcd_binary_path: "{{ fluxcd_install_dir }}/flux"

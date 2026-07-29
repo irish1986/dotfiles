@@ -1,0 +1,16 @@
+---
+- name: NVM | Query the installed version
+  ansible.builtin.shell:
+    cmd: . {{ nvm_script }} && nvm --version
+    executable: /bin/bash
+  register: nvm_version_check
+  changed_when: false
+  failed_when: false
+
+- name: NVM | Assert nvm is usable
+  ansible.builtin.assert:
+    that:
+      - nvm_version_check.rc == 0
+    fail_msg: "nvm did not install correctly: {{ nvm_version_check.stderr | default('no output') }}"
+    success_msg: "nvm {{ nvm_version_check.stdout | trim }}"
+    quiet: true

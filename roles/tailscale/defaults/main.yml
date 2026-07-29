@@ -1,0 +1,21 @@
+---
+tailscale_packages:
+  - tailscale
+
+tailscale_dependencies:
+  - apt-transport-https
+  - ca-certificates
+  - curl
+
+# Tailscale publishes a per-codename suite and a matching per-codename key.
+tailscale_apt_uri: "https://pkgs.tailscale.com/stable/{{ ansible_distribution | lower }}"
+tailscale_apt_key_url: >-
+  https://pkgs.tailscale.com/stable/{{ ansible_distribution | lower }}/{{ tailscale_apt_suite }}.asc
+tailscale_apt_suite: "{{ ansible_distribution_release }}"
+tailscale_apt_suite_fallback: noble
+tailscale_apt_components:
+  - main
+
+# Bringing the node up needs an auth key and is an interactive, stateful
+# decision; the role installs the client and leaves `tailscale up` to you.
+tailscale_manage_service: true
