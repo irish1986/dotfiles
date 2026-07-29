@@ -1,0 +1,3 @@
+---
+update_reboot_marker: /var/run/reboot-required
+update_unattended_service: unattended-upgrades

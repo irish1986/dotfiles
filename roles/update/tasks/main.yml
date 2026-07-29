@@ -34,3 +34,11 @@
     - update
     - base
     - install
+
+- name: Update | Verify
+  ansible.builtin.include_tasks: "{{ role_path }}/tasks/verify.yml"
+  when: not ansible_check_mode
+  tags:
+    - update
+    - base
+    - verify

@@ -1,0 +1,41 @@
+---
+- name: ZSH | Install the plugins
+  ansible.builtin.git:
+    repo: "{{ zsh_plugin.repo }}"
+    version: "{{ zsh_plugin.version }}"
+    dest: "{{ zsh_omz_dir }}/custom/{{ zsh_plugin.type }}/{{ zsh_plugin.name }}"
+    depth: 1
+    force: true
+  loop: "{{ zsh_plugins }}"
+  loop_control:
+    loop_var: zsh_plugin
+    label: "{{ zsh_plugin.name }}"
+
+- name: ZSH | Deploy the shell dotfiles
+  ansible.builtin.copy:
+    src: "{{ zsh_dotfile.src }}"
+    dest: "{{ dotfiles_home }}/{{ zsh_dotfile.dest }}"
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0644"
+  loop: "{{ zsh_dotfiles }}"
+  loop_control:
+    loop_var: zsh_dotfile
+    label: "{{ zsh_dotfile.dest }}"
+
+# Absorbed from the deleted env role. no_log because the rendered block holds
+# live tokens; ansible.cfg's log_path would otherwise write them to disk.
+- name: ZSH | Write the secret environment
+  ansible.builtin.blockinfile:
+    path: "{{ zsh_env_file }}"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK secrets"
+    create: true
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0600"
+    block: |
+      {% for secret in zsh_secrets %}
+      export {{ secret.name }}="{{ lookup('bitwarden.secrets.lookup', secret.id) }}"
+      {% endfor %}
+  no_log: true
+  when: zsh_manage_secrets | bool

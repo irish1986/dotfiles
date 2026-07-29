@@ -1,0 +1,18 @@
+---
+# The previous role added ppa:neovim-ppa/unstable and named that task
+# "Install packages" -- it never installed neovim itself. The PPA is also
+# routinely without a pocket for a new LTS, so the upstream AppImage-free
+# tarball is used instead.
+neovim_version: "" # empty resolves the latest release
+neovim_release_api: https://api.github.com/repos/neovim/neovim/releases/latest
+neovim_install_prefix: /opt/nvim
+
+neovim_dependencies:
+  - cmake
+  - curl
+  - libtool
+  - pkg-config
+  - ripgrep
+  - unzip
+
+neovim_config_dir: "{{ dotfiles_home }}/.config/nvim"

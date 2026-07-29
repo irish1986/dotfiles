@@ -1,0 +1,50 @@
+---
+- name: SSH | Ensure the ssh directory exists
+  ansible.builtin.file:
+    path: "{{ ssh_dir }}"
+    state: directory
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0700"
+
+- name: SSH | Import the GitHub public keys
+  ansible.posix.authorized_key:
+    user: "{{ dotfiles_user }}"
+    key: "https://github.com/{{ ssh_github_user }}.keys"
+    exclusive: false
+  when:
+    - ssh_import_github_keys | bool
+    - ssh_github_user | length > 0
+
+# Gated on WSL, unlike the previous version which stat'd /mnt/c unconditionally
+# and so ran two pointless probes on every non-WSL host.
+- name: SSH | Seed the keypair from Windows
+  when:
+    - ssh_import_from_windows | bool
+    - dotfiles_is_wsl | bool
+  block:
+    - name: SSH | Detect the Windows keypair
+      ansible.builtin.stat:
+        path: "{{ ssh_windows_dir }}/{{ ssh_windows_key }}"
+      register: ssh_windows_keys
+      loop:
+        - "{{ ssh_private_key }}"
+        - "{{ ssh_public_key }}"
+      loop_control:
+        loop_var: ssh_windows_key
+      become: false
+
+    - name: SSH | Copy the Windows keypair
+      ansible.builtin.copy:
+        src: "{{ ssh_windows_dir }}/{{ ssh_windows_key }}"
+        dest: "{{ ssh_dir }}/{{ ssh_windows_key }}"
+        owner: "{{ dotfiles_user }}"
+        group: "{{ dotfiles_user }}"
+        mode: "0600"
+        force: false
+      loop:
+        - "{{ ssh_private_key }}"
+        - "{{ ssh_public_key }}"
+      loop_control:
+        loop_var: ssh_windows_key
+      when: ssh_windows_keys.results | selectattr('stat.exists') | list | length == 2

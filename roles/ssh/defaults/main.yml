@@ -1,0 +1,17 @@
+---
+ssh_packages:
+  - openssh-client
+
+ssh_private_key: id_ed25519
+ssh_public_key: id_ed25519.pub
+
+# Pull the public keys published on a GitHub profile into authorized_keys.
+ssh_import_github_keys: true
+ssh_github_user: "{{ git_user_login | default('') }}"
+
+# Seed the WSL keypair from the Windows one. Off by default: a WSL-native key
+# is independently revocable and needs no Windows-side change. When enabled the
+# copy is force: false, so it seeds an empty ~/.ssh but can never overwrite a
+# key generated locally -- the previous version clobbered it on every run,
+# leaving scripts/setup and this role fighting over the same file.
+ssh_import_from_windows: false

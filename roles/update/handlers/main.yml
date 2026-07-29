@@ -1,16 +1,8 @@
 ---
-- name: Start unattended-upgrades
-  ansible.builtin.systemd:
-    name: unattended-upgrades
-    state: started
-- name: Reboot
-  ansible.builtin.reboot:
-    msg: Rebooting nodes
-    reboot_timeout: 3600
-    test_command: uptime
-- name: Restart unattended-upgrades
-  ansible.builtin.service:
-    name: unattended-upgrades.service
-    daemon_reload: true
+- name: Update | Restart unattended-upgrades
+  ansible.builtin.systemd_service:
+    name: "{{ update_unattended_service }}"
     enabled: true
     state: restarted
+  become: true
+  when: dotfiles_has_systemd | bool

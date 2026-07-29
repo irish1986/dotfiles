@@ -34,3 +34,11 @@
     - timezone
     - base
     - install
+
+- name: Timezone | Verify
+  ansible.builtin.include_tasks: "{{ role_path }}/tasks/verify.yml"
+  when: not ansible_check_mode
+  tags:
+    - timezone
+    - base
+    - verify

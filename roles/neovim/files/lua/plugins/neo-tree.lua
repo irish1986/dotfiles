@@ -15,7 +15,7 @@ return {
     { "<leader>w", ":Neotree focus<CR>", silent = true, desc = "File Explorer" },
   },
   config = function()
-    local icons = require('techdufus.core.icons')
+    local icons = require('dotfiles.core.icons')
     require("neo-tree").setup({
       close_if_last_window = false,
       popup_border_style = "rounded",

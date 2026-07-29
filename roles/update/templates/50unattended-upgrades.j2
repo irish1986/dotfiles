@@ -1,0 +1,19 @@
+// Managed by the dotfiles playbook (roles/update). Do not edit.
+Unattended-Upgrade::Allowed-Origins {
+    "${distro_id}:${distro_codename}-security";
+    "${distro_id}:${distro_codename}-updates";
+    "${distro_id}:${distro_codename}";
+    "${distro_id}ESM:${distro_codename}-infra-security";
+    "${distro_id}ESMApps:${distro_codename}-apps-security";
+};
+Unattended-Upgrade::AutoFixInterruptedDpkg "true";
+{% if dotfiles_can_reboot %}
+Unattended-Upgrade::Automatic-Reboot "true";
+Unattended-Upgrade::Automatic-Reboot-Time "03:00";
+{% else %}
+// Reboots are disabled: this environment cannot be rebooted safely.
+Unattended-Upgrade::Automatic-Reboot "false";
+{% endif %}
+Unattended-Upgrade::Remove-New-Unused-Dependencies "true";
+Unattended-Upgrade::Remove-Unused-Dependencies "true";
+Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";

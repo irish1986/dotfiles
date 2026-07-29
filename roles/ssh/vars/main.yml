@@ -1,0 +1,3 @@
+---
+ssh_dir: "{{ dotfiles_home }}/.ssh"
+ssh_windows_dir: "/mnt/c/Users/{{ dotfiles_windows_user }}/.ssh"
