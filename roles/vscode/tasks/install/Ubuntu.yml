@@ -1,0 +1,42 @@
+---
+- name: VSCode | Report that the Windows install is used
+  ansible.builtin.debug:
+    msg: >-
+      Skipping the Linux VS Code build: on WSL, VS Code runs on Windows and
+      attaches to this distro through the Remote-WSL extension.
+  when: not (vscode_supported | bool)
+
+- name: VSCode | Install
+  when: vscode_supported | bool
+  block:
+    - name: VSCode | Install dependencies
+      ansible.builtin.apt:
+        name: "{{ vscode_dependencies }}"
+        state: present
+      become: true
+
+    - name: VSCode | Remove pre-deb822 repository artefacts
+      ansible.builtin.file:
+        path: "{{ vscode_legacy_artifact }}"
+        state: absent
+      become: true
+      loop: "{{ vscode_legacy_artifacts }}"
+      loop_control:
+        loop_var: vscode_legacy_artifact
+
+    - name: VSCode | Configure the upstream apt repository
+      ansible.builtin.include_role:
+        name: apt_repo
+      vars:
+        apt_repo_name: vscode
+        apt_repo_uri: "{{ vscode_apt_uri }}"
+        apt_repo_key_url: "{{ vscode_apt_key_url }}"
+        apt_repo_suite: "{{ vscode_apt_suite }}"
+        apt_repo_components: "{{ vscode_apt_components }}"
+        apt_repo_probe: false
+
+    - name: VSCode | Install packages
+      ansible.builtin.apt:
+        name: "{{ vscode_packages }}"
+        state: present
+      become: true

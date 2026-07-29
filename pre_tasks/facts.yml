@@ -55,6 +55,19 @@
     # Computed once here instead of by four separate roles.
     dotfiles_dpkg_architecture: "{{ dotfiles_dpkg_arch.stdout }}"
 
+# Unauthenticated api.github.com allows 60 requests/hour per IP, and CI runners
+# share IPs. Roles that query releases send these headers so a token lifts the
+# limit when one is available, and nothing breaks when it is not.
+- name: Facts | Build the GitHub API headers
+  ansible.builtin.set_fact:
+    dotfiles_github_headers: >-
+      {{ {'Accept': 'application/vnd.github+json'}
+         | combine({'Authorization': 'Bearer ' ~ dotfiles_github_token}
+                   if dotfiles_github_token | length > 0 else {}) }}
+  vars:
+    dotfiles_github_token: "{{ lookup('ansible.builtin.env', 'GH_TOKEN') | default('', true) }}"
+  no_log: true
+
 - name: Facts | Assert a supported target
   ansible.builtin.assert:
     that:

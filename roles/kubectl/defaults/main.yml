@@ -1,0 +1,15 @@
+---
+kubectl_packages:
+  - kubectl
+
+kubectl_dependencies:
+  - apt-transport-https
+  - ca-certificates
+  - curl
+
+# pkgs.k8s.io serves one repository per minor channel (v1.36), not per patch
+# release, and it is a flat repository -- suite "/" with no components.
+kubectl_channel_url: https://dl.k8s.io/release/stable.txt
+kubectl_channel: ""
+
+kubectl_config_dir: "{{ dotfiles_home }}/.kube"

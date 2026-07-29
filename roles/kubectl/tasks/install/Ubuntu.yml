@@ -1,0 +1,51 @@
+---
+- name: Kubectl | Install dependencies
+  ansible.builtin.apt:
+    name: "{{ kubectl_dependencies }}"
+    state: present
+  become: true
+
+- name: Kubectl | Resolve the current stable channel
+  when: kubectl_channel | length == 0
+  block:
+    - name: Kubectl | Query the stable release
+      ansible.builtin.uri:
+        url: "{{ kubectl_channel_url }}"
+        return_content: true
+      register: kubectl_stable
+      changed_when: false
+      check_mode: false
+
+    # stable.txt returns a patch version (v1.36.3) but the repository is keyed
+    # on the minor channel (v1.36). The previous implementation interpolated the
+    # whole uri result *dict* into both the key URL and the repository line, so
+    # neither was ever a valid URL.
+    - name: Kubectl | Derive the minor channel
+      ansible.builtin.set_fact:
+        kubectl_channel: "{{ kubectl_stable.content | trim | regex_replace('^(v[0-9]+\\.[0-9]+).*$', '\\1') }}"
+
+- name: Kubectl | Remove pre-deb822 repository artefacts
+  ansible.builtin.file:
+    path: "{{ kubectl_legacy_artifact }}"
+    state: absent
+  become: true
+  loop: "{{ kubectl_legacy_artifacts }}"
+  loop_control:
+    loop_var: kubectl_legacy_artifact
+
+- name: Kubectl | Configure the upstream apt repository
+  ansible.builtin.include_role:
+    name: apt_repo
+  vars:
+    apt_repo_name: kubernetes
+    apt_repo_uri: "https://pkgs.k8s.io/core:/stable:/{{ kubectl_channel }}/deb/"
+    apt_repo_key_url: "https://pkgs.k8s.io/core:/stable:/{{ kubectl_channel }}/deb/Release.key"
+    apt_repo_suite: /
+    apt_repo_components: []
+    apt_repo_probe: false
+
+- name: Kubectl | Install packages
+  ansible.builtin.apt:
+    name: "{{ kubectl_packages }}"
+    state: present
+  become: true

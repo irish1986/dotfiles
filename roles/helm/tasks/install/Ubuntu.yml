@@ -1,0 +1,78 @@
+---
+- name: Helm | Install dependencies
+  ansible.builtin.apt:
+    name: "{{ helm_dependencies }}"
+    state: present
+  become: true
+
+- name: Helm | Remove the superseded apt repository
+  ansible.builtin.file:
+    path: "{{ helm_legacy_artifact }}"
+    state: absent
+  become: true
+  loop: "{{ helm_legacy_artifacts }}"
+  loop_control:
+    loop_var: helm_legacy_artifact
+
+- name: Helm | Resolve the release to install
+  when: helm_version | length == 0
+  block:
+    - name: Helm | Query the latest release
+      ansible.builtin.uri:
+        url: "{{ helm_release_api }}"
+        headers: "{{ dotfiles_github_headers }}"
+      register: helm_latest
+      changed_when: false
+      check_mode: false
+
+    - name: Helm | Register the latest release
+      ansible.builtin.set_fact:
+        helm_resolved_version: "{{ helm_latest.json.tag_name }}"
+
+- name: Helm | Register the pinned release
+  ansible.builtin.set_fact:
+    helm_resolved_version: "{{ helm_version }}"
+  when: helm_version | length > 0
+
+- name: Helm | Query the installed version
+  ansible.builtin.command: "{{ helm_binary_path }} version --template '{{ '{{' }}.Version{{ '}}' }}'"
+  register: helm_installed
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Helm | Install the release
+  when: helm_installed.stdout | default('') != helm_resolved_version
+  block:
+    - name: Helm | Create a staging directory
+      ansible.builtin.tempfile:
+        state: directory
+        suffix: helm
+      register: helm_staging
+      changed_when: false
+
+    - name: Helm | Download and unpack the release
+      ansible.builtin.unarchive:
+        src: "{{ helm_download_url }}"
+        dest: "{{ helm_staging.path }}"
+        remote_src: true
+        extra_opts:
+          - --strip-components=1
+      changed_when: false
+
+    - name: Helm | Install the binary
+      ansible.builtin.copy:
+        src: "{{ helm_staging.path }}/helm"
+        dest: "{{ helm_binary_path }}"
+        remote_src: true
+        owner: root
+        group: root
+        mode: "0755"
+      become: true
+  always:
+    - name: Helm | Remove the staging directory
+      ansible.builtin.file:
+        path: "{{ helm_staging.path | default('') }}"
+        state: absent
+      when: helm_staging.path is defined
+      changed_when: false
