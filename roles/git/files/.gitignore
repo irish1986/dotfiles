@@ -28,3 +28,10 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
+
+# WSL / NTFS alternate data streams
+*:Zone.Identifier
+
+# Windows in-progress downloads and Office lock files
+*.crdownload
+~$*

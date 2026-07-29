@@ -1,0 +1,15 @@
+---
+# Deliberately a message, not an action. `wsl --shutdown` must run from Windows;
+# invoking it from inside the distro would terminate the playbook mid-run.
+- name: WSL | Shutdown required
+  ansible.builtin.debug:
+    msg: >-
+      WSL configuration changed. Close every WSL terminal, run
+      `wsl --shutdown` from PowerShell or CMD, then reopen. Changes to
+      wsl.conf and .wslconfig do not apply until you do.
+
+- name: WSL | Terminal restart required
+  ansible.builtin.debug:
+    msg: >-
+      Fonts were registered with Windows. Restart Windows Terminal to pick them
+      up -- already-running processes do not see newly registered fonts.

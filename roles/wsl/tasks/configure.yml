@@ -1,0 +1,145 @@
+---
+# ── .wslconfig ────────────────────────────────────────────────────────────
+# No mode: on any /mnt/c write. Once [automount] metadata is on, a mode set here
+# really applies, and a restrictive Linux mode on a Windows-side file is not
+# what anyone wants.
+- name: WSL | Deploy .wslconfig
+  ansible.builtin.template:
+    src: wslconfig.j2
+    dest: "{{ wsl_windows_home }}/.wslconfig"
+    backup: true
+  become: false
+  when:
+    - wsl_manage_wslconfig | bool
+    - dotfiles_wsl_version | int == 2
+  notify: WSL | Shutdown required
+
+# ── Windows-side fonts ────────────────────────────────────────────────────
+# Ordered before the Terminal merge: the settings reference a Nerd Font by name,
+# and Terminal silently falls back to a default if it is not registered yet.
+- name: WSL | Register the fonts with Windows
+  when: wsl_manage_windows_fonts | bool
+  block:
+    - name: WSL | Stage the fonts for Windows
+      ansible.builtin.copy:
+        src: "{{ dotfiles_home }}/.local/share/fonts/"
+        dest: "{{ wsl_windows_home }}/AppData/Local/Temp/dotfiles-fonts/"
+        remote_src: true
+      become: false
+      changed_when: false
+
+    - name: WSL | Install the fonts for the Windows user
+      ansible.builtin.command:
+        argv:
+          - "{{ wsl_powershell }}"
+          - -NoProfile
+          - -NonInteractive
+          - -ExecutionPolicy
+          - Bypass
+          - -Command
+          - "-"
+        chdir: /mnt/c
+        stdin: "{{ lookup('ansible.builtin.template', 'install-fonts.ps1.j2') }}"
+      register: wsl_font_install
+      become: false
+      changed_when: >-
+        'INSTALLED:' in wsl_font_install.stdout
+        or 'REGISTERED:' in wsl_font_install.stdout
+      notify: WSL | Terminal restart required
+
+    - name: WSL | Report fonts that could not be replaced
+      ansible.builtin.debug:
+        msg: >-
+          Some fonts are loaded by a running process and were left at their
+          existing version. Close Windows Terminal and any editor using them,
+          then re-run --tags wsl to update:
+          {{ wsl_font_install.stdout_lines | select('search', '^LOCKED:') | join('; ') }}
+      when: "'LOCKED:' in (wsl_font_install.stdout | default(''))"
+  always:
+    - name: WSL | Remove the staged fonts
+      ansible.builtin.file:
+        path: "{{ wsl_windows_home }}/AppData/Local/Temp/dotfiles-fonts"
+        state: absent
+      become: false
+      changed_when: false
+
+# ── Windows Terminal ──────────────────────────────────────────────────────
+- name: WSL | Manage the Windows Terminal settings
+  when: wsl_manage_terminal | bool
+  block:
+    - name: WSL | Remove the stray settings files
+      ansible.builtin.file:
+        path: "{{ wsl_terminal_stray }}"
+        state: absent
+      become: false
+      loop: "{{ wsl_terminal_stray_settings }}"
+      loop_control:
+        loop_var: wsl_terminal_stray
+
+    - name: WSL | Locate the Terminal settings
+      ansible.builtin.stat:
+        path: "{{ wsl_terminal_candidate }}"
+      register: wsl_terminal_found
+      become: false
+      loop: "{{ wsl_terminal_candidates }}"
+      loop_control:
+        loop_var: wsl_terminal_candidate
+
+    - name: WSL | Register the settings path
+      ansible.builtin.set_fact:
+        wsl_terminal_settings_path: >-
+          {{ (wsl_terminal_found.results | selectattr('stat.exists')
+              | map(attribute='stat.path') | first) | default('', true) }}
+
+    - name: WSL | Report that Terminal was not found
+      ansible.builtin.debug:
+        msg: >-
+          No Windows Terminal settings.json found; skipping. Looked in
+          {{ wsl_terminal_candidates | join(', ') }}.
+      when: wsl_terminal_settings_path | length == 0
+
+    - name: WSL | Merge the managed settings
+      when: wsl_terminal_settings_path | length > 0
+      block:
+        - name: WSL | Read the current settings
+          ansible.builtin.slurp:
+            src: "{{ wsl_terminal_settings_path }}"
+          register: wsl_terminal_current
+          become: false
+
+        - name: WSL | Parse the current settings
+          ansible.builtin.set_fact:
+            wsl_terminal_json: "{{ wsl_terminal_current.content | b64decode | from_json }}"
+
+        # Resolved by inspecting the live profile list rather than computed. The
+        # AppX generator's GUID is not reproducible from any documented formula,
+        # so a templated settings.json cannot express the profile actually in
+        # use -- which is why the previous static file pinned a GUID that only
+        # matched one machine and one Ubuntu version.
+        - name: WSL | Resolve the default profile
+          ansible.builtin.set_fact:
+            wsl_terminal_default_guid: >-
+              {{ (wsl_terminal_json.profiles.list | default([])
+                  | selectattr('source', 'defined')
+                  | selectattr('source', 'search', '(?i)(Microsoft\.WSL|CanonicalGroupLimited\.Ubuntu)')
+                  | rejectattr('hidden', 'defined')
+                  | map(attribute='guid') | first)
+                 | default(wsl_terminal_json.defaultProfile | default(''), true) }}
+
+        - name: WSL | Write the merged settings
+          ansible.builtin.copy:
+            content: >-
+              {{ (wsl_terminal_json
+                  | combine(wsl_terminal_settings, recursive=true)
+                  | combine({'defaultProfile': wsl_terminal_default_guid}, recursive=true)
+                 ) | to_nice_json(indent=4) }}
+            dest: "{{ wsl_terminal_settings_path }}"
+            backup: true
+          become: false
+      rescue:
+        - name: WSL | Report unparseable settings
+          ansible.builtin.debug:
+            msg: >-
+              Could not parse {{ wsl_terminal_settings_path }} -- it may contain
+              JSONC comments. Managed Terminal settings skipped; nothing was
+              written.

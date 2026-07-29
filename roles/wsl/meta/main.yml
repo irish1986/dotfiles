@@ -1,0 +1,16 @@
+---
+galaxy_info:
+  role_name: wsl
+  namespace: dotfiles
+  author: irish1986
+  description: >-
+    WSL2 and Windows-side integration: wsl.conf, .wslconfig, Windows Terminal
+    settings, Windows font registration and the clipboard bridge.
+  license: MIT
+  min_ansible_version: "2.16"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - jammy
+        - noble
+dependencies: []
