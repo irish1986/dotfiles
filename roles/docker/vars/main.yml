@@ -1,0 +1,13 @@
+---
+docker_binary: /usr/bin/docker
+docker_daemon_binary: /usr/bin/dockerd
+docker_daemon_config: /etc/docker/daemon.json
+docker_service_name: docker
+
+# Left behind by the pre-deb822 implementation, which used the deprecated
+# apt_key module. Removing them prevents a duplicate-source warning on every
+# apt update and drops a key from the legacy trusted keyring.
+docker_legacy_artifacts:
+  - /etc/apt/keyrings/docker.gpg
+  - /etc/apt/keyrings/docker.gpg~
+  - /etc/apt/sources.list.d/docker.list

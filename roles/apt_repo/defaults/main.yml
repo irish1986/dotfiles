@@ -1,0 +1,32 @@
+---
+# Identifier. Becomes /etc/apt/sources.list.d/<name>.sources.
+apt_repo_name: ""
+
+# Base URI, e.g. https://download.docker.com/linux/ubuntu
+apt_repo_uri: ""
+
+# URL of the signing key. deb822_repository fetches and dearmors it itself, so
+# there is no apt-key call and no gpg --dearmor shellout.
+apt_repo_key_url: ""
+
+# Suite to request. Defaults to this machine's codename; see apt_repo_probe.
+apt_repo_suite: "{{ ansible_distribution_release }}"
+
+# Suite to fall back to when the vendor has not published one for this release
+# yet. Set to the previous LTS codename. Empty disables the fallback.
+apt_repo_suite_fallback: ""
+
+apt_repo_components:
+  - stable
+
+apt_repo_types:
+  - deb
+
+apt_repo_architectures:
+  - "{{ dotfiles_dpkg_architecture }}"
+
+# Probe the suite before configuring it. Third-party repos routinely lag a new
+# Ubuntu release by weeks or months, and pointing apt at a suite that 404s
+# breaks `apt update` for every other repo too. Set false for flat repos, which
+# have no dists/ layout to probe.
+apt_repo_probe: true
