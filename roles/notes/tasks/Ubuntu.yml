@@ -1,7 +1,0 @@
----
-- name: Notes | Clone Obsidian Git Repo
-  ansible.builtin.git:
-    repo: "{{ notes.repository }}"
-    version: "000000"
-    dest: "{{ ansible_home }}/{{ notes.directory }}"
-    depth: 1

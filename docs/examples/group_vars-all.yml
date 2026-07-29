@@ -49,9 +49,8 @@ dotfiles_roles:
 # host_vars silently wipes git.name, git.user and git.signing_key.
 
 # Role - Docker
-docker:
-  enable: true
-  network: 172.10.0.0
+# data_root left unset: Docker uses /var/lib/docker.
+docker_address_pool_base: 172.10.0.0/16
 
 # Role - Git
 git:
@@ -67,11 +66,6 @@ git:
 # Role - Fonts
 fonts:
   nf: Nerd
-
-# Role - Notes
-notes:
-  repository: "https://github.com/{{ git.user }}/notes"
-  directory: ".notes"
 
 # Role - Python
 python:

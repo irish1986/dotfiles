@@ -1,15 +1,15 @@
 {
-{% if docker.data_root | default(none) %}
-  "data-root": "{{ docker.data_root }}",
+{% if docker_data_root | length > 0 %}
+  "data-root": "{{ docker_data_root }}",
 {% endif %}
   "default-address-pools": [
     {
-      "base": "{{ docker.network | default('172.10.0.0') }}/16",
-      "size": 24
+      "base": "{{ docker_address_pool_base }}",
+      "size": {{ docker_address_pool_size }}
     }
   ],
-  "experimental": true,
+  "experimental": {{ docker_experimental | bool | lower }},
   "features": {
-    "buildkit": true
+    "buildkit": {{ docker_buildkit | bool | lower }}
   }
 }
