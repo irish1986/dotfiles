@@ -30,9 +30,6 @@ jobs:
     name: Call Ansible-Lint
     uses: irishlab-io/.github/.github/workflows/reusable-ansible-lint.yml@main
 
-    needs:
-      - secret
-
     with:
       configuration_file: "-c ./.config/.ansible-lint.yml"
       requirements_file: "./collections/requirements.yml"
