@@ -17,6 +17,7 @@
         url: https://api.github.com/repos/kubernetes-sigs/kind/releases/latest
       register: kind_latest_version_json
       changed_when: false
+      check_mode: false
 
     - name: Kind | Registering latest Release
       ansible.builtin.set_fact:

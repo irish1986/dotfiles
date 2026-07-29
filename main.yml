@@ -1,42 +1,38 @@
 ---
-- name: DotFiles Config
+- name: DotFiles
   hosts: localhost
   connection: local
   gather_facts: true
-  any_errors_fatal: false
 
   pre_tasks:
-    - name: Detect environment
-      ansible.builtin.import_tasks: pre_tasks/whoami.yml
+    - name: DotFiles | Resolve environment facts
+      ansible.builtin.import_tasks: pre_tasks/facts.yml
+      tags:
+        - always
+
+    - name: DotFiles | Validate the requested role selection
+      ansible.builtin.import_tasks: pre_tasks/validate.yml
+      tags:
+        - always
 
   tasks:
-    - name: Set roles
-      block:
-        - name: Run roles
-          ansible.builtin.include_role:
-            name: "{{ item }}"
-          with_items:
-            - docker
-            - git
-            - hugo
-            - nvm
-            - python
-            - ssh
-            - system
-            - zsh
-
-      rescue:
-        - name: Rescue roles | Update
-          ansible.builtin.debug:
-            msg: Playbook encountered an issue while setting role, only update role will be run.
-
-      always:
-        - name: Default roles | Update
-          ansible.builtin.include_role:
-            name: "{{ item }}"
-          with_items:
-            - update
-
-  post_tasks:
-    - name: Status message
-      ansible.builtin.import_tasks: post_tasks/end.yml
+    # Which roles run is decided by dotfiles_roles in group_vars, in order.
+    # --tags filters that selection for a single run; it does not replace it.
+    #
+    # There is deliberately no rescue: here. The previous version caught every
+    # failure from every role, printed a debug message, and then reported
+    # "Playbook ran without any issue" from a post_task -- so the play was
+    # structurally incapable of reporting failure. PLAY RECAP and the
+    # profile_tasks callback report the truth.
+    - name: "DotFiles | Role: {{ dotfiles_role }}"
+      ansible.builtin.include_role:
+        name: "{{ dotfiles_role }}"
+        apply:
+          tags:
+            - "{{ dotfiles_role }}"
+      loop: "{{ dotfiles_roles }}"
+      loop_control:
+        loop_var: dotfiles_role
+        label: "{{ dotfiles_role }}"
+      tags:
+        - always

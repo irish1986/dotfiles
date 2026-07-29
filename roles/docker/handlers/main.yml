@@ -5,4 +5,4 @@
     state: restarted
   become: true
   when:
-    - not ansible_host_environment_is_wsl
+    - dotfiles_has_systemd | bool

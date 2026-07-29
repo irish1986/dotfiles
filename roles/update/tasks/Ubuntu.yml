@@ -28,6 +28,7 @@
           APT::Get::Install-Suggests "false";
           APT::Install-Recommends "false";
           APT::Install-Suggests "false";
+      become: true
       notify: Restart unattended-upgrades
 
     - name: Unattended-Upgrades | 10periodic
@@ -40,6 +41,7 @@
           APT::Periodic::Download-Upgradeable-Packages "1";
           APT::Periodic::Unattended-Upgrade "1";
           APT::Periodic::Update-Package-Lists "1";
+      become: true
       notify: Start unattended-upgrades
 
     - name: Unattended-Upgrades | 50unattended-upgrades
@@ -61,6 +63,7 @@
           Unattended-Upgrade::Remove-New-Unused-Dependencies "true";
           Unattended-Upgrade::Remove-Unused-Dependencies "true";
           Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";
+      become: true
       notify: Start unattended-upgrades
 
   rescue:
@@ -74,8 +77,23 @@
         path: /var/run/reboot-required
       register: reboot_required
 
+    # Gated on dotfiles_can_reboot: `reboot` terminates a WSL distro and kills a
+    # CI container, in both cases taking the playbook run with it.
     - name: Update | Reboot system if required
       ansible.builtin.reboot:
         msg: Rebooting to complete system upgrade
         reboot_timeout: 120
-      when: reboot_required.stat.exists
+      become: true
+      when:
+        - reboot_required.stat.exists
+        - dotfiles_can_reboot | bool
+
+    - name: Update | Report that a reboot is pending
+      ansible.builtin.debug:
+        msg: >-
+          A reboot is required to complete the upgrade, but this environment
+          cannot be rebooted by Ansible. Restart it yourself
+          {{ "(from Windows: wsl --shutdown)" if dotfiles_is_wsl | bool else "" }}.
+      when:
+        - reboot_required.stat.exists
+        - not (dotfiles_can_reboot | bool)

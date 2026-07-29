@@ -1,0 +1,93 @@
+---
+# Example configuration. Copy to inventory/group_vars/all.yml and edit:
+#
+#   cp docs/examples/group_vars-all.yml inventory/group_vars/all.yml
+#
+# all.yml is gitignored because it holds machine identity. scripts/setup seeds
+# it from this file automatically on a fresh clone.
+#
+# This file previously lived at inventory/group_vars/sample.yml, where Ansible
+# loaded it as the variables for a group literally named "sample" -- inert only
+# because no host was ever in that group.
+
+# ── Identity ──────────────────────────────────────────────────────────────
+dotfiles_user: username
+dotfiles_windows_user: username # WSL only
+dotfiles_home: /home/username
+dotfiles_hostname: ubuntu-wsl
+dotfiles_loopback_address: 127.0.1.1
+
+# ── Support matrix ────────────────────────────────────────────────────────
+dotfiles_supported_versions:
+  - "22.04"
+  - "24.04"
+  - "26.04"
+dotfiles_min_ansible_version: "2.16"
+
+# ── Role selection (ordered) ──────────────────────────────────────────────
+# This list is the decision about what this machine gets. --tags filters it
+# for a single run; it is not an alternative to it.
+#
+#   ansible-playbook main.yml                  # everything below, in order
+#   ansible-playbook main.yml --tags docker    # just docker
+#   ansible-playbook main.yml --skip-tags update
+dotfiles_roles:
+  - update # apt upgrade first, so everything below installs current
+  - system # sudoers, base packages, wsl.conf
+  - zsh
+  - git
+  - ssh
+  - python
+  - nvm
+  - docker
+  - hugo
+
+# ── Role variables ────────────────────────────────────────────────────────
+# Still nested while the roles that consume them are unmigrated. Each dict is
+# flattened to <role>_<thing> as its role moves to the defaults/ layout: a
+# nested dict cannot be partially overridden, so setting git: {email: ...} in
+# host_vars silently wipes git.name, git.user and git.signing_key.
+
+# Role - Docker
+docker:
+  enable: true
+  network: 172.10.0.0
+
+# Role - Git
+git:
+  dir:
+    personal:
+    reference:
+    work:
+  email: email@example.com
+  name: John Doe
+  user: username
+  signing_key: id_ed25519.pub
+
+# Role - Fonts
+fonts:
+  nf: Nerd
+
+# Role - Notes
+notes:
+  repository: "https://github.com/{{ git.user }}/notes"
+  directory: ".notes"
+
+# Role - Python
+python:
+  pyver: "3.14"
+  uv:
+    enable: true
+
+# Role - SSH
+ssh:
+  private_key: id_ed25519
+  public_key: id_ed25519.pub
+
+# Role - Timezone
+timezone:
+  locale: America/Toronto
+
+# Role - ZSH
+zsh:
+  fonts: Hack

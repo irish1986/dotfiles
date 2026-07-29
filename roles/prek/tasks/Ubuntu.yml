@@ -6,6 +6,7 @@
         url: https://api.github.com/repos/j178/prek/releases/latest
       register: prek_latest_version_json
       changed_when: false
+      check_mode: false
 
     - name: Prek | Registering latest release
       ansible.builtin.set_fact:
