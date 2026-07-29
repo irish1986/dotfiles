@@ -1,0 +1,118 @@
+---
+# Every label that should exist on this repository.
+#
+# The workflow runs with skip-delete: true, so anything listed here is created or
+# updated and nothing is removed. Before ever flipping that to false, dispatch
+# the workflow with dry-run and read the diff: this file previously listed 15
+# labels, none of which matched the 21 actually in use, so deletion would have
+# stripped every area/, renovate/ and type/ label from every issue and PR.
+
+# -- Area -------------------------------------------------------------------
+- name: area/ansible
+  color: "0e8a16"
+  description: Playbook, roles or inventory
+- name: area/config
+  color: "0e8a16"
+  description: Linter and tooling configuration
+- name: area/docs
+  color: "0e8a16"
+  description: Documentation
+- name: area/github
+  color: "0e8a16"
+  description: Workflows and repository metadata
+- name: area/pre-commit
+  color: "0e8a16"
+  description: Pre-commit hooks
+- name: area/scripts
+  color: "0e8a16"
+  description: Shell scripts
+- name: area/vscode
+  color: "0e8a16"
+  description: Editor configuration
+- name: area/wsl
+  color: "0e8a16"
+  description: WSL and Windows integration
+
+# -- Dependency updates -----------------------------------------------------
+- name: dependencies
+  color: "0366d6"
+  description: Pull requests that update a dependency
+- name: github-actions
+  color: "000000"
+  description: GitHub Actions dependencies
+- name: pre-commit
+  color: "f9c513"
+  description: Pre-commit hook dependencies
+- name: python
+  color: "3572a5"
+  description: Python dependencies
+- name: ansible
+  color: "1a1918"
+  description: Ansible Galaxy collections
+
+# -- Renovate managers ------------------------------------------------------
+- name: renovate/ansible
+  color: "027fa0"
+  description: Renovate - Ansible Galaxy
+- name: renovate/container
+  color: "027fa0"
+  description: Renovate - container images
+- name: renovate/github-action
+  color: "027fa0"
+  description: Renovate - GitHub Actions
+- name: renovate/github-release
+  color: "027fa0"
+  description: Renovate - GitHub releases
+- name: renovate/grafana-dashboard
+  color: "027fa0"
+  description: Renovate - Grafana dashboards
+- name: renovate/helm
+  color: "027fa0"
+  description: Renovate - Helm charts
+
+# -- Update type ------------------------------------------------------------
+- name: type/digest
+  color: "ffec19"
+  description: Digest update
+- name: type/major
+  color: "f6412d"
+  description: Major update - needs review before merging
+- name: type/minor
+  color: "ff9800"
+  description: Minor update
+- name: type/patch
+  color: "ffec19"
+  description: Patch update
+
+# -- Release automation -----------------------------------------------------
+# Applied and cleared by release-please, which cannot label a release without
+# them if deletion is ever enabled.
+- name: "autorelease: pending"
+  color: "ededed"
+  description: Release pending - managed by release-please
+- name: "autorelease: tagged"
+  color: "ededed"
+  description: Release tagged - managed by release-please
+
+# -- Triage -----------------------------------------------------------------
+- name: bug
+  color: "d73a4a"
+  description: Something isn't working
+- name: documentation
+  color: "0075ca"
+  description: Improvements or additions to documentation
+- name: enhancement
+  color: "a2eeef"
+  description: New feature or request
+- name: question
+  color: "d876e3"
+  description: Further information is requested
+- name: community
+  color: "370fb2"
+  description: Community contribution
+- name: hold
+  color: "ee0701"
+  description: Do not merge
+- name: stale
+  color: "ededed"
+  description: No recent activity

@@ -6,7 +6,10 @@ exclude: |
   (?x)^(
     \.pre-commit-config\.yaml$
   )
-fail_fast: true
+# false globally: with fail_fast a full `prek run --all-files` reports only the
+# first problem and hides the rest, so you fix one thing, push, and discover the
+# next. The two gatekeepers below set it per-hook instead.
+fail_fast: false
 default_stages:
   - pre-commit
 default_install_hook_types:
@@ -21,6 +24,7 @@ repos:
     rev: v4.13.8
     hooks:
       - id: commitizen
+        fail_fast: true
         name: "commitizen | validate commit messages"
         stages:
           - commit-msg
@@ -28,6 +32,7 @@ repos:
     rev: v1.48.0
     hooks:
       - id: ggshield
+        fail_fast: true
         name: "security | scan for secrets"
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
@@ -67,6 +72,10 @@ repos:
     hooks:
       - id: shellcheck
         name: "sh | lint: run shellcheck"
+        # scripts/ only. identify tags roles/zsh/files/.zsh* as shell from their
+        # content, but they are zsh, and shellcheck does not support zsh -- it
+        # reports valid zsh such as ${(%):-%n} as a syntax error.
+        files: ^scripts/
         args:
           - --severity=style
           - --external-sources
@@ -75,6 +84,8 @@ repos:
     hooks:
       - id: shfmt
         name: "sh | format: run shfmt"
+        # Same reason as shellcheck: shfmt parses bash, mksh and POSIX sh, not zsh.
+        files: ^scripts/
         args:
           - -i
           - "2"

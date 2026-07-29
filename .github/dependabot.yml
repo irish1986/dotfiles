@@ -1,0 +1,73 @@
+---
+version: 2
+
+# One bot per surface, so two never open competing PRs for the same file:
+#
+#   .github/workflows/*     Dependabot (github-actions)
+#   .pre-commit-config.yaml Dependabot (pre-commit)
+#   collections/requirements.yml
+#                           Renovate (ansible-galaxy) -- Dependabot has no
+#                           Galaxy ecosystem, see .github/renovate.json
+#
+# The `uv` ecosystem is deliberately absent until a Python manifest exists.
+# There is no pyproject.toml, uv.lock or requirements*.txt in the repository, so
+# declaring it produced a permanent "no dependency files found" error on every
+# scheduled run. Re-add it alongside the docs toolchain manifest.
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    # Weekly, not daily. Every merge cuts a patch release, and grouped daily
+    # updates against a 7-day cooldown mostly produce nothing anyway; batching
+    # keeps the release stream legible.
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "America/Toronto"
+    open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      # include: scope yields "ci(deps): bump ...", which is a valid Conventional
+      # Commit and passes the PR-title lint. The bare `deps` prefix used before
+      # is not a valid type and would have failed it.
+      prefix: "ci"
+      include: "scope"
+    groups:
+      github-actions-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+      # Kept separate on purpose: dependabot-auto-merge.yml does not auto-merge
+      # major updates, so they land as their own reviewable PR.
+      github-actions-major:
+        patterns:
+          - "*"
+        update-types:
+          - "major"
+
+  - package-ecosystem: "pre-commit"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "America/Toronto"
+    open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
+    labels:
+      - "dependencies"
+      - "pre-commit"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+    groups:
+      pre-commit-all:
+        patterns:
+          - "*"
