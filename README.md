@@ -51,27 +51,53 @@ curl https://github.com/irish1986.keys >> ~/.ssh/authorized_keys
 
 ### Install
 
-This playbook includes a custom shell script located at `scripts/dotfiles`.  This shell script is used to initialize your environment after installing `Ubuntu`.  It is not mandatory but recommended to perform a full system upgrade although recommended.  By default, the only included roles is `update`.  Ansible Galaxy dependencies collection are installed automatically although given some issue occurs, you can run it maually as following.
+`scripts/setup` bootstraps a fresh Ubuntu install and is safe to re-run. It
+installs `uv`, then `ansible-core` and the pinned Galaxy collections, clones this
+repository to `~/.dotfiles`, seeds `inventory/group_vars/all.yml` from the
+example, and applies the playbook.
 
 ```bash
 bash -c "$(curl -fsSL https://raw.githubusercontent.com/irish1986/dotfiles/main/scripts/setup)"
 ```
 
+Note the `bash -c "$(curl ...)"` form rather than `curl | bash`: it passes the
+script as an argument, so stdin stays on the terminal and `sudo` can prompt.
+
+Which roles run is decided by `dotfiles_roles` in
+`inventory/group_vars/all.yml`. Re-runs take arguments:
+
+```bash
+~/.dotfiles/scripts/setup --tags zsh,git      # only these roles
+~/.dotfiles/scripts/setup --tags configure    # only config, no installs
+~/.dotfiles/scripts/setup --check --diff      # preview, change nothing
+~/.dotfiles/scripts/setup --skip-tags update  # skip the apt upgrade
+~/.dotfiles/scripts/setup --help
+```
+
+Run logs are kept in `~/.local/state/dotfiles/`.
+
 ### Secrets
 
 I am using Bitwarden integration with Ansible to retrieve secrets from Secrets Manager and inject them into the Ansible playbook. The lookup plugin will inject retrieved secrets as masked environment variables inside an Ansible playbook. To setup the collection:
 
+`scripts/setup` installs the SDK into the `ansible-core` environment
+(`uv tool install --with bitwarden-sdk`), which is required because the lookup
+runs controller-side and must be importable by the interpreter running
+`ansible-playbook`. Only the token needs setting:
+
 ```bash
-pip install bitwarden-sdk
 export BWS_ACCESS_TOKEN="<your-bws-access-token>"
 ```
 
 ### Setup
 
-The `sample.yml` [file](https://raw.githubusercontent.com/irish1986/dotfiles/main/inventory/group_vars/sample.yml) contains an exemple configuration.  Create a copy of this named `all.yml` and make the recommended ajustment.
+`scripts/setup` seeds `inventory/group_vars/all.yml` automatically on a fresh
+clone, filling in the user, home directory and hostname. To do it by hand, or
+to reset it, copy the [example](https://github.com/irish1986/dotfiles/blob/main/docs/examples/group_vars-all.yml) and adjust it. `all.yml` is
+gitignored because it holds machine identity.
 
 ```bash
-cp ~/.dotfiles/inventory/group_vars/sample.yml ~/.dotfiles/inventory/group_vars/all.yml
+cp ~/.dotfiles/docs/examples/group_vars-all.yml ~/.dotfiles/inventory/group_vars/all.yml
 ```
 
 ## Reference

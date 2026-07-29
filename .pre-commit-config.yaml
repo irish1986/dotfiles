@@ -45,6 +45,10 @@ repos:
         name: "general | check YAML files"
       - id: end-of-file-fixer
         name: "general | fix end of file"
+      - id: check-executables-have-shebangs
+        name: "general | executables need a shebang"
+      - id: check-shebang-scripts-are-executable
+        name: "general | shebang scripts must be executable"
       - id: forbid-submodules
         name: "git | forbid submodules"
       - id: mixed-line-ending
@@ -58,6 +62,26 @@ repos:
           - --no-ensure-ascii
       - id: trailing-whitespace
         name: "general | remove trailing whitespace"
+  - repo: https://github.com/koalaman/shellcheck-precommit
+    rev: v0.11.0
+    hooks:
+      - id: shellcheck
+        name: "sh | lint: run shellcheck"
+        args:
+          - --severity=style
+          - --external-sources
+  - repo: https://github.com/scop/pre-commit-shfmt
+    rev: v3.12.0-2
+    hooks:
+      - id: shfmt
+        name: "sh | format: run shfmt"
+        args:
+          - -i
+          - "2"
+          - -ci
+          - -sr
+          - -bn
+          - -w
   - repo: https://github.com/igorshubovych/markdownlint-cli
     rev: v0.47.0
     hooks:
