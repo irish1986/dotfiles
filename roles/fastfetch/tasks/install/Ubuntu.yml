@@ -1,0 +1,43 @@
+---
+# The previous role queried the latest release, assigned it twice (the second
+# assignment read .stdout off a string, yielding ''), printed it with debug,
+# removed neofetch and stopped. fastfetch was never installed.
+- name: Fastfetch | Resolve the release to install
+  when: fastfetch_version | length == 0
+  block:
+    - name: Fastfetch | Query the latest release
+      ansible.builtin.uri:
+        url: "{{ fastfetch_release_api }}"
+        headers: "{{ dotfiles_github_headers }}"
+      register: fastfetch_latest
+      changed_when: false
+      check_mode: false
+
+    - name: Fastfetch | Register the latest release
+      ansible.builtin.set_fact:
+        fastfetch_resolved_version: "{{ fastfetch_latest.json.tag_name }}"
+
+- name: Fastfetch | Register the pinned release
+  ansible.builtin.set_fact:
+    fastfetch_resolved_version: "{{ fastfetch_version }}"
+  when: fastfetch_version | length > 0
+
+- name: Fastfetch | Query the installed version
+  ansible.builtin.command: dpkg-query -W -f='${Version}' {{ fastfetch_package_name }}
+  register: fastfetch_installed
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Fastfetch | Install the release
+  ansible.builtin.apt:
+    deb: "{{ fastfetch_download_url }}"
+    state: present
+  become: true
+  when: fastfetch_installed.stdout is not search('^' ~ (fastfetch_resolved_version | regex_escape))
+
+- name: Fastfetch | Remove superseded packages
+  ansible.builtin.apt:
+    name: "{{ fastfetch_remove_packages }}"
+    state: absent
+  become: true

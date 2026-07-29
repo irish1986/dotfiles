@@ -1,0 +1,21 @@
+---
+- name: Fastfetch | Ensure the config directory exists
+  ansible.builtin.file:
+    path: "{{ fastfetch_config_dir }}"
+    state: directory
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0755"
+
+- name: Fastfetch | Remove the neofetch config directory
+  ansible.builtin.file:
+    path: "{{ fastfetch_legacy_config_dir }}"
+    state: absent
+
+- name: Fastfetch | Deploy config.jsonc
+  ansible.builtin.copy:
+    src: config.jsonc
+    dest: "{{ fastfetch_config_dir }}/config.jsonc"
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0644"

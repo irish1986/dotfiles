@@ -1,0 +1,54 @@
+---
+# fc-cache lives in fontconfig, which a minimal image does not carry -- so the
+# handler that rebuilds the cache had nothing to run.
+- name: Fonts | Install dependencies
+  ansible.builtin.apt:
+    name: "{{ fonts_dependencies }}"
+    state: present
+  become: true
+
+- name: Fonts | Resolve the release to install
+  when: fonts_version | length == 0
+  block:
+    - name: Fonts | Query the latest release
+      ansible.builtin.uri:
+        url: "{{ fonts_release_api }}"
+        headers: "{{ dotfiles_github_headers }}"
+      register: fonts_latest
+      changed_when: false
+      check_mode: false
+
+    - name: Fonts | Register the latest release
+      ansible.builtin.set_fact:
+        fonts_resolved_version: "{{ fonts_latest.json.tag_name }}"
+
+- name: Fonts | Register the pinned release
+  ansible.builtin.set_fact:
+    fonts_resolved_version: "{{ fonts_version }}"
+  when: fonts_version | length > 0
+
+# mode 0755, not 0644: a directory without the execute bit cannot be traversed,
+# so the unarchive below could never write into it.
+- name: Fonts | Ensure the font directory exists
+  ansible.builtin.file:
+    path: "{{ fonts_dir }}"
+    state: directory
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0755"
+
+- name: Fonts | Install Nerd Fonts
+  ansible.builtin.unarchive:
+    src: >-
+      https://github.com/ryanoasis/nerd-fonts/releases/download/{{ fonts_resolved_version }}/{{ fonts_nerd_font }}.zip
+    dest: "{{ fonts_dir }}"
+    remote_src: true
+    creates: "{{ fonts_dir }}/{{ fonts_nerd_font }}{{ fonts_probe_suffix }}"
+    exclude:
+      - LICENSE
+      - LICENSE.txt
+      - README.md
+  loop: "{{ fonts_nerd_fonts }}"
+  loop_control:
+    loop_var: fonts_nerd_font
+  notify: Fonts | Update font cache

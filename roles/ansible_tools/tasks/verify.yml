@@ -1,0 +1,33 @@
+---
+- name: Ansible Tools | Query the installed version
+  ansible.builtin.command: "{{ ansible_tools_local_bin }}/ansible --version"
+  register: ansible_tools_version_check
+  changed_when: false
+  failed_when: false
+
+- name: Ansible Tools | Assert ansible-core is usable
+  ansible.builtin.assert:
+    that:
+      - ansible_tools_version_check.rc == 0
+      - "'core' in ansible_tools_version_check.stdout"
+    fail_msg: "ansible-core did not install correctly: {{ ansible_tools_version_check.stderr | default('no output') }}"
+    success_msg: "{{ ansible_tools_version_check.stdout_lines | first | default('') }}"
+    quiet: true
+
+- name: Ansible Tools | Check the injected extras are importable
+  ansible.builtin.command: "{{ ansible_tools_venv_python }} -c 'import bitwarden_sdk'"
+  register: ansible_tools_sdk_check
+  changed_when: false
+  failed_when: false
+  when: "'bitwarden-sdk' in ansible_tools_core_extras"
+
+- name: Ansible Tools | Assert bitwarden_sdk is importable by ansible
+  ansible.builtin.assert:
+    that:
+      - ansible_tools_sdk_check.rc == 0
+    fail_msg: >-
+      bitwarden_sdk is not importable by the ansible-core interpreter, so
+      bitwarden.secrets.lookup will fail at runtime.
+    success_msg: bitwarden_sdk importable by ansible-core
+    quiet: true
+  when: "'bitwarden-sdk' in ansible_tools_core_extras"

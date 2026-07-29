@@ -1,13 +1,13 @@
 ---
 # Orchestrator only: no module calls other than include_vars / include_tasks.
 
-- name: Ansible | Load release specific variables
-  ansible.builtin.include_vars: "{{ ansible_vars_file }}"
-  loop: "{{ query('ansible.builtin.first_found', ansible_vars_lookup) }}"
+- name: Ansible Tools | Load release specific variables
+  ansible.builtin.include_vars: "{{ ansible_tools_vars_file }}"
+  loop: "{{ query('ansible.builtin.first_found', ansible_tools_vars_lookup) }}"
   loop_control:
-    loop_var: ansible_vars_file
+    loop_var: ansible_tools_vars_file
   vars:
-    ansible_vars_lookup:
+    ansible_tools_vars_lookup:
       files:
         - "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
         - "{{ ansible_distribution }}.yml"
@@ -16,14 +16,14 @@
         - "{{ role_path }}/vars"
       skip: true
   tags:
-    - ansible
+    - ansible_tools
     - dev
 
-- name: Ansible | Install
-  ansible.builtin.include_tasks: "{{ ansible_install_tasks }}"
+- name: Ansible Tools | Install
+  ansible.builtin.include_tasks: "{{ ansible_tools_install_tasks }}"
   vars:
-    ansible_install_tasks: "{{ lookup('ansible.builtin.first_found', ansible_install_lookup) }}"
-    ansible_install_lookup:
+    ansible_tools_install_tasks: "{{ lookup('ansible.builtin.first_found', ansible_tools_install_lookup) }}"
+    ansible_tools_install_lookup:
       files:
         - "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
         - "{{ ansible_distribution }}.yml"
@@ -31,21 +31,14 @@
       paths:
         - "{{ role_path }}/tasks/install"
   tags:
-    - ansible
+    - ansible_tools
     - dev
     - install
 
-- name: Ansible | Configure
-  ansible.builtin.include_tasks: "{{ role_path }}/tasks/configure.yml"
-  tags:
-    - ansible
-    - dev
-    - configure
-
-- name: Ansible | Verify
+- name: Ansible Tools | Verify
   ansible.builtin.include_tasks: "{{ role_path }}/tasks/verify.yml"
   when: not ansible_check_mode
   tags:
-    - ansible
+    - ansible_tools
     - dev
     - verify
