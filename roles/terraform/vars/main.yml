@@ -1,0 +1,5 @@
+---
+terraform_binary: terraform
+terraform_legacy_artifacts:
+  - /usr/share/keyrings/hashicorp-archive-keyring.gpg
+  - /etc/apt/sources.list.d/apt_releases_hashicorp_com.list

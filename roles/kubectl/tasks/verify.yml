@@ -1,0 +1,15 @@
+---
+- name: Kubectl | Query the installed version
+  ansible.builtin.command: "{{ kubectl_binary }} version --client=true -o yaml"
+  register: kubectl_version_check
+  changed_when: false
+  failed_when: false
+
+- name: Kubectl | Assert kubectl is usable
+  ansible.builtin.assert:
+    that:
+      - kubectl_version_check.rc == 0
+      - "'gitVersion' in kubectl_version_check.stdout"
+    fail_msg: "kubectl did not install correctly: {{ kubectl_version_check.stderr | default('no output') }}"
+    success_msg: "kubectl channel {{ kubectl_channel }}"
+    quiet: true
