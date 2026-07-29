@@ -1,0 +1,4 @@
+---
+nvm_version: "" # empty resolves the latest release
+nvm_release_api: https://api.github.com/repos/nvm-sh/nvm/releases/latest
+nvm_dir: "{{ dotfiles_home }}/.nvm"

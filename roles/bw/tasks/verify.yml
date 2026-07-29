@@ -1,0 +1,14 @@
+---
+- name: BW | Query the installed version
+  ansible.builtin.command: "{{ bw_binary }} --version"
+  register: bw_version_check
+  changed_when: false
+  failed_when: false
+
+- name: BW | Assert bw is usable
+  ansible.builtin.assert:
+    that:
+      - bw_version_check.rc == 0
+    fail_msg: "bw did not install correctly: {{ bw_version_check.stderr | default('no output') }}"
+    success_msg: "bw {{ bw_version_check.stdout | trim }}"
+    quiet: true

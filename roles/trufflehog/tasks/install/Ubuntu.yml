@@ -1,0 +1,62 @@
+---
+- name: Trufflehog | Resolve the release to install
+  when: trufflehog_version | length == 0
+  block:
+    - name: Trufflehog | Query the latest release
+      ansible.builtin.uri:
+        url: "{{ trufflehog_release_api }}"
+        headers: "{{ dotfiles_github_headers }}"
+      register: trufflehog_latest
+      changed_when: false
+      check_mode: false
+
+    - name: Trufflehog | Register the latest release
+      ansible.builtin.set_fact:
+        trufflehog_resolved_version: "{{ trufflehog_latest.json.tag_name | regex_replace('^v', '') }}"
+
+- name: Trufflehog | Register the pinned release
+  ansible.builtin.set_fact:
+    trufflehog_resolved_version: "{{ trufflehog_version | regex_replace('^v', '') }}"
+  when: trufflehog_version | length > 0
+
+- name: Trufflehog | Query the installed version
+  ansible.builtin.command: "{{ trufflehog_binary_path }} --version"
+  register: trufflehog_installed
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Trufflehog | Install the release
+  when: trufflehog_resolved_version not in (trufflehog_installed.stderr | default('')) + (trufflehog_installed.stdout | default(''))
+  block:
+    - name: Trufflehog | Create a staging directory
+      ansible.builtin.tempfile:
+        state: directory
+        suffix: trufflehog
+      register: trufflehog_staging
+      changed_when: false
+
+    - name: Trufflehog | Download and unpack the release
+      ansible.builtin.unarchive:
+        src: >-
+          https://github.com/trufflesecurity/trufflehog/releases/download/v{{ trufflehog_resolved_version }}/trufflehog_{{ trufflehog_resolved_version }}_linux_{{ dotfiles_dpkg_architecture }}.tar.gz
+        dest: "{{ trufflehog_staging.path }}"
+        remote_src: true
+      changed_when: false
+
+    - name: Trufflehog | Install the binary
+      ansible.builtin.copy:
+        src: "{{ trufflehog_staging.path }}/trufflehog"
+        dest: "{{ trufflehog_binary_path }}"
+        remote_src: true
+        owner: root
+        group: root
+        mode: "0755"
+      become: true
+  always:
+    - name: Trufflehog | Remove the staging directory
+      ansible.builtin.file:
+        path: "{{ trufflehog_staging.path | default('') }}"
+        state: absent
+      when: trufflehog_staging.path is defined
+      changed_when: false

@@ -1,0 +1,3 @@
+---
+trufflehog_binary: trufflehog
+trufflehog_binary_path: "{{ trufflehog_install_dir }}/trufflehog"

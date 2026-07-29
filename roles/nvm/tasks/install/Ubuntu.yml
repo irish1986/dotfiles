@@ -1,0 +1,32 @@
+---
+- name: NVM | Resolve the release to install
+  when: nvm_version | length == 0
+  block:
+    - name: NVM | Query the latest release
+      ansible.builtin.uri:
+        url: "{{ nvm_release_api }}"
+        headers: "{{ dotfiles_github_headers }}"
+      register: nvm_latest
+      changed_when: false
+      check_mode: false
+
+    - name: NVM | Register the latest release
+      ansible.builtin.set_fact:
+        nvm_resolved_version: "{{ nvm_latest.json.tag_name }}"
+
+- name: NVM | Register the pinned release
+  ansible.builtin.set_fact:
+    nvm_resolved_version: "{{ nvm_version }}"
+  when: nvm_version | length > 0
+
+# creates: makes this a no-op once nvm.sh exists, so the installer is fetched
+# once rather than on every run.
+- name: NVM | Install nvm
+  ansible.builtin.shell:
+    cmd: >-
+      set -o pipefail &&
+      curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/{{ nvm_resolved_version }}/install.sh | bash
+    creates: "{{ nvm_script }}"
+    executable: /bin/bash
+  environment:
+    NVM_DIR: "{{ nvm_dir }}"
