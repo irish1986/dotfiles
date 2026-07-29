@@ -1,0 +1,16 @@
+---
+- name: Btop | Ensure the config directory exists
+  ansible.builtin.file:
+    path: "{{ btop_config_dir }}"
+    state: directory
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0755"
+
+- name: Btop | Deploy btop.conf
+  ansible.builtin.copy:
+    src: btop.conf
+    dest: "{{ btop_config_dir }}/btop.conf"
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0644"

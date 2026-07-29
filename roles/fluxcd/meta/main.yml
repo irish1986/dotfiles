@@ -1,0 +1,16 @@
+---
+galaxy_info:
+  role_name: fluxcd
+  namespace: dotfiles
+  author: irish1986
+  description: Flux CD command line tool.
+  license: MIT
+  min_ansible_version: "2.16"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - jammy
+        - noble
+# Always empty. Role dependencies bypass dotfiles_roles selection and execute
+# silently; ordering is expressed once, in that list.
+dependencies: []

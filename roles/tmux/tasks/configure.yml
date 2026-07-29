@@ -1,0 +1,33 @@
+---
+- name: Tmux | Ensure the config directories exist
+  ansible.builtin.file:
+    path: "{{ tmux_config_directory }}"
+    state: directory
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0755"
+  loop:
+    - "{{ tmux_config_dir }}"
+    - "{{ tmux_config_dir }}/plugins"
+  loop_control:
+    loop_var: tmux_config_directory
+
+# force: true because TPM is a vendored dependency pinned to a ref, not
+# something to edit in place. Without it the role wedges permanently the first
+# time anything touches that tree -- as the previous `recurse: true` with
+# mode: "0755" did, chmod'ing every tracked file to 755.
+- name: Tmux | Install TPM
+  ansible.builtin.git:
+    repo: "{{ tmux_tpm_repo }}"
+    version: "{{ tmux_tpm_version }}"
+    dest: "{{ tmux_tpm_dir }}"
+    depth: 1
+    force: true
+
+- name: Tmux | Deploy tmux.conf
+  ansible.builtin.copy:
+    src: tmux.conf
+    dest: "{{ tmux_config_dir }}/tmux.conf"
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0644"

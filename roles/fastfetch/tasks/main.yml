@@ -1,29 +1,51 @@
 ---
-- name: "Fastfetch | Checking for Distribution Config: {{ ansible_distribution }}"
-  ansible.builtin.stat:
-    path: "{{ role_path }}/tasks/{{ ansible_distribution }}.yml"
-  register: system_distribution_config
+# Orchestrator only: no module calls other than include_vars / include_tasks.
 
-- name: "Fastfetch | Run Tasks: {{ ansible_distribution }}"
-  ansible.builtin.include_tasks: "{{ ansible_distribution }}.yml"
-  when: system_distribution_config.stat.exists
+- name: Fastfetch | Load release specific variables
+  ansible.builtin.include_vars: "{{ fastfetch_vars_file }}"
+  loop: "{{ query('ansible.builtin.first_found', fastfetch_vars_lookup) }}"
+  loop_control:
+    loop_var: fastfetch_vars_file
+  vars:
+    fastfetch_vars_lookup:
+      files:
+        - "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
+        - "{{ ansible_distribution }}.yml"
+        - "{{ ansible_os_family }}.yml"
+      paths:
+        - "{{ role_path }}/vars"
+      skip: true
+  tags:
+    - fastfetch
+    - shell
 
-- name: Fastfetch | Ensure .config directory exists
-  ansible.builtin.file:
-    path: "{{ ansible_home }}/{{ item }}"
-    state: directory
-    mode: "0755"
-  loop:
-    - .config
-    - .config/fastfetch
+- name: Fastfetch | Install
+  ansible.builtin.include_tasks: "{{ fastfetch_install_tasks }}"
+  vars:
+    fastfetch_install_tasks: "{{ lookup('ansible.builtin.first_found', fastfetch_install_lookup) }}"
+    fastfetch_install_lookup:
+      files:
+        - "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
+        - "{{ ansible_distribution }}.yml"
+        - "{{ ansible_os_family }}.yml"
+      paths:
+        - "{{ role_path }}/tasks/install"
+  tags:
+    - fastfetch
+    - shell
+    - install
 
-- name: Fastfetch | Remove neofetch thx for your service
-  ansible.builtin.file:
-    path: "{{ ansible_home }}/.config/neofetch"
-    state: absent
+- name: Fastfetch | Configure
+  ansible.builtin.include_tasks: "{{ role_path }}/tasks/configure.yml"
+  tags:
+    - fastfetch
+    - shell
+    - configure
 
-- name: Fastfetch | Copy config file
-  ansible.builtin.copy:
-    src: config.jsonc
-    dest: "{{ ansible_home }}/.config/fastfetch"
-    mode: "0644"
+- name: Fastfetch | Verify
+  ansible.builtin.include_tasks: "{{ role_path }}/tasks/verify.yml"
+  when: not ansible_check_mode
+  tags:
+    - fastfetch
+    - shell
+    - verify

@@ -1,0 +1,33 @@
+---
+- name: Timezone | Set the system timezone
+  community.general.timezone:
+    name: "{{ timezone_name }}"
+  become: true
+
+- name: Timezone | Manage time synchronisation
+  when:
+    - timezone_manage_timesync | bool
+    - timezone_timesync_supported | bool
+    - dotfiles_has_systemd | bool
+  block:
+    - name: Timezone | Install the time sync service
+      ansible.builtin.apt:
+        name: "{{ timezone_timesync_service }}"
+        state: present
+      become: true
+
+    - name: Timezone | Enable and start the time sync service
+      ansible.builtin.systemd_service:
+        name: "{{ timezone_timesync_service }}"
+        enabled: true
+        state: started
+      become: true
+
+- name: Timezone | Report that time sync is host managed
+  ansible.builtin.debug:
+    msg: >-
+      Time synchronisation is managed by the Windows host; only the timezone
+      ({{ timezone_name }}) is set inside the distro.
+  when:
+    - timezone_manage_timesync | bool
+    - not (timezone_timesync_supported | bool)
