@@ -1,17 +1,51 @@
 ---
-- name: "Kubectl | Checking for Distribution Config: {{ ansible_distribution }}"
-  ansible.builtin.stat:
-    path: "{{ role_path }}/tasks/{{ ansible_distribution }}.yml"
-  register: system_distribution_config
+# Orchestrator only: no module calls other than include_vars / include_tasks.
 
-- name: "Kubectl | Run Tasks: {{ ansible_distribution }}"
-  ansible.builtin.include_tasks: "{{ ansible_distribution }}.yml"
-  when: system_distribution_config.stat.exists
+- name: Kubectl | Load release specific variables
+  ansible.builtin.include_vars: "{{ kubectl_vars_file }}"
+  loop: "{{ query('ansible.builtin.first_found', kubectl_vars_lookup) }}"
+  loop_control:
+    loop_var: kubectl_vars_file
+  vars:
+    kubectl_vars_lookup:
+      files:
+        - "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
+        - "{{ ansible_distribution }}.yml"
+        - "{{ ansible_os_family }}.yml"
+      paths:
+        - "{{ role_path }}/vars"
+      skip: true
+  tags:
+    - kubectl
+    - k8s
 
-- name: Kubectl | Configure .kube/config
-  block:
-    - name: K8s | Ensure .kube directory exists
-      ansible.builtin.file:
-        path: "{{ ansible_home }}/.kube"
-        state: directory
-        mode: "0755"
+- name: Kubectl | Install
+  ansible.builtin.include_tasks: "{{ kubectl_install_tasks }}"
+  vars:
+    kubectl_install_tasks: "{{ lookup('ansible.builtin.first_found', kubectl_install_lookup) }}"
+    kubectl_install_lookup:
+      files:
+        - "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
+        - "{{ ansible_distribution }}.yml"
+        - "{{ ansible_os_family }}.yml"
+      paths:
+        - "{{ role_path }}/tasks/install"
+  tags:
+    - kubectl
+    - k8s
+    - install
+
+- name: Kubectl | Configure
+  ansible.builtin.include_tasks: "{{ role_path }}/tasks/configure.yml"
+  tags:
+    - kubectl
+    - k8s
+    - configure
+
+- name: Kubectl | Verify
+  ansible.builtin.include_tasks: "{{ role_path }}/tasks/verify.yml"
+  when: not ansible_check_mode
+  tags:
+    - kubectl
+    - k8s
+    - verify

@@ -1,11 +1,44 @@
 ---
-- name: "Fonts | Checking for Distribution Config: {{ ansible_distribution }}"
-  ansible.builtin.stat:
-    path: "{{ role_path }}/tasks/{{ ansible_distribution }}.yml"
-  register: system_distribution_config
+# Orchestrator only: no module calls other than include_vars / include_tasks.
 
-- name: "Fonts | Run Tasks: {{ ansible_distribution }}"
-  ansible.builtin.include_tasks: "{{ ansible_distribution }}.yml"
-  when:
-    - system_distribution_config.stat.exists
-    - not ansible_host_environment_is_wsl
+- name: Fonts | Load release specific variables
+  ansible.builtin.include_vars: "{{ fonts_vars_file }}"
+  loop: "{{ query('ansible.builtin.first_found', fonts_vars_lookup) }}"
+  loop_control:
+    loop_var: fonts_vars_file
+  vars:
+    fonts_vars_lookup:
+      files:
+        - "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
+        - "{{ ansible_distribution }}.yml"
+        - "{{ ansible_os_family }}.yml"
+      paths:
+        - "{{ role_path }}/vars"
+      skip: true
+  tags:
+    - fonts
+    - shell
+
+- name: Fonts | Install
+  ansible.builtin.include_tasks: "{{ fonts_install_tasks }}"
+  vars:
+    fonts_install_tasks: "{{ lookup('ansible.builtin.first_found', fonts_install_lookup) }}"
+    fonts_install_lookup:
+      files:
+        - "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
+        - "{{ ansible_distribution }}.yml"
+        - "{{ ansible_os_family }}.yml"
+      paths:
+        - "{{ role_path }}/tasks/install"
+  tags:
+    - fonts
+    - shell
+    - install
+
+- name: Fonts | Verify
+  ansible.builtin.include_tasks: "{{ role_path }}/tasks/verify.yml"
+  when: not ansible_check_mode
+  tags:
+    - fonts
+    - shell
+    - verify

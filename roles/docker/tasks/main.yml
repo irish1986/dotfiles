@@ -42,14 +42,14 @@
     - install
 
 - name: Docker | Configure
-  ansible.builtin.include_tasks: configure.yml
+  ansible.builtin.include_tasks: "{{ role_path }}/tasks/configure.yml"
   tags:
     - docker
     - containers
     - configure
 
 - name: Docker | Verify
-  ansible.builtin.include_tasks: verify.yml
+  ansible.builtin.include_tasks: "{{ role_path }}/tasks/verify.yml"
   when: not ansible_check_mode
   tags:
     - docker

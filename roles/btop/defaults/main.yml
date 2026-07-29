@@ -1,0 +1,9 @@
+---
+btop_packages:
+  - btop
+
+# btop replaces htop; removing it keeps one process viewer on the box.
+btop_remove_packages:
+  - htop
+
+btop_config_dir: "{{ dotfiles_home }}/.config/btop"

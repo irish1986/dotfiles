@@ -1,0 +1,12 @@
+---
+- name: Btop | Install packages
+  ansible.builtin.apt:
+    name: "{{ btop_packages }}"
+    state: present
+  become: true
+
+- name: Btop | Remove superseded packages
+  ansible.builtin.apt:
+    name: "{{ btop_remove_packages }}"
+    state: absent
+  become: true

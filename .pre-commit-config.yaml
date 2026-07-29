@@ -77,10 +77,14 @@ repos:
   - repo: https://github.com/ansible-community/ansible-lint
     rev: v26.1.1
     hooks:
+      # No --fix: it rewrites YAML in place mid-commit, which is opaque, and its
+      # transformer crashes resolving relative include_tasks paths (it looks for
+      # roles/<r>/tasks/configure.yml at the repo root). Run it deliberately
+      # instead: ansible-lint -c .config/.ansible-lint.yml --fix
+      # No files: either -- exclude_paths in the config is the single source of
+      # scope, rather than two overlapping filters.
       - id: ansible-lint
         name: "ansible | lint: run ansible-lint"
-        files: \.(yaml|yml)$
         args:
           - -c
           - .config/.ansible-lint.yml
-          - --fix

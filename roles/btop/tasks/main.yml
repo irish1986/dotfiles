@@ -1,24 +1,51 @@
 ---
-- name: "Btop | Checking for Distribution Config: {{ ansible_distribution }}"
-  ansible.builtin.stat:
-    path: "{{ role_path }}/tasks/{{ ansible_distribution }}.yml"
-  register: system_distribution_config
+# Orchestrator only: no module calls other than include_vars / include_tasks.
 
-- name: "Btop | Run Tasks: {{ ansible_distribution }}"
-  ansible.builtin.include_tasks: "{{ ansible_distribution }}.yml"
-  when: system_distribution_config.stat.exists
+- name: Btop | Load release specific variables
+  ansible.builtin.include_vars: "{{ btop_vars_file }}"
+  loop: "{{ query('ansible.builtin.first_found', btop_vars_lookup) }}"
+  loop_control:
+    loop_var: btop_vars_file
+  vars:
+    btop_vars_lookup:
+      files:
+        - "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
+        - "{{ ansible_distribution }}.yml"
+        - "{{ ansible_os_family }}.yml"
+      paths:
+        - "{{ role_path }}/vars"
+      skip: true
+  tags:
+    - btop
+    - shell
 
-- name: Btop | Ensure .config directory exists
-  ansible.builtin.file:
-    path: "{{ ansible_home }}/{{ item }}"
-    state: directory
-    mode: "0755"
-  loop:
-    - .config
-    - .config/btop
+- name: Btop | Install
+  ansible.builtin.include_tasks: "{{ btop_install_tasks }}"
+  vars:
+    btop_install_tasks: "{{ lookup('ansible.builtin.first_found', btop_install_lookup) }}"
+    btop_install_lookup:
+      files:
+        - "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
+        - "{{ ansible_distribution }}.yml"
+        - "{{ ansible_os_family }}.yml"
+      paths:
+        - "{{ role_path }}/tasks/install"
+  tags:
+    - btop
+    - shell
+    - install
 
-- name: Btop | Copy config file
-  ansible.builtin.copy:
-    src: btop.conf
-    dest: "{{ ansible_home }}/.config/btop/"
-    mode: "0644"
+- name: Btop | Configure
+  ansible.builtin.include_tasks: "{{ role_path }}/tasks/configure.yml"
+  tags:
+    - btop
+    - shell
+    - configure
+
+- name: Btop | Verify
+  ansible.builtin.include_tasks: "{{ role_path }}/tasks/verify.yml"
+  when: not ansible_check_mode
+  tags:
+    - btop
+    - shell
+    - verify

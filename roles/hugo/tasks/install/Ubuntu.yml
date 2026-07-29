@@ -1,0 +1,14 @@
+---
+- name: Hugo | Query the installed version
+  ansible.builtin.command: dpkg-query -W -f='${Version}' {{ hugo_package_name }}
+  register: hugo_installed
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Hugo | Install the upstream release
+  ansible.builtin.apt:
+    deb: "{{ hugo_release_url }}"
+    state: present
+  become: true
+  when: hugo_installed.stdout is not search('^' ~ (hugo_version | regex_escape))

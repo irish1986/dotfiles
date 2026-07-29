@@ -1,22 +1,51 @@
 ---
-- name: "Neovim | Checking for Distribution Config: {{ ansible_distribution }}"
-  ansible.builtin.stat:
-    path: "{{ role_path }}/tasks/{{ ansible_distribution }}.yml"
-  register: system_distribution_config
+# Orchestrator only: no module calls other than include_vars / include_tasks.
 
-- name: "Neovim | Run Tasks: {{ ansible_distribution }}"
-  ansible.builtin.include_tasks: "{{ ansible_distribution }}.yml"
-  when: system_distribution_config.stat.exists
+- name: Neovim | Load release specific variables
+  ansible.builtin.include_vars: "{{ neovim_vars_file }}"
+  loop: "{{ query('ansible.builtin.first_found', neovim_vars_lookup) }}"
+  loop_control:
+    loop_var: neovim_vars_file
+  vars:
+    neovim_vars_lookup:
+      files:
+        - "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
+        - "{{ ansible_distribution }}.yml"
+        - "{{ ansible_os_family }}.yml"
+      paths:
+        - "{{ role_path }}/vars"
+      skip: true
+  tags:
+    - neovim
+    - dev
 
-- name: Neovim | Config folder
-  ansible.builtin.file:
-    mode: "0755"
-    path: "{{ ansible_home }}/.config/nvim"
-    state: directory
+- name: Neovim | Install
+  ansible.builtin.include_tasks: "{{ neovim_install_tasks }}"
+  vars:
+    neovim_install_tasks: "{{ lookup('ansible.builtin.first_found', neovim_install_lookup) }}"
+    neovim_install_lookup:
+      files:
+        - "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
+        - "{{ ansible_distribution }}.yml"
+        - "{{ ansible_os_family }}.yml"
+      paths:
+        - "{{ role_path }}/tasks/install"
+  tags:
+    - neovim
+    - dev
+    - install
 
-- name: Neovim | Create symlink to role files directory
-  ansible.builtin.file:
-    src: "{{ role_path }}/files"
-    dest: "{{ ansible_home }}/.config/nvim"
-    state: link
-    force: true
+- name: Neovim | Configure
+  ansible.builtin.include_tasks: "{{ role_path }}/tasks/configure.yml"
+  tags:
+    - neovim
+    - dev
+    - configure
+
+- name: Neovim | Verify
+  ansible.builtin.include_tasks: "{{ role_path }}/tasks/verify.yml"
+  when: not ansible_check_mode
+  tags:
+    - neovim
+    - dev
+    - verify

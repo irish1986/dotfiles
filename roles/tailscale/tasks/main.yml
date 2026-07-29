@@ -1,9 +1,44 @@
 ---
-- name: "Tailscale | Checking for Distribution Config: {{ ansible_distribution }}"
-  ansible.builtin.stat:
-    path: "{{ role_path }}/tasks/{{ ansible_distribution }}.yml"
-  register: system_distribution_config
+# Orchestrator only: no module calls other than include_vars / include_tasks.
 
-- name: "Tailscale | Run Tasks: {{ ansible_distribution }}"
-  ansible.builtin.include_tasks: "{{ ansible_distribution }}.yml"
-  when: system_distribution_config.stat.exists
+- name: Tailscale | Load release specific variables
+  ansible.builtin.include_vars: "{{ tailscale_vars_file }}"
+  loop: "{{ query('ansible.builtin.first_found', tailscale_vars_lookup) }}"
+  loop_control:
+    loop_var: tailscale_vars_file
+  vars:
+    tailscale_vars_lookup:
+      files:
+        - "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
+        - "{{ ansible_distribution }}.yml"
+        - "{{ ansible_os_family }}.yml"
+      paths:
+        - "{{ role_path }}/vars"
+      skip: true
+  tags:
+    - tailscale
+    - net
+
+- name: Tailscale | Install
+  ansible.builtin.include_tasks: "{{ tailscale_install_tasks }}"
+  vars:
+    tailscale_install_tasks: "{{ lookup('ansible.builtin.first_found', tailscale_install_lookup) }}"
+    tailscale_install_lookup:
+      files:
+        - "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
+        - "{{ ansible_distribution }}.yml"
+        - "{{ ansible_os_family }}.yml"
+      paths:
+        - "{{ role_path }}/tasks/install"
+  tags:
+    - tailscale
+    - net
+    - install
+
+- name: Tailscale | Verify
+  ansible.builtin.include_tasks: "{{ role_path }}/tasks/verify.yml"
+  when: not ansible_check_mode
+  tags:
+    - tailscale
+    - net
+    - verify

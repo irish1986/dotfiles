@@ -1,0 +1,15 @@
+---
+- name: Hugo | Query the installed version
+  ansible.builtin.command: "{{ hugo_binary }} version"
+  register: hugo_version_check
+  changed_when: false
+  failed_when: false
+
+- name: Hugo | Assert hugo is usable
+  ansible.builtin.assert:
+    that:
+      - hugo_version_check.rc == 0
+      - "'hugo v' in hugo_version_check.stdout"
+    fail_msg: "hugo did not install correctly: {{ hugo_version_check.stderr | default('no output') }}"
+    success_msg: "{{ hugo_version_check.stdout_lines | first | default('hugo installed') }}"
+    quiet: true

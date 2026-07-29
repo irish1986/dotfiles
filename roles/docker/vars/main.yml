@@ -1,5 +1,5 @@
 ---
-docker_binary: /usr/bin/docker
+docker_binary: docker
 docker_daemon_binary: /usr/bin/dockerd
 docker_daemon_config: /etc/docker/daemon.json
 docker_service_name: docker

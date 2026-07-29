@@ -1,0 +1,4 @@
+---
+# The upstream .deb installs to /usr/local/bin, not /usr/bin.
+hugo_binary: hugo
+hugo_package_name: hugo
