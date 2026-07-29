@@ -1,6 +1,6 @@
 ---
 galaxy_info:
-  role_name: ansible
+  role_name: ansible_tools
   namespace: dotfiles
   author: irish1986
   description: Ansible tooling installed with uv.
@@ -11,6 +11,4 @@ galaxy_info:
       versions:
         - jammy
         - noble
-# Always empty. Role dependencies bypass dotfiles_roles selection and execute
-# silently; ordering is expressed once, in that list.
 dependencies: []

@@ -1,0 +1,4 @@
+---
+fastfetch_binary: fastfetch
+fastfetch_package_name: fastfetch
+fastfetch_legacy_config_dir: "{{ dotfiles_home }}/.config/neofetch"

@@ -1,5 +1,7 @@
 ---
-- name: Update font-cache
-  ansible.builtin.command: fc-cache -fv
-  register: fontcache
-  changed_when: fontcache.rc != 0
+# changed_when: true, not `rc != 0`. The previous form reported "changed" only
+# when the command *failed*, so a successful cache rebuild looked like a no-op
+# and a failed one looked like a change.
+- name: Fonts | Update font cache
+  ansible.builtin.command: fc-cache --force "{{ fonts_dir }}"
+  changed_when: true

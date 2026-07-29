@@ -1,0 +1,12 @@
+---
+fastfetch_version: "" # empty resolves the latest release
+fastfetch_release_api: https://api.github.com/repos/fastfetch-cli/fastfetch/releases/latest
+# Not in the 22.04 or 24.04 archives, so the upstream .deb it is.
+fastfetch_download_url: >-
+  https://github.com/fastfetch-cli/fastfetch/releases/download/{{ fastfetch_resolved_version }}/fastfetch-linux-{{ dotfiles_dpkg_architecture }}.deb
+
+# fastfetch supersedes neofetch, which upstream archived in 2024.
+fastfetch_remove_packages:
+  - neofetch
+
+fastfetch_config_dir: "{{ dotfiles_home }}/.config/fastfetch"

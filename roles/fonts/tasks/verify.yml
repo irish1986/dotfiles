@@ -1,0 +1,18 @@
+---
+- name: Fonts | List the installed families
+  ansible.builtin.command: fc-list --format='%{family}\n'
+  register: fonts_installed
+  changed_when: false
+  failed_when: false
+
+- name: Fonts | Assert each font is registered
+  ansible.builtin.assert:
+    that:
+      - fonts_installed.rc == 0
+      - fonts_installed.stdout is search(fonts_nerd_font, ignorecase=True)
+    fail_msg: "{{ fonts_nerd_font }} Nerd Font is not registered with fontconfig."
+    success_msg: "{{ fonts_nerd_font }} Nerd Font available"
+    quiet: true
+  loop: "{{ fonts_nerd_fonts }}"
+  loop_control:
+    loop_var: fonts_nerd_font
