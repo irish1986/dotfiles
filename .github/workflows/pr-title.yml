@@ -1,0 +1,66 @@
+---
+name: PR Title
+run-name: Pull request title lint
+
+# The squash subject is the only trustworthy input to release-please's version
+# inference. The commitizen commit-msg hook cannot provide that: it is bypassable
+# with --no-verify, it only runs if someone ran `prek install`, and it never runs
+# for Dependabot, Renovate or pre-commit.ci -- between them the most prolific
+# committers here.
+#
+# This is only load-bearing once squash_merge_commit_title is PR_TITLE. While it
+# is COMMIT_OR_PR_TITLE, a single-commit PR uses the commit subject and ignores
+# the title linted here. See the repository settings note in the PR body.
+on: # yamllint disable-line rule:truthy
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - edited
+      - reopened
+      - synchronize
+      - ready_for_review
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  lint:
+    name: Conventional Commit Title
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+
+    permissions:
+      pull-requests: read
+
+    steps:
+      - name: Validate the PR title
+        uses: amannn/action-semantic-pull-request@48f256284bd46cdaab1048c3721360e808335d50 # v6.1.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          # Matches .github/CONTRIBUTING.md, minus `bump`: release-please does
+          # not understand it, and it is redundant now that release-please owns
+          # version bumping.
+          types: |
+            build
+            chore
+            ci
+            docs
+            feat
+            fix
+            perf
+            refactor
+            revert
+            style
+            test
+          requireScope: false
+          subjectPattern: ^(?![A-Z])(?!.*\.$).+$
+          subjectPatternError: |
+            The subject "{subject}" must start with a lowercase letter and must
+            not end with a period.
+          validateSingleCommit: false

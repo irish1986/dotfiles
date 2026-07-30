@@ -1,9 +1,37 @@
 ---
-profile: min
+# basic, not min. `min` enables only internal-error, load-failure, parser-error
+# and syntax-check -- it verifies the YAML parses and nothing more. `basic` adds
+# the rules that matter for a 26-role playbook: command-instead-of-module,
+# deprecated-*, key-order, no-free-form, no-jinja-when, partial-become,
+# role-name, schema, var-naming, name and yaml.
+#
+# Not `production` yet: it requires meta/main.yml with full galaxy_info on every
+# role and enables no-changed-when and risky-file-permissions repo-wide. Worth
+# doing, but as its own pass.
+# Not `safety`: it enables package-latest and latest, which a dotfiles repo
+# deliberately violates by tracking upstream releases.
+profile: basic
+
 exclude_paths:
-  - .github/
+  - .cache/
   - .config/
+  - .github/
+  - .venv/
+  # The pre-commit hook hands ansible-lint every *.yml in the repository, and
+  # load-failure is fatal even at profile min -- so mkdocs.yml's Python tags must
+  # be excluded here too, not only from check-yaml.
+  - docs/
+  - mkdocs.yml
   - scripts/
+  - site/
+
 warn_list:
   - yaml[line-length]
-task_name_prefix: "{stem} | "
+
+# task_name_prefix is deliberately absent. The rule that consumes it, name[prefix],
+# derives the expected prefix from the *file stem*, so it would demand
+# "Ubuntu | Install packages" inside tasks/install/Ubuntu.yml -- the opposite of
+# the readable "Docker | ..." convention used throughout. scripts/check-structure
+# enforces the real convention instead: one consistent prefix per role, matching
+# the role. That is what caught kind's block named "Fastfetch | Install" and
+# prek's named "NVM | Install".

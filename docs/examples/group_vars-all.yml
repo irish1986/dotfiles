@@ -30,8 +30,9 @@ dotfiles_min_ansible_version: "2.16"
 #   ansible-playbook main.yml --skip-tags update
 dotfiles_roles:
   - update # apt upgrade first, so everything below installs current
-  - system # sudoers, base packages, wsl.conf
-  - fonts # before zsh: .p10k.zsh renders as mojibake without a Nerd Font
+  - system # sudoers, base packages
+  - fonts # before wsl: the Windows font install stages from ~/.local/share/fonts
+  - wsl # before zsh: .p10k.zsh renders as mojibake without a Nerd Font
   - zsh
   - git
   - ssh

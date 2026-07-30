@@ -127,3 +127,28 @@ gcl() {
 
 	command pre-commit install --allow-missing-config
 }
+
+# --- WSL interop ----------------------------------------------------------
+if [[ -n "$WSL_DISTRO_NAME" ]]; then
+  # win32yank is the only clean paste path. `powershell Get-Clipboard` appends
+  # CRLF even with -Raw, because PowerShell's pipeline adds its own newline.
+  if (( $+commands[win32yank.exe] )); then
+    alias pbcopy='win32yank.exe -i --crlf'
+    alias pbpaste='win32yank.exe -o --lf'
+  else
+    alias pbcopy='clip.exe'
+    pbpaste() {
+      powershell.exe -NoProfile -NonInteractive \
+        -Command '[Console]::Out.Write((Get-Clipboard -Raw))' | tr -d '\r'
+    }
+  fi
+  alias clip='pbcopy'
+
+  alias cdw='cd /mnt/c'
+  winhome() { cd "$(wslpath -u "$(cd /mnt/c && cmd.exe /c 'echo %USERPROFILE%' 2>/dev/null | tr -d '\r\n')")" }
+
+  # explorer.exe exits 1 even on success, which trips `set -e` and zsh's ERR
+  # trap, so the exit status is swallowed deliberately.
+  open() { explorer.exe "$(wslpath -w "${1:-.}")" >/dev/null 2>&1; return 0 }
+  alias e.='open .'
+fi

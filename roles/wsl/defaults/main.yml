@@ -1,0 +1,92 @@
+---
+# ── /etc/wsl.conf ─────────────────────────────────────────────────────────
+wsl_systemd: true
+
+# metadata is the highest-value option here. Without it every file under /mnt/c
+# reports mode 0777, so git treats mode changes as diffs and chmod is a no-op.
+# umask/fmask give 0755 directories and 0644 files.
+wsl_automount_enabled: true
+wsl_automount_root: /mnt/
+wsl_automount_options: "metadata,umask=22,fmask=11"
+wsl_automount_mount_fstab: true
+
+wsl_interop_enabled: true
+# Injecting the Windows PATH costs a lot: it adds ~24 DrvFs directories that
+# compinit, command-not-found and every `command -v` must walk, and it is the
+# dominant cost in interactive shell startup on WSL. Set false and add the few
+# paths you actually need to .zshenv -- but that breaks docker.exe, dotnet,
+# gh.exe, chocolatey shims and the Tailscale CLI, and every interop task here
+# would need hardening to absolute paths. Left on by default.
+wsl_interop_append_windows_path: true
+
+# The correct mechanism on WSL: the hostname module's change does not survive a
+# wsl --shutdown, which is why a box configured that way reverts to the Windows
+# computer name on next start.
+wsl_network_hostname: "{{ dotfiles_hostname }}"
+wsl_network_generate_hosts: true
+# Left true deliberately. Setting false hands DNS entirely to whatever writes
+# resolv.conf -- on this machine Tailscale -- so if that is down there is no
+# resolution at all.
+wsl_network_generate_resolv_conf: true
+
+wsl_default_user: "{{ dotfiles_user }}"
+
+# ── .wslconfig (Windows side, WSL2 only) ──────────────────────────────────
+wsl_manage_wslconfig: true
+# Human-readable rather than the raw 51539607552 bytes the file had.
+wsl_config_memory: 48GB
+# Half the host cores, leaving headroom for Windows during a heavy build.
+wsl_config_processors: "{{ ((ansible_processor_vcpus | default(4)) / 2) | round | int }}"
+wsl_config_swap: 8GB
+wsl_config_networking_mode: mirrored
+wsl_config_dns_tunneling: true
+wsl_config_firewall: true
+wsl_config_gui_applications: true
+wsl_config_nested_virtualization: true
+# The biggest quality-of-life win: WSL2 otherwise never returns freed page cache
+# to Windows, so with memory=48GB the VM sits on 48GB indefinitely. `gradual` is
+# safe; `dropcache` is aggressive and hurts build throughput.
+wsl_config_auto_memory_reclaim: gradual
+# Applies to newly created disks only. An existing ext4.vhdx also needs
+# `wsl --manage <distro> --set-sparse true` with the distro stopped.
+wsl_config_sparse_vhd: true
+
+# ── Windows Terminal ──────────────────────────────────────────────────────
+wsl_manage_terminal: true
+# Only profiles.defaults and scalar globals are managed. profiles.list belongs
+# to Terminal's own generators, and actions/keybindings/schemes/themes are left
+# to the UI -- combine(recursive=true) replaces lists wholesale, so managing
+# them would silently revert anything changed there.
+wsl_terminal_settings:
+  copyOnSelect: false
+  copyFormatting: none
+  firstWindowPreference: defaultProfile
+  launchMode: focus
+  showTabsInTitlebar: false
+  centerOnLaunch: false
+  initialCols: 95
+  initialRows: 53
+  initialPosition: "0,0"
+  profiles:
+    defaults:
+      colorScheme: Campbell
+      opacity: 85
+      padding: "2"
+      scrollbarState: hidden
+      font:
+        face: "{{ (fonts_nerd_fonts | first | default('Hack')) }} Nerd Font"
+        size: 12
+
+# ── Windows-side fonts ────────────────────────────────────────────────────
+# Per-user install: %LOCALAPPDATA%\Microsoft\Windows\Fonts plus the matching
+# HKCU registry values. Needs no administrator rights, unlike a machine-wide
+# install under C:\Windows\Fonts and HKLM.
+wsl_manage_windows_fonts: true
+
+# ── Clipboard bridge ──────────────────────────────────────────────────────
+# win32yank is the only clean paste path: `powershell Get-Clipboard` appends
+# CRLF even with -Raw, because PowerShell's output pipeline adds its own newline.
+wsl_manage_win32yank: true
+wsl_win32yank_version: v0.1.1
+wsl_win32yank_url: >-
+  https://github.com/equalsraf/win32yank/releases/download/{{ wsl_win32yank_version }}/win32yank-x64.zip

@@ -44,7 +44,7 @@
         validate: /usr/sbin/visudo -cf %s
       become: true
 
-    - name: "System | Give passwordless sudo to {{ dotfiles_user }}"
+    - name: "System | Grant passwordless sudo: {{ dotfiles_user }}"
       ansible.builtin.copy:
         dest: "{{ system_sudoers_file }}"
         content: | # pragma: allowlist secret

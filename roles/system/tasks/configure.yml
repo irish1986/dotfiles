@@ -6,13 +6,3 @@
     owner: "{{ dotfiles_user }}"
     group: "{{ dotfiles_user }}"
     mode: "0755"
-
-- name: System | Deploy wsl.conf
-  ansible.builtin.copy:
-    src: wsl.conf
-    dest: "{{ system_wsl_conf }}"
-    owner: root
-    group: root
-    mode: "0644"
-  become: true
-  when: dotfiles_is_wsl | bool

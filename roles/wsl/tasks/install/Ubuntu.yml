@@ -1,0 +1,33 @@
+---
+- name: WSL | Deploy wsl.conf
+  ansible.builtin.template:
+    src: wsl.conf.j2
+    dest: "{{ wsl_conf_path }}"
+    owner: root
+    group: root
+    mode: "0644"
+  become: true
+  notify: WSL | Shutdown required
+
+- name: WSL | Install the clipboard bridge
+  when: wsl_manage_win32yank | bool
+  block:
+    - name: WSL | Ensure the user bin directory exists
+      ansible.builtin.file:
+        path: "{{ wsl_local_bin }}"
+        state: directory
+        owner: "{{ dotfiles_user }}"
+        group: "{{ dotfiles_user }}"
+        mode: "0755"
+
+    # A Windows .exe stored on ext4 executes fine through the WSLInterop binfmt
+    # handler, so there is no need to place it on /mnt/c.
+    - name: WSL | Install win32yank
+      ansible.builtin.unarchive:
+        src: "{{ wsl_win32yank_url }}"
+        dest: "{{ wsl_local_bin }}"
+        remote_src: true
+        include:
+          - win32yank.exe
+        mode: "0755"
+        creates: "{{ wsl_win32yank_path }}"
