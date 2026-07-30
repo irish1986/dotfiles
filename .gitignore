@@ -4,7 +4,8 @@
 .env
 .cache_ggshield
 
-# Machine identity, seeded from docs/examples/group_vars-all.yml. Ignore the
-# *contents* of group_vars rather than the directory: git never descends into
-# an excluded directory, so a negation for a file inside one is never applied.
+# Ignore the *contents* of group_vars, not the directory itself: git never
+# descends into an excluded directory, so a negation for a file inside one can
+# never re-include it. all.yml holds real machine identity and stays untracked.
 /inventory/group_vars/*
+!inventory/group_vars/sample.yml
