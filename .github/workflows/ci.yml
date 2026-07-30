@@ -62,8 +62,11 @@ jobs:
       # Must be explicit: the reusable workflow defaults this to
       # ${{ github.repository_owner }}/ which is irish1986/ here, and would then
       # flag every irishlab-io reusable call as unpinned.
+      # No quotes: the value is passed through to the action verbatim, and a
+      # block scalar preserves them as literal characters -- the entry would be
+      # `"irishlab-io/"` and match nothing.
       allowlist: |
-        "irishlab-io/"
+        irishlab-io/
 
   # Tier 0: structural checks ansible-lint cannot make. Seconds, no network.
   structure:
@@ -119,6 +122,13 @@ jobs:
     container:
       image: ubuntu:${{ matrix.release }}
       options: --user root
+
+    # Explicit: inside a container the runner picks the image's default shell,
+    # which is sh on some Ubuntu base images. `set -o pipefail` is a bashism and
+    # fails on line 1 there.
+    defaults:
+      run:
+        shell: bash
 
     env:
       DEBIAN_FRONTEND: noninteractive
