@@ -18,14 +18,14 @@ repos:
       - id: identity
         name: "meta | pre-commit hooks"
   - repo: https://github.com/commitizen-tools/commitizen
-    rev: v4.13.8
+    rev: v4.17.0
     hooks:
       - id: commitizen
         name: "commitizen | validate commit messages"
         stages:
           - commit-msg
   - repo: https://github.com/gitguardian/ggshield
-    rev: v1.48.0
+    rev: v1.53.0
     hooks:
       - id: ggshield
         name: "security | scan for secrets"
@@ -59,7 +59,7 @@ repos:
       - id: trailing-whitespace
         name: "general | remove trailing whitespace"
   - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.47.0
+    rev: v0.49.1
     hooks:
       - id: markdownlint
         name: "md | lint: run markdownlint-cli"
@@ -75,7 +75,7 @@ repos:
           - -c
           - .config/.yaml-lint.yml
   - repo: https://github.com/ansible-community/ansible-lint
-    rev: v26.1.1
+    rev: v26.6.0
     hooks:
       - id: ansible-lint
         name: "ansible | lint: run ansible-lint"
