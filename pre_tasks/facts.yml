@@ -1,0 +1,91 @@
+---
+# Resolves the environment into real, typed facts.
+#
+# Replaces the previous whoami.yml, which shelled out to `cat /proc/version` and
+# stored the *string* "true"/"false". A non-empty string is truthy in Jinja, so
+# `when: not ansible_host_environment_is_wsl` evaluated to False on every host
+# regardless of environment, silently disabling several roles.
+
+- name: Facts | Resolve the target user and home directory
+  ansible.builtin.set_fact:
+    dotfiles_user: >-
+      {{ dotfiles_user | default(lookup('ansible.builtin.env', 'USER'), true) }}
+    dotfiles_home: >-
+      {{ (dotfiles_home | default(lookup('ansible.builtin.env', 'HOME'), true))
+         | regex_replace('/+$', '') }}
+
+# Two independent signals, because neither is reliable alone:
+#   * ansible_virtualization_type reports "wsl" on some ansible-core versions but
+#     "container" on others (2.16.3 reports "container" on WSL2).
+#   * the kernel string is stable across both WSL1 ("...-Microsoft") and WSL2
+#     ("...-microsoft-standard-WSL2"), so it is the dependable fallback.
+- name: Facts | Detect WSL
+  ansible.builtin.set_fact:
+    dotfiles_is_wsl: >-
+      {{ (ansible_virtualization_type | default('') == 'wsl')
+         or (ansible_kernel is search('(?i)microsoft')) }}
+    dotfiles_wsl_version: "{{ 2 if (ansible_kernel is search('(?i)wsl2')) else 1 }}"
+
+- name: Facts | Detect the runtime environment
+  ansible.builtin.set_fact:
+    # The real precondition for every service task. Replaces `not is_wsl`, which
+    # never expressed what it meant: WSL2 with `systemd=true` in wsl.conf does
+    # have systemd, and a CI container does not.
+    dotfiles_has_systemd: "{{ ansible_service_mgr == 'systemd' }}"
+    # WSL also reports virtualization_type "container", hence the is_wsl guard.
+    dotfiles_in_container: >-
+      {{ (ansible_virtualization_type | default('') in ['container', 'containerd', 'docker', 'podman'])
+         and not (dotfiles_is_wsl | bool) }}
+
+- name: Facts | Decide whether reboots are permitted
+  ansible.builtin.set_fact:
+    # `ansible.builtin.reboot` on WSL kills the distro; in a container it kills
+    # the job.
+    dotfiles_can_reboot: >-
+      {{ not ((dotfiles_is_wsl | bool) or (dotfiles_in_container | bool)) }}
+
+- name: Facts | Query the dpkg architecture
+  ansible.builtin.command: dpkg --print-architecture
+  register: dotfiles_dpkg_arch
+  changed_when: false
+  check_mode: false
+
+- name: Facts | Register the dpkg architecture
+  ansible.builtin.set_fact:
+    # Computed once here instead of by four separate roles.
+    dotfiles_dpkg_architecture: "{{ dotfiles_dpkg_arch.stdout }}"
+
+- name: Facts | Assert a supported target
+  ansible.builtin.assert:
+    that:
+      - ansible_distribution == 'Ubuntu'
+      - ansible_distribution_version in dotfiles_supported_versions
+      - ansible_version.full is version(dotfiles_min_ansible_version, '>=')
+    fail_msg: >-
+      Unsupported target: {{ ansible_distribution }} {{ ansible_distribution_version }}
+      running ansible-core {{ ansible_version.full }}.
+      Supported: Ubuntu {{ dotfiles_supported_versions | join(', ') }}
+      with ansible-core >= {{ dotfiles_min_ansible_version }}.
+    quiet: true
+
+- name: Facts | Show the resolved environment
+  ansible.builtin.debug:
+    msg: >-
+      {{ dotfiles_user }}@{{ ansible_distribution }} {{ ansible_distribution_version }}
+      ({{ ansible_distribution_release }}/{{ dotfiles_dpkg_architecture }})
+      home={{ dotfiles_home }}
+      wsl={{ dotfiles_is_wsl }}{{ ' v' ~ dotfiles_wsl_version if dotfiles_is_wsl | bool else '' }}
+      systemd={{ dotfiles_has_systemd }}
+      container={{ dotfiles_in_container }}
+      reboot={{ dotfiles_can_reboot }}
+
+# Temporary shims so roles that have not been migrated to the dotfiles_* names
+# keep working. Removed once every role is migrated.
+- name: Facts | Legacy variable aliases
+  ansible.builtin.set_fact:
+    ansible_home: "{{ dotfiles_home }}"
+    ansible_host_environment_is_wsl: "{{ dotfiles_is_wsl }}"
+    ansible_user: "{{ dotfiles_user }}"
+    hostname: "{{ dotfiles_hostname }}"
+    loop_host: "{{ dotfiles_loopback_address }}"
+    windows_user: "{{ dotfiles_windows_user }}"

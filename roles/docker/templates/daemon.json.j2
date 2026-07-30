@@ -1,5 +1,7 @@
 {
-  "data-root": "{{  ansible_user_dir }}/.local/lib/docker",
+{% if docker.data_root | default(none) %}
+  "data-root": "{{ docker.data_root }}",
+{% endif %}
   "default-address-pools": [
     {
       "base": "{{ docker.network | default('172.10.0.0') }}/16",

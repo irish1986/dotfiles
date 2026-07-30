@@ -42,6 +42,9 @@
     state: present
   become: true
 
+# Gated on systemd rather than on "not WSL": WSL2 with systemd=true in wsl.conf
+# does have systemd and does want Docker enabled, while a CI container has no
+# systemd at all. The old `not is_wsl` check expressed neither.
 - name: Docker | Enable service
   ansible.builtin.systemd:
     enabled: true
@@ -49,26 +52,34 @@
     state: started
   become: true
   when:
-    - not ansible_host_environment_is_wsl
+    - dotfiles_has_systemd | bool
 
 - name: Docker | Add to group
   ansible.builtin.user:
-    name: "{{ ansible_user }}"
+    name: "{{ dotfiles_user }}"
     groups: docker
     append: true
   become: true
 
-- name: Docker | Ensure docker data directory exists
+# data-root is left at Docker's default (/var/lib/docker) unless docker.data_root
+# is set explicitly. Relocating it into $HOME buys nothing on WSL -- /home and
+# /var live in the same ext4.vhdx -- and Docker requires the directory to be
+# root-owned 0710, which is hostile to anything that walks the home directory.
+- name: Docker | Ensure the data root exists
   ansible.builtin.file:
-    path: "{{  ansible_user_dir }}/.local/lib/docker"
+    path: "{{ docker.data_root }}"
     state: directory
+    owner: root
+    group: root
     mode: "0710"
   become: true
+  when: docker.data_root | default(none)
 
 - name: Docker | Copy daemon.json
   ansible.builtin.template:
     dest: /etc/docker/daemon.json
-    src: daemon.json
+    src: daemon.json.j2
     mode: "0644"
+    validate: /usr/bin/dockerd --validate --config-file %s
   become: true
   notify: Restart Docker

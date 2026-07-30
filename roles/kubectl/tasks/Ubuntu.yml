@@ -13,6 +13,7 @@
     url: https://dl.k8s.io/release/stable.txt
   register: kubectl_latest_release
   changed_when: false
+  check_mode: false
 
 - name: Kubectl | Add GPG key
   ansible.builtin.apt_key:

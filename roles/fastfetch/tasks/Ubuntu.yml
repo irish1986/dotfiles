@@ -17,6 +17,7 @@
         url: https://api.github.com/repos/fastfetch-cli/fastfetch/releases/latest
       register: fastfetch_latest_version_json
       changed_when: false
+      check_mode: false
 
     - name: Fastfetch | Registering latest release
       ansible.builtin.set_fact:

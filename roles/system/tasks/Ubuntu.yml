@@ -1,18 +1,20 @@
 ---
 - name: System | Hostname
   when:
-    - not ansible_host_environment_is_wsl
+    - not (dotfiles_is_wsl | bool)
   block:
     - name: System | Set hostname to inventory hostname
       ansible.builtin.hostname:
-        name: "{{ hostname | default('ubuntu') }}"
+        name: "{{ dotfiles_hostname | default('ubuntu') }}"
+      become: true
 
     - name: System | Set /etc/hosts to include inventory hostname
       ansible.builtin.blockinfile:
         path: /etc/hosts
         block: |
           127.0.0.1  localhost
-          {{ loop_host | default('127.0.1.1') }}  {{ hostname | default('ubuntu') }}
+          {{ dotfiles_loopback_address | default('127.0.1.1') }}  {{ dotfiles_hostname | default('ubuntu') }}
+      become: true
 
 - name: System | Groups and Users
   block:
@@ -30,14 +32,24 @@
         regexp: ^%sudo
         line: "%sudo ALL=(ALL:ALL) ALL"
         validate: /usr/sbin/visudo -cf %s
+      become: true
 
-    - name: System | Give sudo access to {{ ansible_user }}
-      ansible.builtin.blockinfile:
-        path: /etc/sudoers
-        insertafter: "%sudo   ALL=(ALL:ALL) ALL"
-        block: | # pragma: allowlist secret
-          # Gives passwordless sudoer to user
-          {{ ansible_user }}   ALL=(ALL)   NOPASSWD: ALL
+    # A drop-in rather than surgery on /etc/sudoers. The previous blockinfile
+    # had no validate:, so a bad render locked the machine out of sudo, and its
+    # insertafter regex ("%sudo   ALL...", three spaces) never matched the line
+    # written just above ("%sudo ALL...", one space), so it silently appended to
+    # the end of the file instead of where it claimed.
+    - name: "System | Give passwordless sudo to {{ dotfiles_user }}"
+      ansible.builtin.copy:
+        dest: /etc/sudoers.d/90-dotfiles
+        content: | # pragma: allowlist secret
+          # Managed by the dotfiles playbook (roles/system). Do not edit.
+          {{ dotfiles_user }} ALL=(ALL) NOPASSWD: ALL
+        owner: root
+        group: root
+        mode: "0440"
+        validate: /usr/sbin/visudo -cf %s
+      become: true
 
 - name: System | Install default packages
   ansible.builtin.apt:
@@ -46,6 +58,7 @@
       - bind9-dnsutils
       - curl
       - git
+      - make
       - nano
       - wget
     state: present

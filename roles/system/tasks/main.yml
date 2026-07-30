@@ -11,15 +11,18 @@
 - name: System | Copy wsl config file
   ansible.builtin.copy:
     src: wsl.conf
-    dest: /etc
+    dest: /etc/wsl.conf
+    owner: root
+    group: root
     mode: "0644"
+  become: true
   when:
-    - ansible_host_environment_is_wsl
+    - dotfiles_is_wsl | bool
 
 - name: System | Copy Windows Terminal settings
   ansible.builtin.copy:
     src: settings.json
-    dest: "/mnt/c/Users/{{ windows_user }}/AppData/Local/Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe"
+    dest: "/mnt/c/Users/{{ dotfiles_windows_user }}/AppData/Local/Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe"
     mode: "0644"
   when:
-    - ansible_host_environment_is_wsl
+    - dotfiles_is_wsl | bool
