@@ -21,7 +21,7 @@ repos:
       - id: identity
         name: "meta | pre-commit hooks"
   - repo: https://github.com/commitizen-tools/commitizen
-    rev: v4.13.8
+    rev: v4.16.5
     hooks:
       - id: commitizen
         fail_fast: true
@@ -29,7 +29,7 @@ repos:
         stages:
           - commit-msg
   - repo: https://github.com/gitguardian/ggshield
-    rev: v1.48.0
+    rev: v1.52.2
     hooks:
       - id: ggshield
         fail_fast: true
@@ -86,7 +86,7 @@ repos:
           - --severity=style
           - --external-sources
   - repo: https://github.com/scop/pre-commit-shfmt
-    rev: v3.12.0-2
+    rev: v3.13.1-1
     hooks:
       - id: shfmt
         name: "sh | format: run shfmt"
@@ -100,7 +100,7 @@ repos:
           - -bn
           - -w
   - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.47.0
+    rev: v0.49.1
     hooks:
       - id: markdownlint
         name: "md | lint: run markdownlint-cli"
@@ -116,7 +116,7 @@ repos:
           - -c
           - .config/.yaml-lint.yml
   - repo: https://github.com/ansible-community/ansible-lint
-    rev: v26.1.1
+    rev: v26.6.0
     hooks:
       # No --fix: it rewrites YAML in place mid-commit, which is opaque, and its
       # transformer crashes resolving relative include_tasks paths (it looks for
