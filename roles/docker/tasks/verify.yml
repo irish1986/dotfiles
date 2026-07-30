@@ -1,0 +1,21 @@
+---
+# The structural fix for the "downloads something and never installs it" bug
+# class. A role that must end by asserting its own binary works cannot silently
+# no-op, in a real run or in CI.
+
+- name: Docker | Query the installed client version
+  ansible.builtin.command: "{{ docker_binary }} --version"
+  register: docker_version_check
+  changed_when: false
+  failed_when: false
+
+- name: Docker | Assert the client is usable
+  ansible.builtin.assert:
+    that:
+      - docker_version_check.rc == 0
+      - "'Docker version' in docker_version_check.stdout"
+    fail_msg: >-
+      Docker did not install correctly:
+      {{ docker_version_check.stderr | default('no output') }}
+    success_msg: "{{ docker_version_check.stdout }}"
+    quiet: true

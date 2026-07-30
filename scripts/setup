@@ -1,160 +1,1079 @@
-#!/bin/bash
+#!/usr/bin/env bash
+#
+# scripts/setup - bootstrap and re-apply the irish1986/dotfiles Ansible playbook.
+#
+# Bootstrap from a bare Ubuntu install. Note the form: `bash -c "$(curl ...)"`
+# passes the script as argv[1], so stdin stays attached to the terminal and
+# prompts (sudo, --ask-become-pass) work. `curl | bash` would consume stdin.
+#
+#   bash -c "$(curl -fsSL https://raw.githubusercontent.com/irish1986/dotfiles/main/scripts/setup)"
+#
+# Re-run from a checkout:
+#
+#   ~/.dotfiles/scripts/setup --tags zsh,git --check
+#
+# Designed to be run repeatedly. Being unable to update must never stop a
+# bootstrap, so every non-essential step degrades to a warning. See --help.
 
-# Colors Code
-NC='\033[0m'
-BLACK='\033[00;30m'
-RED='\033[00;31m'
-GREEN='\033[00;32m'
-YELLOW='\033[00;33m'
-ORANGE='\033[38;5;208m'
-BLUE='\033[00;34m'
-PURPLE='\033[00;35m'
-CYAN='\033[00;36m'
-SEA="\\033[38;5;49m"
-LIGHTGRAY='\033[00;37m'
-LBLACK='\033[01;30m'
-LRED='\033[01;31m'
-LGREEN='\033[01;32m'
-LYELLOW='\033[01;33m'
-LBLUE='\033[01;34m'
-LPURPLE='\033[01;35m'
-LCYAN='\033[01;36m'
-WHITE='\033[01;37m'
-OVERWRITE='\e[1A\e[K'
+set -Eeuo pipefail
 
-# Emoji Code
-CHECK_MARK="${GREEN}\xE2\x9C\x94${NC}"
-X_MARK="${RED}\xE2\x9C\x96${NC}"
-PIN="${RED}\xF0\x9F\x93\x8C${NC}"
-CLOCK="${GREEN}\xE2\x8C\x9B${NC}"
-ARROW="${SEA}\xE2\x96\xB6${NC}"
-BOOK="${RED}\xF0\x9F\x93\x8B${NC}"
-HOT="${ORANGE}\xF0\x9F\x94\xA5${NC}"
-WARNING="${RED}\xF0\x9F\x9A\xA8${NC}"
-RIGHT_ANGLE="${GREEN}\xE2\x88\x9F${NC}"
+#--- Constants ----------------------------------------------------------------
 
-set -e
+readonly SETUP_VERSION="2.0.0"
+readonly REPO_SLUG="irish1986/dotfiles"
+readonly REPO_HTTPS="https://github.com/${REPO_SLUG}.git"
+readonly REPO_SSH="git@github.com:${REPO_SLUG}.git"
 
-# Paths
-DOTFILES_CONFIG_DIR="$HOME/.config/dotfiles"
-DOTFILES_DIR="$HOME/.dotfiles"
-DOTFILES_FIRST_RUN="$HOME/.dotfiles_run"
-DOTFILES_LOG="$HOME/.dotfiles.log"
-DOTFILES_SECRET="$HOME/.ansible-vault/vault.secret"
-SSH_DIR="$HOME/.ssh"
+readonly MIN_OS_VERSION="22.04"
 
-function _task {
-  if [[ $TASK != "" ]]; then
-    printf "${OVERWRITE}${LGREEN} [✓]  ${LGREEN}${TASK}\n"
+# Floor is the strictest requires_ansible among the pinned collections in
+# collections/requirements.yml. Ceiling is because ansible-core 2.24 removes
+# INJECT_FACTS_AS_VARS, which every role in this repo still relies on.
+readonly ANSIBLE_CORE_SPEC="ansible-core>=2.16,<2.24"
+readonly MIN_ANSIBLE_CORE="2.16"
+
+# Injected into the ansible-core environment rather than installed as separate
+# tools: bitwarden.secrets.lookup runs controller-side and must be importable by
+# the interpreter running ansible-playbook.
+readonly -a ANSIBLE_CORE_EXTRAS=(bitwarden-sdk)
+
+readonly STATE_DIR="${XDG_STATE_HOME:-${HOME}/.local/state}/dotfiles"
+readonly CONFIG_DIR="${XDG_CONFIG_HOME:-${HOME}/.config}/dotfiles"
+readonly ENV_FILE="${CONFIG_DIR}/setup.env"
+readonly LOCAL_BIN="${HOME}/.local/bin"
+readonly LOG_KEEP=10
+readonly LOG_TAIL=40
+
+# Every apt call goes through these. DPkg::Lock::Timeout matters more than it
+# looks: roles/update installs and enables unattended-upgrades, so run N arms
+# the daemon that holds the dpkg lock and breaks run N+1.
+readonly -a APT_ENV=(
+  DEBIAN_FRONTEND=noninteractive
+  DEBCONF_NONINTERACTIVE_SEEN=true
+  NEEDRESTART_SUSPEND=1
+  NEEDRESTART_MODE=a
+)
+readonly -a APT_OPTS=(
+  -y
+  -o "DPkg::Lock::Timeout=600"
+  -o "Dpkg::Options::=--force-confdef"
+  -o "Dpkg::Options::=--force-confold"
+)
+
+readonly -a BASE_PACKAGES=(ca-certificates curl git python3)
+
+#--- Mutable globals ----------------------------------------------------------
+
+DOTFILES_DIR="${DOTFILES_DIR:-${HOME}/.dotfiles}"
+LOG_FILE=""
+TASK=""
+STASH_REF=""
+SUDO_KEEPALIVE_PID=""
+OS_ID=""
+OS_ID_LIKE=""
+OS_VERSION_ID=""
+OS_PRETTY=""
+IS_WSL=0
+IS_TTY=0
+UV_BIN=""
+ANSIBLE_PLAYBOOK_BIN=""
+ANSIBLE_GALAXY_BIN=""
+EXIT_HINT=""
+
+C_RESET="" C_DIM="" C_RED="" C_GREEN="" C_YELLOW="" C_BLUE="" ERASE=""
+
+declare -a ORIG_ARGS=()
+declare -a PASSTHROUGH=()
+declare -a PLAYBOOK_ARGS=()
+
+OPT_TAGS=""
+OPT_SKIP_TAGS=""
+OPT_BRANCH=""
+OPT_CHECK=0
+OPT_DIFF=0
+OPT_SYNTAX_CHECK=0
+OPT_LIST_TAGS=0
+OPT_DRY_RUN=0
+OPT_NO_PULL=0
+OPT_NO_REEXEC=0
+OPT_YES=0
+OPT_VERBOSITY=0
+OPT_GENERATE_SSH_KEY=0
+OPT_REMOTE_PROTOCOL="auto"
+
+#--- Output -------------------------------------------------------------------
+#
+# Every printf below uses a *constant* format string, with all variable data
+# passed as %s arguments. A '%' in a package name or a git error can therefore
+# never corrupt the output, which the previous version could not promise.
+
+setup_colors() {
+  if [[ -t 1 ]]; then
+    IS_TTY=1
   fi
-  TASK=$1
-  printf "${LBLACK} [ ]  ${TASK} \n${LRED}"
+  if ((IS_TTY)) && [[ -z ${NO_COLOR:-} && ${TERM:-dumb} != dumb ]]; then
+    C_RESET=$'\033[0m'
+    C_DIM=$'\033[2m'
+    C_RED=$'\033[1;31m'
+    C_GREEN=$'\033[1;32m'
+    C_YELLOW=$'\033[1;33m'
+    C_BLUE=$'\033[1;34m'
+    ERASE=$'\033[1A\033[K'
+  fi
 }
 
-function _cmd {
-  if ! [[ -f $DOTFILES_LOG ]]; then
-    touch $DOTFILES_LOG
-  fi
-  > $DOTFILES_LOG
-  if eval "$1" 1> /dev/null 2> $DOTFILES_LOG; then
-    return 0
-  fi
-  printf "${OVERWRITE}${LRED} [X]  ${TASK}${LRED}\n"
-  while read line; do
-    printf "      ${line}\n"
-  done < $DOTFILES_LOG
-  printf "\n"
-  rm $DOTFILES_LOG
-  exit 1
+info() { printf '%s   ->  %s%s\n' "$C_BLUE" "$1" "$C_RESET"; }
+warn() { printf '%s  [!]  %s%s\n' "$C_YELLOW" "$1" "$C_RESET" >&2; }
+oops() { printf '%s  [x]  %s%s\n' "$C_RED" "$1" "$C_RESET" >&2; }
+
+# task_begin prints a pending line; task_ok replaces it. A [v] therefore only
+# ever appears after the work actually succeeded -- the previous version printed
+# the *previous* task as complete regardless of outcome, and marked the playbook
+# done before running it.
+task_begin() {
+  TASK="$1"
+  printf '%s  [ ]  %s%s\n' "$C_DIM" "$TASK" "$C_RESET"
 }
 
-function _clear_task {
+task_ok() {
+  printf '%s%s  [v]  %s%s\n' "$ERASE" "$C_GREEN" "$TASK" "$C_RESET"
   TASK=""
 }
 
-function _task_done {
-  printf "${OVERWRITE}${LGREEN} [✓]  ${LGREEN}${TASK}\n"
-  _clear_task
+task_skip() {
+  printf '%s%s  [-]  %s%s%s\n' "$ERASE" "$C_DIM" "$TASK" "${1:+ ($1)}" "$C_RESET"
+  TASK=""
 }
 
-function ubuntu_setup() {
-  if ! dpkg -s ansible >/dev/null 2>&1; then
-    _task "Installing Ansible"
-    _cmd "sudo apt-get update"
-    _cmd "sudo apt-get install -y software-properties-common"
-    _cmd "sudo apt-add-repository -y ppa:ansible/ansible"
-    _cmd "sudo apt-get update"
-    _cmd "sudo apt-get install -y ansible"
-    _cmd "sudo apt-get install -y python3-argcomplete"
-    _cmd "sudo activate-global-python-argcomplete"
+task_fail() {
+  printf '%s%s  [x]  %s%s\n' "$ERASE" "$C_RED" "$TASK" "$C_RESET" >&2
+  TASK=""
+}
+
+#--- Logging ------------------------------------------------------------------
+
+init_state() {
+  mkdir -p "$STATE_DIR" "$CONFIG_DIR"
+  LOG_FILE="${STATE_DIR}/setup-$(date -u +%Y%m%dT%H%M%SZ).log"
+  : > "$LOG_FILE"
+  printf 'dotfiles setup %s\n' "$SETUP_VERSION" >> "$LOG_FILE"
+}
+
+# The log is appended to, never truncated, and never deleted on failure. The
+# previous version truncated it on every command and rm'd it before exiting,
+# which made post-mortem debugging impossible.
+log_tail() {
+  [[ -s $LOG_FILE ]] || return 0
+  printf '%s  --- last %s lines of %s ---%s\n' "$C_DIM" "$LOG_TAIL" "$LOG_FILE" "$C_RESET" >&2
+  local line
+  while IFS= read -r line; do
+    printf '      %s\n' "$line" >&2
+  done < <(tail -n "$LOG_TAIL" "$LOG_FILE")
+}
+
+prune_logs() {
+  local -a old=()
+  mapfile -t old < <(find "$STATE_DIR" -maxdepth 1 -name 'setup-*.log' -printf '%T@ %p\n' 2> /dev/null \
+    | sort -rn | tail -n "+$((LOG_KEEP + 1))" | cut -d' ' -f2-)
+  if ((${#old[@]})); then
+    rm -f -- "${old[@]}"
   fi
-  if ! dpkg -s python3 >/dev/null 2>&1; then
-    _task "Installing Python3"
-    _cmd "sudo apt-get install -y python3"
+  return 0
+}
+
+#--- Command execution --------------------------------------------------------
+#
+# No eval. Commands are argv arrays, so quoting hazards and shell injection via
+# $HOME/$USER/$HOSTNAME are gone by construction. stdin is /dev/null for logged
+# commands: anything that would prompt fails fast instead of hanging on a blank
+# screen, which was the previous version's worst failure mode.
+
+run() {
+  local status=0
+  {
+    printf '+ '
+    printf '%q ' "$@"
+    printf '\n'
+  } >> "$LOG_FILE"
+  if "$@" < /dev/null >> "$LOG_FILE" 2>&1; then
+    return 0
   fi
-  if ! dpkg -s python3-pip >/dev/null 2>&1; then
-    _task "Installing Python3 Pip"
-    _cmd "sudo apt-get install -y python3-pip"
+  status=$?
+  printf '! exit %s\n' "$status" >> "$LOG_FILE"
+  return "$status"
+}
+
+# Interactive variant: keeps stdin so sudo and ansible can prompt.
+run_tty() {
+  {
+    printf '+ (tty) '
+    printf '%q ' "$@"
+    printf '\n'
+  } >> "$LOG_FILE"
+  "$@"
+}
+
+step() {
+  local label="$1"
+  shift
+  task_begin "$label"
+  if run "$@"; then
+    task_ok
+    return 0
+  fi
+  task_fail
+  oops "Command failed: $(printf '%q ' "$@")"
+  log_tail
+  return 1
+}
+
+apt_get() {
+  run sudo "${APT_ENV[@]}" apt-get "${APT_OPTS[@]}" "$@"
+}
+
+#--- Traps --------------------------------------------------------------------
+
+on_err() {
+  local status=$1 line=$2 cmd=$3
+  if [[ -n $TASK ]]; then
+    task_fail
+  fi
+  oops "Unexpected failure at line ${line} (exit ${status}): ${cmd}"
+  log_tail
+}
+
+on_exit() {
+  local status=$?
+  if [[ -n $SUDO_KEEPALIVE_PID ]] && kill -0 "$SUDO_KEEPALIVE_PID" 2> /dev/null; then
+    kill "$SUDO_KEEPALIVE_PID" 2> /dev/null || true
+  fi
+  if [[ -n $STASH_REF ]]; then
+    warn "Local changes were stashed and not restored: ${STASH_REF}"
+    warn "Recover them with: git -C ${DOTFILES_DIR} stash pop"
+  fi
+  if ((status != 0)); then
+    if [[ -n $EXIT_HINT ]]; then
+      printf '%s  %s%s\n' "$C_YELLOW" "$EXIT_HINT" "$C_RESET" >&2
+    fi
+    if [[ -n $LOG_FILE ]]; then
+      printf '%s  Full log: %s%s\n' "$C_DIM" "$LOG_FILE" "$C_RESET" >&2
+    fi
+  fi
+  prune_logs
+  printf '%s' "$C_RESET"
+}
+
+#--- Helpers ------------------------------------------------------------------
+
+have() { command -v "$1" > /dev/null 2>&1; }
+
+# True when $1 >= $2 under version ordering.
+version_ge() {
+  [[ $1 == "$2" ]] && return 0
+  [[ $(printf '%s\n%s\n' "$1" "$2" | sort -V | head -n1) == "$2" ]]
+}
+
+confirm() {
+  local prompt="$1"
+  if ((OPT_YES)); then
+    return 0
+  fi
+  if ((!IS_TTY)); then
+    warn "Not a terminal and --yes was not given; assuming no: ${prompt}"
+    return 1
+  fi
+  local reply=""
+  printf '%s  [?]  %s [y/N] %s' "$C_YELLOW" "$prompt" "$C_RESET"
+  read -r reply || true
+  [[ $reply == [yY]* ]]
+}
+
+usage() {
+  cat << 'USAGE'
+Usage: scripts/setup [options] [-- ansible-playbook args]
+
+Bootstraps and applies the dotfiles Ansible playbook. Safe to re-run.
+
+Options:
+  -t, --tags TAGS         only run roles/phases matching TAGS
+      --skip-tags TAGS    skip roles/phases matching TAGS
+  -c, --check             ansible check mode (no changes made)
+  -d, --diff              show file differences
+      --syntax-check      parse the playbook and exit
+      --list-tags         list available tags and exit
+  -n, --dry-run           script-level no-op; implies --check
+      --branch BRANCH     check out BRANCH instead of the current one
+      --no-pull           do not fetch or update the repository
+      --no-reexec         do not hand over to the freshly checked-out script
+      --generate-ssh-key  create ~/.ssh/id_ed25519 if absent
+      --remote-protocol P origin protocol after provisioning: auto|ssh|https
+  -y, --yes               assume yes for all prompts
+  -v, --verbose           increase ansible verbosity (repeatable)
+  -h, --help              show this help
+      --version           show the script version
+
+Anything after `--` is passed to ansible-playbook unchanged.
+
+Environment:
+  DOTFILES_DIR       checkout location (default ~/.dotfiles)
+  BWS_ACCESS_TOKEN   Bitwarden Secrets Manager token, for secret-bearing roles
+  NO_COLOR           disable colour output
+
+State:
+  ~/.config/dotfiles/setup.env    sourced if present, mode 0600 expected
+  ~/.local/state/dotfiles/        run logs, last 10 kept
+USAGE
+}
+
+#--- Argument parsing ---------------------------------------------------------
+
+parse_args() {
+  while (($#)); do
+    case "$1" in
+      # Normalise --opt=value into --opt value.
+      --*=*)
+        local opt="${1%%=*}" val="${1#*=}"
+        shift
+        set -- "$opt" "$val" "$@"
+        continue
+        ;;
+      -t | --tags)
+        OPT_TAGS="${2:?--tags requires a value}"
+        shift 2
+        ;;
+      --skip-tags)
+        OPT_SKIP_TAGS="${2:?--skip-tags requires a value}"
+        shift 2
+        ;;
+      -c | --check)
+        OPT_CHECK=1
+        shift
+        ;;
+      -d | --diff)
+        OPT_DIFF=1
+        shift
+        ;;
+      --syntax-check)
+        OPT_SYNTAX_CHECK=1
+        shift
+        ;;
+      --list-tags)
+        OPT_LIST_TAGS=1
+        shift
+        ;;
+      -n | --dry-run)
+        OPT_DRY_RUN=1
+        OPT_CHECK=1
+        shift
+        ;;
+      --branch)
+        OPT_BRANCH="${2:?--branch requires a value}"
+        shift 2
+        ;;
+      --no-pull)
+        OPT_NO_PULL=1
+        shift
+        ;;
+      --no-reexec)
+        OPT_NO_REEXEC=1
+        shift
+        ;;
+      --generate-ssh-key)
+        OPT_GENERATE_SSH_KEY=1
+        shift
+        ;;
+      --remote-protocol)
+        OPT_REMOTE_PROTOCOL="${2:?--remote-protocol requires a value}"
+        case "$OPT_REMOTE_PROTOCOL" in
+          auto | ssh | https) ;;
+          *)
+            oops "--remote-protocol must be auto, ssh or https"
+            return 1
+            ;;
+        esac
+        shift 2
+        ;;
+      -y | --yes)
+        OPT_YES=1
+        shift
+        ;;
+      -v | --verbose)
+        OPT_VERBOSITY=$((OPT_VERBOSITY + 1))
+        shift
+        ;;
+      -h | --help)
+        usage
+        exit 0
+        ;;
+      --version)
+        printf '%s\n' "$SETUP_VERSION"
+        exit 0
+        ;;
+      --)
+        shift
+        PASSTHROUGH=("$@")
+        break
+        ;;
+      # An unknown option is an error rather than being forwarded silently, so a
+      # typo cannot become an accidental --limit.
+      -*)
+        oops "Unknown option: $1"
+        printf '      Extra ansible arguments go after --\n' >&2
+        return 1
+        ;;
+      *)
+        oops "Unexpected argument: $1"
+        return 1
+        ;;
+    esac
+  done
+}
+
+#--- Preflight ----------------------------------------------------------------
+
+detect_os() {
+  if [[ ! -r /etc/os-release ]]; then
+    oops "/etc/os-release is missing; cannot identify this system"
+    return 1
+  fi
+  # Sourced in a subshell so NAME, VERSION, ID and friends cannot clobber script
+  # state, which the previous version's bare `source` did.
+  local line
+  while IFS= read -r line; do
+    case "$line" in
+      OS_ID=*) OS_ID="${line#OS_ID=}" ;;
+      OS_ID_LIKE=*) OS_ID_LIKE="${line#OS_ID_LIKE=}" ;;
+      OS_VERSION_ID=*) OS_VERSION_ID="${line#OS_VERSION_ID=}" ;;
+      OS_PRETTY=*) OS_PRETTY="${line#OS_PRETTY=}" ;;
+    esac
+  done < <(
+    # shellcheck disable=SC1091  # runtime file, not available to the linter
+    . /etc/os-release
+    printf 'OS_ID=%s\n' "${ID:-}"
+    printf 'OS_ID_LIKE=%s\n' "${ID_LIKE:-}"
+    printf 'OS_VERSION_ID=%s\n' "${VERSION_ID:-}"
+    printf 'OS_PRETTY=%s\n' "${PRETTY_NAME:-}"
+  )
+
+  if [[ -r /proc/version ]] && grep -qi microsoft /proc/version; then
+    IS_WSL=1
   fi
 }
 
-update_ansible_galaxy() {
-  local os=$1
-  local os_requirements=""
-  _task "Updating Ansible Galaxy"
-  if [ -f "$DOTFILES_DIR/collections/$os.yml" ]; then
-    _task "${OVERWRITE}Updating Ansible Galaxy with OS Config: $os"
-    os_requirements="$DOTFILES_DIR/collections/$os.yml"
+preflight() {
+  if ((BASH_VERSINFO[0] < 4)) || { ((BASH_VERSINFO[0] == 4)) && ((BASH_VERSINFO[1] < 4)); }; then
+    oops "bash 4.4 or newer is required (found ${BASH_VERSION})"
+    return 1
   fi
-  _cmd "ansible-galaxy install -r $DOTFILES_DIR/collections/requirements.yml $os_requirements"
-}
 
-source /etc/os-release
-_task "Loading Setup for detected OS: $ID"
-case $ID in
-  ubuntu)
-    ubuntu_setup
-    ;;
-  *)
-    _task "Unsupported OS"
-    _cmd "echo 'Unsupported OS'"
-    ;;
-esac
+  if [[ $EUID -eq 0 ]]; then
+    oops "Do not run this as root. It provisions the invoking user's home and escalates per task."
+    return 1
+  fi
 
-generate_ssh_key() {
-  if ! [[ -f "$SSH_DIR/authorized_keys" ]]; then
-    _task "Generating SSH keys"
-    _cmd "mkdir -p $SSH_DIR"
-    _cmd "chmod 700 $SSH_DIR"
-    _cmd "ssh-keygen -o -a 100 -t ed25519 -f $SSH_DIR/id_ed25519 -N '' -C $USER@$HOSTNAME"
-    _cmd "cat $SSH_DIR/id_ed25519.pub >> $SSH_DIR/authorized_keys"
+  # The previous version's unsupported-OS branch ran `echo`, which exits 0, so
+  # Debian, Fedora and Arch fell straight through to ansible-playbook with
+  # ansible never installed.
+  if [[ $OS_ID != ubuntu ]]; then
+    if [[ $OS_ID_LIKE == *debian* ]]; then
+      warn "${OS_PRETTY:-$OS_ID} is Debian-like but untested; only Ubuntu is supported."
+      confirm "Continue anyway?" || return 1
+    else
+      oops "Unsupported OS: ${OS_PRETTY:-$OS_ID}. This playbook targets Ubuntu."
+      return 1
+    fi
+  elif ! version_ge "${OS_VERSION_ID:-0}" "$MIN_OS_VERSION"; then
+    oops "Ubuntu ${OS_VERSION_ID} is older than the minimum supported ${MIN_OS_VERSION}."
+    return 1
   fi
 }
 
-generate_ssh_key
+load_env_file() {
+  if [[ ! -r $ENV_FILE ]]; then
+    return 0
+  fi
+  local mode
+  mode=$(stat -c '%a' "$ENV_FILE")
+  if [[ $mode != 600 ]]; then
+    warn "${ENV_FILE} is mode ${mode}; it holds tokens and should be 0600."
+  fi
+  task_begin "Loading ${ENV_FILE}"
+  set -a
+  # shellcheck disable=SC1090  # path is user-supplied by design
+  . "$ENV_FILE"
+  set +a
+  task_ok
+}
 
-if ! [[ -d "$DOTFILES_DIR" ]]; then
-  _task "Cloning repository"
-  _cmd "git clone --quiet https://github.com/irish1986/dotfiles.git $DOTFILES_DIR"
-else
-  _task "Updating repository"
-  _cmd "git -C $DOTFILES_DIR pull --quiet"
-fi
+#--- Sudo ---------------------------------------------------------------------
+#
+# Warming the ticket here covers this script's own apt calls. It does NOT cover
+# ansible: the local connection plugin runs `sudo -H -S -n` with all fds piped,
+# so it has no controlling tty, and sudo's default tty_tickets keys the
+# timestamp to the terminal -- the ticket created by an interactive `sudo -v`
+# does not satisfy that lookup. Hence --ask-become-pass below when needed.
 
-pushd "$DOTFILES_DIR" > /dev/null 2>&1
-update_ansible_galaxy $ID
+sudo_init() {
+  if ! have sudo; then
+    oops "sudo is not installed. Install it and add ${USER} to the sudo group."
+    return 1
+  fi
 
-_task "Running playbook"; _task_done
-if [[ -f $DOTFILES_SECRET ]]; then
-  ansible-playbook --vault-password-file $DOTFILES_SECRET "$DOTFILES_DIR/main.yml" "$@"
-else
-  ansible-playbook "$DOTFILES_DIR/main.yml" "$@"
-fi
+  if sudo -n true 2> /dev/null; then
+    info "Passwordless sudo available."
+    return 0
+  fi
 
-popd > /dev/null 2>&1
+  task_begin "Authenticating with sudo"
+  if ! run_tty sudo -v; then
+    task_fail
+    oops "Could not authenticate with sudo."
+    return 1
+  fi
+  task_ok
 
-if ! [[ -f "$DOTFILES_FIRST_RUN" ]]; then
-  echo -e "${CHECK_MARK} ${GREEN}First run complete!${NC}"
-  echo -e "${ARROW} ${CYAN}Please reboot your computer to complete the setup.${NC}"
-  touch "$DOTFILES_FIRST_RUN"
-fi
+  # Keepalive dies with the parent and stops as soon as the ticket is revoked.
+  (
+    while sudo -n true 2> /dev/null; do
+      sleep 50
+      kill -0 "$$" 2> /dev/null || exit 0
+    done
+  ) &
+  SUDO_KEEPALIVE_PID=$!
+}
+
+#--- Package prerequisites ----------------------------------------------------
+
+ensure_base_packages() {
+  local -a missing=()
+  local pkg
+  for pkg in "${BASE_PACKAGES[@]}"; do
+    # `dpkg -s` alone reports 0 for deinstall/config-files state, so the Status
+    # line is checked rather than the exit code.
+    if ! dpkg -s "$pkg" 2> /dev/null | grep -q '^Status:.*ok installed'; then
+      missing+=("$pkg")
+    fi
+  done
+
+  if ((${#missing[@]} == 0)); then
+    task_begin "Base packages"
+    task_skip "already installed"
+    return 0
+  fi
+
+  task_begin "Installing base packages: ${missing[*]}"
+  if ! apt_get update; then
+    task_fail
+    EXIT_HINT="apt-get update failed. If unattended-upgrades is running, wait and retry."
+    return 1
+  fi
+  if ! apt_get install --no-install-recommends "${missing[@]}"; then
+    task_fail
+    return 1
+  fi
+  task_ok
+}
+
+#--- uv and ansible -----------------------------------------------------------
+
+ensure_uv() {
+  UV_BIN="${LOCAL_BIN}/uv"
+  if [[ -x $UV_BIN ]]; then
+    task_begin "uv"
+    task_skip "already installed"
+    return 0
+  fi
+  if have uv; then
+    UV_BIN="$(command -v uv)"
+    task_begin "uv"
+    task_skip "found at ${UV_BIN}"
+    return 0
+  fi
+
+  task_begin "Installing uv"
+  local script
+  script="$(mktemp -t uv-install.XXXXXX.sh)"
+  if ! run curl -fsSL https://astral.sh/uv/install.sh -o "$script"; then
+    rm -f "$script"
+    task_fail
+    return 1
+  fi
+  chmod 0755 "$script"
+  if ! run "$script"; then
+    rm -f "$script"
+    task_fail
+    return 1
+  fi
+  rm -f "$script"
+
+  UV_BIN="${LOCAL_BIN}/uv"
+  if [[ ! -x $UV_BIN ]]; then
+    task_fail
+    oops "uv installer completed but ${UV_BIN} is missing."
+    return 1
+  fi
+  task_ok
+}
+
+# ansible-core is installed and used from uv, not apt and not the PPA:
+#
+#  * ppa:ansible/ansible ships the batteries-included `ansible` package, whose
+#    bundled collections shadow the five pinned in collections/requirements.yml,
+#    and the PPA may have no pocket at all for a brand-new LTS.
+#  * jammy's archive ansible-core is 2.12, below the >=2.16 those collections
+#    declare, so the distro package cannot satisfy this repo on 22.04.
+#  * PEP 668 blocks `pip install` into the system python on 24.04+, which is how
+#    the old bitwarden-sdk step was meant to work and never could.
+ensure_ansible() {
+  local uv_ansible="${LOCAL_BIN}/ansible-playbook"
+  local installed=""
+
+  if [[ -x $uv_ansible ]]; then
+    installed="$("$uv_ansible" --version 2> /dev/null \
+      | sed -n '1s/.*core \([0-9][0-9.]*\).*/\1/p')"
+  fi
+
+  if [[ -n $installed ]] && version_ge "$installed" "$MIN_ANSIBLE_CORE"; then
+    task_begin "ansible-core ${installed}"
+    task_skip "already installed"
+  else
+    task_begin "Installing ${ANSIBLE_CORE_SPEC}"
+    local -a cmd=("$UV_BIN" tool install --force "$ANSIBLE_CORE_SPEC")
+    local extra
+    for extra in "${ANSIBLE_CORE_EXTRAS[@]}"; do
+      cmd+=(--with "$extra")
+    done
+    if ! run "${cmd[@]}"; then
+      task_fail
+      return 1
+    fi
+    task_ok
+  fi
+
+  # Resolved by path rather than via PATH, so the run cannot silently pick up a
+  # different ansible that happens to come first.
+  ANSIBLE_PLAYBOOK_BIN="$uv_ansible"
+  ANSIBLE_GALAXY_BIN="${LOCAL_BIN}/ansible-galaxy"
+  if [[ ! -x $ANSIBLE_PLAYBOOK_BIN || ! -x $ANSIBLE_GALAXY_BIN ]]; then
+    oops "ansible-playbook or ansible-galaxy missing under ${LOCAL_BIN}."
+    return 1
+  fi
+
+  case ":${PATH}:" in
+    *":${LOCAL_BIN}:"*) ;;
+    *) warn "${LOCAL_BIN} is not on PATH; add it so ansible and uv tools are reachable." ;;
+  esac
+}
+
+#--- Repository ---------------------------------------------------------------
+#
+# Every failure path here is a warning, not an error. Being unable to update
+# must never stop a bootstrap: the playbook on disk is still worth running. The
+# previous version's bare `git pull` exited 1 on a dirty tree, a diverged
+# history, a detached HEAD or a missing upstream -- and this repo is meant to be
+# edited locally, so that fired constantly.
+
+ensure_repo() {
+  if [[ ! -d $DOTFILES_DIR ]]; then
+    step "Cloning ${REPO_SLUG}" git clone --quiet "$REPO_HTTPS" "$DOTFILES_DIR" || return 1
+    if [[ -n $OPT_BRANCH ]]; then
+      step "Checking out ${OPT_BRANCH}" \
+        git -C "$DOTFILES_DIR" checkout --quiet "$OPT_BRANCH" || return 1
+    fi
+    return 0
+  fi
+
+  if [[ ! -d ${DOTFILES_DIR}/.git ]]; then
+    oops "${DOTFILES_DIR} exists but is not a git repository."
+    EXIT_HINT="Move it aside or set DOTFILES_DIR to another path."
+    return 1
+  fi
+
+  if ((OPT_NO_PULL)); then
+    task_begin "Updating repository"
+    task_skip "--no-pull"
+    return 0
+  fi
+
+  update_repo
+}
+
+update_repo() {
+  local branch target dirty=0
+  task_begin "Updating repository"
+
+  if ! run git -C "$DOTFILES_DIR" fetch --quiet --prune origin; then
+    task_skip "fetch failed, using the checkout as-is"
+    warn "Could not reach origin; continuing with the on-disk playbook."
+    return 0
+  fi
+
+  branch="$(git -C "$DOTFILES_DIR" symbolic-ref --quiet --short HEAD 2> /dev/null || true)"
+  if [[ -z $branch ]]; then
+    task_skip "detached HEAD, leaving it alone"
+    return 0
+  fi
+  target="${OPT_BRANCH:-$branch}"
+
+  if [[ -n $(git -C "$DOTFILES_DIR" status --porcelain 2> /dev/null) ]]; then
+    dirty=1
+    if ! run git -C "$DOTFILES_DIR" stash push --include-untracked \
+      --message "scripts/setup autostash $(date -u +%FT%TZ)"; then
+      task_skip "local changes could not be stashed"
+      warn "Working tree is dirty and could not be stashed; skipping update."
+      return 0
+    fi
+    STASH_REF="$(git -C "$DOTFILES_DIR" rev-parse --quiet --verify 'stash@{0}' || true)"
+  fi
+
+  if [[ $target != "$branch" ]]; then
+    if ! run git -C "$DOTFILES_DIR" checkout --quiet "$target"; then
+      warn "Could not check out ${target}; staying on ${branch}."
+      target="$branch"
+    fi
+  fi
+
+  if git -C "$DOTFILES_DIR" rev-parse --quiet --verify "origin/${target}" > /dev/null 2>&1; then
+    if git -C "$DOTFILES_DIR" merge-base --is-ancestor HEAD "origin/${target}" 2> /dev/null; then
+      run git -C "$DOTFILES_DIR" merge --ff-only --quiet "origin/${target}" \
+        || warn "Fast-forward to origin/${target} failed; continuing."
+    else
+      warn "Local ${target} has diverged from origin/${target}; not merging."
+    fi
+  else
+    warn "No upstream origin/${target}; nothing to merge."
+  fi
+
+  if ((dirty)) && [[ -n $STASH_REF ]]; then
+    if run git -C "$DOTFILES_DIR" stash pop; then
+      STASH_REF=""
+    else
+      warn "Could not restore stashed changes automatically."
+    fi
+  fi
+
+  task_ok
+}
+
+# Bootstrapped over curl, the running script has no file on disk and may be
+# older than the one just cloned. Hand over once, guarded against loops.
+maybe_reexec() {
+  local checked_out="${DOTFILES_DIR}/scripts/setup"
+  if ((OPT_NO_REEXEC)); then
+    return 0
+  fi
+  if [[ -n ${DOTFILES_SETUP_REEXEC:-} ]]; then
+    return 0
+  fi
+  if [[ ! -x $checked_out ]]; then
+    return 0
+  fi
+  # $0 is "bash" and BASH_SOURCE is unset under `bash -c "$(curl ...)"`, so the
+  # script genuinely cannot compare itself against the checkout.
+  if [[ ${BASH_SOURCE[0]:-} == "$checked_out" ]]; then
+    return 0
+  fi
+
+  info "Handing over to ${checked_out}"
+  export DOTFILES_SETUP_REEXEC=1
+  exec "$checked_out" "${ORIG_ARGS[@]+"${ORIG_ARGS[@]}"}"
+}
+
+#--- Configuration ------------------------------------------------------------
+#
+# inventory/group_vars/all.yml is gitignored, so a fresh clone does not have it.
+# Without it every role variable is undefined, and the playbook used to swallow
+# the resulting failures and report success. Seeding it here is the difference
+# between a real bootstrap and a silent no-op -- and is the single biggest reason
+# the old script "did not work all the time".
+
+ensure_group_vars() {
+  local target="${DOTFILES_DIR}/inventory/group_vars/all.yml"
+  local example="${DOTFILES_DIR}/docs/examples/group_vars-all.yml"
+
+  if [[ -f $target ]]; then
+    task_begin "Machine configuration"
+    task_skip "inventory/group_vars/all.yml exists"
+    return 0
+  fi
+
+  if [[ ! -f $example ]]; then
+    oops "Neither ${target} nor ${example} exists."
+    return 1
+  fi
+
+  task_begin "Seeding inventory/group_vars/all.yml"
+  mkdir -p "$(dirname "$target")"
+  local host
+  host="$(hostname --short 2> /dev/null || hostname)"
+  sed \
+    -e "s|^dotfiles_user: .*|dotfiles_user: ${USER}|" \
+    -e "s|^dotfiles_windows_user: .*|dotfiles_windows_user: ${USER}|" \
+    -e "s|^dotfiles_home: .*|dotfiles_home: ${HOME}|" \
+    -e "s|^dotfiles_hostname: .*|dotfiles_hostname: ${host}|" \
+    "$example" > "$target"
+
+  # A reshuffle of the example must fail loudly rather than silently leaving the
+  # placeholder values in place.
+  if ! grep -qx "dotfiles_user: ${USER}" "$target"; then
+    task_fail
+    oops "Seeding produced no dotfiles_user line; ${example} may have changed shape."
+    return 1
+  fi
+  task_ok
+  warn "Review ${target} -- git identity and role selection still need your values."
+}
+
+# Key *material* belongs to roles/ssh, which imports the Windows key on WSL and
+# manages authorized_keys. This only guarantees the directory and permissions.
+# The previous version guarded on authorized_keys while creating id_ed25519, so
+# an existing key with no authorized_keys meant ssh-keygen prompted to overwrite
+# -- hanging, or destroying the private key.
+ensure_ssh_dir() {
+  local dir="${HOME}/.ssh"
+  task_begin "Securing ~/.ssh"
+  mkdir -p "$dir"
+  chmod 0700 "$dir"
+  local f
+  for f in "$dir"/id_* "$dir"/authorized_keys; do
+    [[ -f $f ]] || continue
+    case "$f" in
+      *.pub) chmod 0644 "$f" ;;
+      *) chmod 0600 "$f" ;;
+    esac
+  done
+  task_ok
+
+  if ((!OPT_GENERATE_SSH_KEY)); then
+    return 0
+  fi
+  if [[ -f ${dir}/id_ed25519 ]]; then
+    task_begin "SSH key"
+    task_skip "id_ed25519 exists"
+    return 0
+  fi
+  step "Generating an ed25519 key" \
+    ssh-keygen -q -t ed25519 -a 100 -f "${dir}/id_ed25519" -N "" \
+    -C "${USER}@$(hostname --short 2> /dev/null || hostname)"
+}
+
+#--- Collections --------------------------------------------------------------
+#
+# Keyed on a checksum of the requirement file plus the ansible-core version.
+# Unchanged means skipped entirely; changed means --force, because without it
+# ansible-galaxy leaves an already-present collection alone regardless of the
+# version pinned, so bumping a pin had no effect on an existing machine.
+
+install_collections() {
+  local req="${DOTFILES_DIR}/collections/requirements.yml"
+  if [[ ! -f $req ]]; then
+    task_begin "Ansible collections"
+    task_skip "no requirements file"
+    return 0
+  fi
+
+  local stamp="${STATE_DIR}/collections.sha256"
+  local core current
+  core="$("$ANSIBLE_PLAYBOOK_BIN" --version 2> /dev/null \
+    | sed -n '1s/.*core \([0-9][0-9.]*\).*/\1/p')"
+  current="$(sha256sum "$req" | cut -d' ' -f1)-${core}"
+
+  if [[ -f $stamp ]] && [[ "$(cat "$stamp")" == "$current" ]]; then
+    task_begin "Ansible collections"
+    task_skip "up to date"
+    return 0
+  fi
+
+  task_begin "Installing Ansible collections"
+  if ! run "$ANSIBLE_GALAXY_BIN" collection install --force -r "$req"; then
+    task_fail
+    return 1
+  fi
+  printf '%s\n' "$current" > "$stamp"
+  task_ok
+}
+
+#--- Secrets ------------------------------------------------------------------
+
+check_secrets() {
+  # Only warn when something actually consumes it.
+  if ! grep -rqs 'bitwarden.secrets' "${DOTFILES_DIR}/roles"; then
+    return 0
+  fi
+  if [[ -n ${BWS_ACCESS_TOKEN:-} ]]; then
+    return 0
+  fi
+  # Secret-bearing roles are opt-in, so a missing token is normal.
+  if ! grep -rqs 'zsh_manage_secrets: true' "${DOTFILES_DIR}/inventory"; then
+    return 0
+  fi
+
+  warn "BWS_ACCESS_TOKEN is unset but a secret-bearing role is enabled."
+  warn "Set it in ${ENV_FILE} (mode 0600) or export it before running."
+}
+
+#--- Playbook -----------------------------------------------------------------
+
+build_playbook_args() {
+  PLAYBOOK_ARGS=("${DOTFILES_DIR}/main.yml")
+
+  if [[ -n $OPT_TAGS ]]; then
+    PLAYBOOK_ARGS+=(--tags "$OPT_TAGS")
+  fi
+  if [[ -n $OPT_SKIP_TAGS ]]; then
+    PLAYBOOK_ARGS+=(--skip-tags "$OPT_SKIP_TAGS")
+  fi
+  if ((OPT_CHECK)); then
+    PLAYBOOK_ARGS+=(--check)
+  fi
+  if ((OPT_DIFF)); then
+    PLAYBOOK_ARGS+=(--diff)
+  fi
+  if ((OPT_SYNTAX_CHECK)); then
+    PLAYBOOK_ARGS+=(--syntax-check)
+  fi
+  if ((OPT_LIST_TAGS)); then
+    PLAYBOOK_ARGS+=(--list-tags)
+  fi
+  if ((OPT_VERBOSITY)); then
+    local v="" i
+    for ((i = 0; i < OPT_VERBOSITY; i++)); do
+      v+="v"
+    done
+    PLAYBOOK_ARGS+=("-${v}")
+  fi
+  # ansible does not inherit the ticket warmed above (see sudo_init), so it is
+  # asked for a become password whenever passwordless sudo is unavailable. After
+  # one successful run roles/system grants NOPASSWD and this stops happening.
+  if ! sudo -n true 2> /dev/null; then
+    PLAYBOOK_ARGS+=(--ask-become-pass)
+  fi
+  if ((${#PASSTHROUGH[@]})); then
+    PLAYBOOK_ARGS+=("${PASSTHROUGH[@]}")
+  fi
+}
+
+run_playbook() {
+  build_playbook_args
+
+  if ((OPT_DRY_RUN)); then
+    task_begin "Running playbook"
+    task_skip "--dry-run"
+    info "Would run: ${ANSIBLE_PLAYBOOK_BIN} $(printf '%q ' "${PLAYBOOK_ARGS[@]}")"
+    return 0
+  fi
+
+  info "Running playbook"
+  # ansible.cfg sets inventory and roles_path relative to the repo, so the cwd
+  # matters. This replaces the previous version's `popd`, which was unreachable
+  # after a failure under set -e.
+  cd "$DOTFILES_DIR"
+  export ANSIBLE_CONFIG="${DOTFILES_DIR}/ansible.cfg"
+
+  # Deliberately not wrapped in run(): ansible's output belongs on the terminal,
+  # and it may need to prompt for the become password.
+  if ! run_tty "$ANSIBLE_PLAYBOOK_BIN" "${PLAYBOOK_ARGS[@]}"; then
+    EXIT_HINT="The playbook failed. Re-run with -v for detail, or --tags <role> to isolate."
+    return 1
+  fi
+}
+
+# Cloning must be HTTPS -- on a bare machine there is no key yet -- but origin
+# is SSH and the repo is otherwise SSH-oriented, so a bootstrapped machine could
+# not push. Switched only once GitHub actually authenticates.
+switch_remote_to_ssh() {
+  local current
+  current="$(git -C "$DOTFILES_DIR" remote get-url origin 2> /dev/null || true)"
+  if [[ -z $current ]]; then
+    return 0
+  fi
+
+  case "$OPT_REMOTE_PROTOCOL" in
+    https)
+      if [[ $current != "$REPO_HTTPS" ]]; then
+        step "Setting origin to HTTPS" \
+          git -C "$DOTFILES_DIR" remote set-url origin "$REPO_HTTPS"
+      fi
+      return 0
+      ;;
+    ssh) ;;
+    auto)
+      if [[ $current == git@* ]]; then
+        return 0
+      fi
+      ;;
+  esac
+
+  if [[ $current == "$REPO_SSH" ]]; then
+    return 0
+  fi
+
+  task_begin "Checking SSH access to GitHub"
+  # Captured rather than piped into grep: ssh -T git@github.com exits 1 even on
+  # success, and pipefail would turn that into a false negative.
+  local probe=""
+  probe="$(ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new \
+    -T git@github.com 2>&1 || true)"
+  if [[ $probe == *"successfully authenticated"* ]]; then
+    task_ok
+    step "Setting origin to SSH" \
+      git -C "$DOTFILES_DIR" remote set-url origin "$REPO_SSH"
+  else
+    task_skip "not authenticated, leaving origin on HTTPS"
+  fi
+}
+
+finish() {
+  local first_run="${STATE_DIR}/first-run-complete"
+  printf '\n%s  Done.%s\n' "$C_GREEN" "$C_RESET"
+  printf '%s  Log: %s%s\n' "$C_DIM" "$LOG_FILE" "$C_RESET"
+
+  if ((IS_WSL)); then
+    info "If wsl.conf or .wslconfig changed, run 'wsl --shutdown' from Windows."
+  fi
+  if ! groups | grep -qw docker; then
+    info "Log out and back in to pick up new group memberships (docker)."
+  fi
+  if [[ ! -f $first_run ]]; then
+    info "First run complete. Restart your shell to pick up the new configuration."
+    : > "$first_run"
+  fi
+}
+
+#--- Entry point --------------------------------------------------------------
+
+main() {
+  ORIG_ARGS=("$@")
+
+  setup_colors
+  parse_args "$@"
+  init_state
+
+  trap 'on_err "$?" "${LINENO}" "${BASH_COMMAND}"' ERR
+  trap on_exit EXIT
+
+  detect_os
+  local wsl_note=""
+  if ((IS_WSL)); then
+    wsl_note=" (WSL)"
+  fi
+  info "dotfiles setup ${SETUP_VERSION} on ${OS_PRETTY:-$OS_ID}${wsl_note}"
+
+  preflight
+  load_env_file
+  sudo_init
+  ensure_base_packages
+  ensure_uv
+  ensure_ansible
+  ensure_repo
+  maybe_reexec
+  ensure_group_vars
+  ensure_ssh_dir
+  install_collections
+  check_secrets
+  run_playbook
+  switch_remote_to_ssh
+  finish
+}
+
+main "$@"

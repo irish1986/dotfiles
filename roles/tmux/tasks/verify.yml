@@ -1,0 +1,15 @@
+---
+- name: Tmux | Query the installed version
+  ansible.builtin.command: "{{ tmux_binary }} -V"
+  register: tmux_version_check
+  changed_when: false
+  failed_when: false
+
+- name: Tmux | Assert tmux and TPM are present
+  ansible.builtin.assert:
+    that:
+      - tmux_version_check.rc == 0
+      - (tmux_tpm_dir ~ '/tpm') is file
+    fail_msg: "tmux did not install correctly: {{ tmux_version_check.stderr | default('no output') }}"
+    success_msg: "{{ tmux_version_check.stdout }} with TPM"
+    quiet: true

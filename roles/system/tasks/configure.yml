@@ -1,0 +1,8 @@
+---
+- name: System | Ensure the config directory exists
+  ansible.builtin.file:
+    path: "{{ system_config_dir }}"
+    state: directory
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0755"

@@ -1,0 +1,44 @@
+---
+# The previous role only stat'd /usr/local/bin/tailscale and registered the
+# result -- it never installed anything, and nothing consumed the fact.
+- name: Tailscale | Remove pre-deb822 repository artefacts
+  ansible.builtin.file:
+    path: "{{ tailscale_legacy_artifact }}"
+    state: absent
+  become: true
+  loop: "{{ tailscale_legacy_artifacts }}"
+  loop_control:
+    loop_var: tailscale_legacy_artifact
+
+- name: Tailscale | Install dependencies
+  ansible.builtin.apt:
+    name: "{{ tailscale_dependencies }}"
+    state: present
+  become: true
+
+- name: Tailscale | Configure the upstream apt repository
+  ansible.builtin.include_role:
+    name: apt_repo
+  vars:
+    apt_repo_name: tailscale
+    apt_repo_uri: "{{ tailscale_apt_uri }}"
+    apt_repo_key_url: "{{ tailscale_apt_key_url }}"
+    apt_repo_suite: "{{ tailscale_apt_suite }}"
+    apt_repo_suite_fallback: "{{ tailscale_apt_suite_fallback }}"
+    apt_repo_components: "{{ tailscale_apt_components }}"
+
+- name: Tailscale | Install packages
+  ansible.builtin.apt:
+    name: "{{ tailscale_packages }}"
+    state: present
+  become: true
+
+- name: Tailscale | Enable and start the daemon
+  ansible.builtin.systemd_service:
+    name: "{{ tailscale_service_name }}"
+    enabled: true
+    state: started
+  become: true
+  when:
+    - tailscale_manage_service | bool
+    - dotfiles_has_systemd | bool

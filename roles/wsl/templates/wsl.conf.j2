@@ -1,0 +1,24 @@
+# Managed by the dotfiles playbook (roles/wsl). Do not edit.
+#
+# Changes to this file require `wsl --shutdown` from Windows before they apply.
+
+[boot]
+systemd = {{ wsl_systemd | bool | lower }}
+
+[automount]
+enabled = {{ wsl_automount_enabled | bool | lower }}
+root = {{ wsl_automount_root }}
+options = "{{ wsl_automount_options }}"
+mountFsTab = {{ wsl_automount_mount_fstab | bool | lower }}
+
+[interop]
+enabled = {{ wsl_interop_enabled | bool | lower }}
+appendWindowsPath = {{ wsl_interop_append_windows_path | bool | lower }}
+
+[network]
+hostname = {{ wsl_network_hostname }}
+generateHosts = {{ wsl_network_generate_hosts | bool | lower }}
+generateResolvConf = {{ wsl_network_generate_resolv_conf | bool | lower }}
+
+[user]
+default = {{ wsl_default_user }}

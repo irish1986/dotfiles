@@ -1,0 +1,17 @@
+# Managed by the dotfiles playbook (roles/wsl). Do not edit.
+#
+# Changes to this file require `wsl --shutdown` from Windows before they apply.
+
+[wsl2]
+memory={{ wsl_config_memory }}
+processors={{ wsl_config_processors }}
+swap={{ wsl_config_swap }}
+networkingMode={{ wsl_config_networking_mode }}
+dnsTunneling={{ wsl_config_dns_tunneling | bool | lower }}
+firewall={{ wsl_config_firewall | bool | lower }}
+guiApplications={{ wsl_config_gui_applications | bool | lower }}
+nestedVirtualization={{ wsl_config_nested_virtualization | bool | lower }}
+
+[experimental]
+autoMemoryReclaim={{ wsl_config_auto_memory_reclaim }}
+sparseVhd={{ wsl_config_sparse_vhd | bool | lower }}

@@ -1,17 +1,51 @@
 ---
-- name: "Tmux | Checking for Distribution Config: {{ ansible_distribution }}"
-  ansible.builtin.stat:
-    path: "{{ role_path }}/tasks/{{ ansible_distribution }}.yml"
-  register: system_distribution_config
+# Orchestrator only: no module calls other than include_vars / include_tasks.
 
-- name: "Tmux | Run Tasks: {{ ansible_distribution }}"
-  ansible.builtin.include_tasks: "{{ ansible_distribution }}.yml"
-  when: system_distribution_config.stat.exists
+- name: Tmux | Load release specific variables
+  ansible.builtin.include_vars: "{{ tmux_vars_file }}"
+  loop: "{{ query('ansible.builtin.first_found', tmux_vars_lookup) }}"
+  loop_control:
+    loop_var: tmux_vars_file
+  vars:
+    tmux_vars_lookup:
+      files:
+        - "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
+        - "{{ ansible_distribution }}.yml"
+        - "{{ ansible_os_family }}.yml"
+      paths:
+        - "{{ role_path }}/vars"
+      skip: true
+  tags:
+    - tmux
+    - shell
 
-- name: Tmux | Configure tmux
-  ansible.builtin.copy:
-    src: tmux.conf
-    dest: "{{ ansible_home }}/.config/tmux/"
-    mode: "0644"
-    directory_mode: "0755"
-    force: true
+- name: Tmux | Install
+  ansible.builtin.include_tasks: "{{ tmux_install_tasks }}"
+  vars:
+    tmux_install_tasks: "{{ lookup('ansible.builtin.first_found', tmux_install_lookup) }}"
+    tmux_install_lookup:
+      files:
+        - "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
+        - "{{ ansible_distribution }}.yml"
+        - "{{ ansible_os_family }}.yml"
+      paths:
+        - "{{ role_path }}/tasks/install"
+  tags:
+    - tmux
+    - shell
+    - install
+
+- name: Tmux | Configure
+  ansible.builtin.include_tasks: "{{ role_path }}/tasks/configure.yml"
+  tags:
+    - tmux
+    - shell
+    - configure
+
+- name: Tmux | Verify
+  ansible.builtin.include_tasks: "{{ role_path }}/tasks/verify.yml"
+  when: not ansible_check_mode
+  tags:
+    - tmux
+    - shell
+    - verify

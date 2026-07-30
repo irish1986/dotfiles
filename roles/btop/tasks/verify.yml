@@ -1,0 +1,14 @@
+---
+- name: Btop | Query the installed version
+  ansible.builtin.command: "{{ btop_binary }} --version"
+  register: btop_version_check
+  changed_when: false
+  failed_when: false
+
+- name: Btop | Assert btop is usable
+  ansible.builtin.assert:
+    that:
+      - btop_version_check.rc == 0
+    fail_msg: "btop did not install correctly: {{ btop_version_check.stderr | default('no output') }}"
+    success_msg: "{{ btop_version_check.stdout_lines | first | default('btop installed') }}"
+    quiet: true

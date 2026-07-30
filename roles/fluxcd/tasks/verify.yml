@@ -1,0 +1,14 @@
+---
+- name: Flux | Query the installed version
+  ansible.builtin.command: "{{ fluxcd_binary }} --version"
+  register: fluxcd_version_check
+  changed_when: false
+  failed_when: false
+
+- name: Flux | Assert flux is usable
+  ansible.builtin.assert:
+    that:
+      - fluxcd_version_check.rc == 0
+    fail_msg: "flux did not install correctly: {{ fluxcd_version_check.stderr | default('no output') }}"
+    success_msg: "{{ fluxcd_version_check.stdout | trim }}"
+    quiet: true

@@ -1,0 +1,14 @@
+---
+galaxy_info:
+  role_name: ansible_tools
+  namespace: dotfiles
+  author: irish1986
+  description: Ansible tooling installed with uv.
+  license: MIT
+  min_ansible_version: "2.16"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - jammy
+        - noble
+dependencies: []

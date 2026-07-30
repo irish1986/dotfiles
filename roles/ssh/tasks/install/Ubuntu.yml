@@ -1,0 +1,6 @@
+---
+- name: SSH | Install packages
+  ansible.builtin.apt:
+    name: "{{ ssh_packages }}"
+    state: present
+  become: true

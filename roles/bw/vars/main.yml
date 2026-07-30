@@ -1,0 +1,4 @@
+---
+bw_binary: bw
+bw_binary_path: "{{ bw_install_dir }}/bw"
+bw_arch_suffix: "{{ '' if dotfiles_dpkg_architecture == 'amd64' else '-' ~ dotfiles_dpkg_architecture }}"

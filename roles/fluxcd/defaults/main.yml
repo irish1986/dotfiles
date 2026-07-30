@@ -1,0 +1,6 @@
+---
+fluxcd_dependencies:
+  - ca-certificates
+  - curl
+fluxcd_install_script_url: https://fluxcd.io/install.sh
+fluxcd_install_dir: /usr/local/bin

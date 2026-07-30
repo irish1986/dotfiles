@@ -1,0 +1,8 @@
+---
+- name: Kubectl | Ensure the kube directory exists
+  ansible.builtin.file:
+    path: "{{ kubectl_config_dir }}"
+    state: directory
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0700"

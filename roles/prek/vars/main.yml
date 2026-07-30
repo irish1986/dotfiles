@@ -1,0 +1,3 @@
+---
+prek_binary: prek
+prek_uv_binary: "{{ dotfiles_home }}/.local/bin/uv"

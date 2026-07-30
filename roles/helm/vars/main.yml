@@ -1,0 +1,9 @@
+---
+helm_binary: helm
+helm_binary_path: "{{ helm_install_dir }}/helm"
+
+# Left behind by the previous baltocdn apt implementation.
+helm_legacy_artifacts:
+  - /usr/share/keyrings/helm.gpg
+  - /etc/apt/sources.list.d/helm.list
+  - /etc/apt/sources.list.d/helm.sources

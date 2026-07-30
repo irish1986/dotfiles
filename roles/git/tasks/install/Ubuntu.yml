@@ -1,0 +1,26 @@
+---
+- name: Git | Install packages
+  ansible.builtin.apt:
+    name: "{{ git_packages }}"
+    state: present
+  become: true
+
+- name: Git | Install the GitHub CLI
+  when: git_install_gh | bool
+  block:
+    - name: Git | Configure the GitHub CLI apt repository
+      ansible.builtin.include_role:
+        name: apt_repo
+      vars:
+        apt_repo_name: github-cli
+        apt_repo_uri: "{{ git_gh_apt_uri }}"
+        apt_repo_key_url: "{{ git_gh_apt_key_url }}"
+        apt_repo_suite: "{{ git_gh_apt_suite }}"
+        apt_repo_components: "{{ git_gh_apt_components }}"
+        apt_repo_probe: false
+
+    - name: Git | Install gh
+      ansible.builtin.apt:
+        name: "{{ git_gh_packages }}"
+        state: present
+      become: true

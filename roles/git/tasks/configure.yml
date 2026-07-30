@@ -1,0 +1,60 @@
+---
+- name: Git | Deploy the global gitignore
+  ansible.builtin.copy:
+    src: .gitignore
+    dest: "{{ git_ignore_file }}"
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0644"
+
+- name: Git | Create the project directory
+  ansible.builtin.file:
+    path: "{{ git_project_dir }}"
+    state: directory
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0700"
+  when:
+    - git_manage_project_dir | bool
+    - git_user_login | length > 0
+
+- name: Git | Configure commit signing
+  block:
+    - name: Git | Detect the signing key
+      ansible.builtin.stat:
+        path: "{{ git_signing_key_path }}"
+      register: git_signing_key_stat
+
+    - name: Git | Register the allowed signer
+      when: git_signing_key_stat.stat.exists
+      block:
+        - name: Git | Read the signing key
+          ansible.builtin.slurp:
+            src: "{{ git_signing_key_path }}"
+          register: git_signing_key_content
+
+        # marker: keyed on the email, so rotating a key replaces that signer's
+        # line instead of appending a second one. Without it blockinfile grows
+        # the file every time the key changes.
+        - name: Git | Add the allowed signer
+          ansible.builtin.blockinfile:
+            path: "{{ git_allowed_signers }}"
+            marker: "# {mark} ANSIBLE MANAGED BLOCK {{ git_user_email }}"
+            create: true
+            owner: "{{ dotfiles_user }}"
+            group: "{{ dotfiles_user }}"
+            mode: "0644"
+            block: |
+              {{ git_user_email }} {{ git_signing_key_content.content | b64decode | trim }}
+
+- name: Git | Write the git configuration
+  community.general.git_config:
+    name: "{{ git_config_entry.key }}"
+    value: "{{ git_config_entry.value }}"
+    scope: file
+    file: "{{ git_config_file }}"
+  loop: "{{ (git_config | combine(git_computed_config)) | dict2items }}"
+  loop_control:
+    loop_var: git_config_entry
+    label: "{{ git_config_entry.key }}"
+  when: git_config_entry.value | string | length > 0

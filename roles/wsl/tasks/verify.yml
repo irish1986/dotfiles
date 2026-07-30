@@ -1,0 +1,43 @@
+---
+- name: WSL | Assert wsl.conf is present
+  ansible.builtin.assert:
+    that:
+      - (wsl_conf_path) is file
+    fail_msg: "{{ wsl_conf_path }} was not written."
+    success_msg: "{{ wsl_conf_path }} present"
+    quiet: true
+
+- name: WSL | Verify the Windows side
+  when: wsl_interop_available | default(false) | bool
+  block:
+    - name: WSL | Assert the Windows home resolved
+      ansible.builtin.assert:
+        that:
+          - wsl_windows_home | length > 0
+          - (wsl_windows_home) is directory
+        fail_msg: "Windows home '{{ wsl_windows_home }}' does not exist."
+        success_msg: "Windows home {{ wsl_windows_home }}"
+        quiet: true
+
+    - name: WSL | Check the clipboard bridge
+      ansible.builtin.shell:
+        cmd: set -o pipefail && printf 'dotfiles-clipboard-probe' | {{ wsl_win32yank_path }} -i --crlf && {{ wsl_win32yank_path }} -o --lf
+        executable: /bin/bash
+      register: wsl_clipboard_check
+      changed_when: false
+      failed_when: false
+      become: false
+      when: wsl_manage_win32yank | bool
+
+    - name: WSL | Assert the clipboard round-trips cleanly
+      ansible.builtin.assert:
+        that:
+          - wsl_clipboard_check.rc == 0
+          - wsl_clipboard_check.stdout == 'dotfiles-clipboard-probe'
+        fail_msg: >-
+          Clipboard round-trip returned
+          {{ wsl_clipboard_check.stdout | default('') | to_json }};
+          expected "dotfiles-clipboard-probe" with no trailing CR or newline.
+        success_msg: clipboard round-trips cleanly
+        quiet: true
+      when: wsl_manage_win32yank | bool

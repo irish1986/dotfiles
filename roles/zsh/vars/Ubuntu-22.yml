@@ -1,0 +1,4 @@
+---
+# jammy has no eza package (it first appeared in 24.04). Everything else in the
+# default list is present.
+zsh_optional_packages: []

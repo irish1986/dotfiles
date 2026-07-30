@@ -1,0 +1,14 @@
+---
+- name: Fastfetch | Query the installed version
+  ansible.builtin.command: "{{ fastfetch_binary }} --version"
+  register: fastfetch_version_check
+  changed_when: false
+  failed_when: false
+
+- name: Fastfetch | Assert fastfetch is usable
+  ansible.builtin.assert:
+    that:
+      - fastfetch_version_check.rc == 0
+    fail_msg: "fastfetch did not install correctly: {{ fastfetch_version_check.stderr | default('no output') }}"
+    success_msg: "{{ fastfetch_version_check.stdout | trim }}"
+    quiet: true

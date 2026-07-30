@@ -1,0 +1,15 @@
+---
+- name: Helm | Query the installed version
+  ansible.builtin.command: "{{ helm_binary }} version --short"
+  register: helm_version_check
+  changed_when: false
+  failed_when: false
+
+- name: Helm | Assert helm is usable
+  ansible.builtin.assert:
+    that:
+      - helm_version_check.rc == 0
+      - helm_version_check.stdout is match('^v[0-9]+\\.')
+    fail_msg: "helm did not install correctly: {{ helm_version_check.stderr | default('no output') }}"
+    success_msg: "helm {{ helm_version_check.stdout | trim }}"
+    quiet: true

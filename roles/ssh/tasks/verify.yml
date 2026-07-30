@@ -1,0 +1,30 @@
+---
+- name: SSH | Query the ssh client
+  ansible.builtin.command: ssh -V
+  register: ssh_version_check
+  changed_when: false
+  failed_when: false
+
+- name: SSH | Assert the client is usable
+  ansible.builtin.assert:
+    that:
+      - ssh_version_check.rc == 0
+    fail_msg: "openssh-client did not install correctly: {{ ssh_version_check.stderr | default('no output') }}"
+    success_msg: "{{ ssh_version_check.stderr | trim }}"
+    quiet: true
+
+- name: SSH | Check the ssh directory permissions
+  ansible.builtin.stat:
+    path: "{{ ssh_dir }}"
+  register: ssh_dir_check
+
+- name: SSH | Assert the ssh directory is private
+  ansible.builtin.assert:
+    that:
+      - ssh_dir_check.stat.exists
+      - ssh_dir_check.stat.mode == '0700'
+    fail_msg: >-
+      {{ ssh_dir }} is {{ ssh_dir_check.stat.mode | default('missing') }};
+      ssh refuses to use a keypair in a group- or world-readable directory.
+    success_msg: "{{ ssh_dir }} is 0700"
+    quiet: true

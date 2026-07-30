@@ -1,9 +1,0 @@
----
-- name: Git | Install git
-  ansible.builtin.apt:
-    name:
-      - git
-      - git-lfs
-      - gh
-    state: present
-  become: true

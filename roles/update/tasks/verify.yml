@@ -1,0 +1,26 @@
+---
+- name: Update | Check for held or broken packages
+  ansible.builtin.command: apt-mark showhold
+  register: update_hold_check
+  changed_when: false
+  failed_when: false
+
+- name: Update | Report held packages
+  ansible.builtin.debug:
+    msg: "Held packages will not be upgraded: {{ update_hold_check.stdout_lines | join(', ') }}"
+  when: update_hold_check.stdout | trim | length > 0
+
+- name: Update | Assert the package database is consistent
+  ansible.builtin.command: dpkg --audit
+  register: update_audit
+  changed_when: false
+  failed_when: false
+
+- name: Update | Assert no packages are half configured
+  ansible.builtin.assert:
+    that:
+      - update_audit.rc == 0
+      - update_audit.stdout | trim | length == 0
+    fail_msg: "dpkg reports inconsistent packages:\n{{ update_audit.stdout }}"
+    success_msg: package database consistent
+    quiet: true

@@ -1,0 +1,4 @@
+---
+neovim_binary: nvim
+neovim_binary_path: /usr/local/bin/nvim
+neovim_arch: "{{ 'arm64' if dotfiles_dpkg_architecture == 'arm64' else 'x86_64' }}"

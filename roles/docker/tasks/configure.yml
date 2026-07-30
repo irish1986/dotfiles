@@ -1,0 +1,43 @@
+---
+- name: Docker | Ensure the data root exists
+  ansible.builtin.file:
+    path: "{{ docker_data_root }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0710"
+  become: true
+  when: docker_data_root | length > 0
+
+# validate: mirrors the visudo pattern elsewhere in this repo. Without it a
+# malformed daemon.json means dockerd simply refuses to start, with nothing in
+# the Ansible output to say why.
+- name: Docker | Deploy daemon.json
+  ansible.builtin.template:
+    src: daemon.json.j2
+    dest: "{{ docker_daemon_config }}"
+    owner: root
+    group: root
+    mode: "0644"
+    validate: "{{ docker_daemon_binary }} --validate --config-file %s"
+  become: true
+  notify: Docker | Restart docker
+
+- name: "Docker | Add the login user to the docker group: {{ dotfiles_user }}"
+  ansible.builtin.user:
+    name: "{{ dotfiles_user }}"
+    groups: docker
+    append: true
+  become: true
+  when: docker_manage_group | bool
+
+# Gated on systemd rather than on "not WSL": WSL2 with systemd=true in wsl.conf
+# does have systemd and does want Docker enabled, while a CI container has none.
+# The old `not is_wsl` check expressed neither case.
+- name: Docker | Enable and start the service
+  ansible.builtin.systemd_service:
+    name: "{{ docker_service_name }}"
+    enabled: true
+    state: started
+  become: true
+  when: dotfiles_has_systemd | bool

@@ -1,0 +1,66 @@
+---
+# Orchestrator only: no module calls other than include_vars / include_tasks.
+
+- name: WSL | Load release specific variables
+  ansible.builtin.include_vars: "{{ wsl_vars_file }}"
+  loop: "{{ query('ansible.builtin.first_found', wsl_vars_lookup) }}"
+  loop_control:
+    loop_var: wsl_vars_file
+  vars:
+    wsl_vars_lookup:
+      files:
+        - "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
+        - "{{ ansible_distribution }}.yml"
+        - "{{ ansible_os_family }}.yml"
+      paths:
+        - "{{ role_path }}/vars"
+      skip: true
+  tags:
+    - wsl
+    - base
+
+# Everything below is a no-op off WSL, so the whole role short-circuits rather
+# than gating a dozen individual tasks.
+- name: WSL | Detect the Windows host
+  ansible.builtin.include_tasks: "{{ role_path }}/tasks/detect.yml"
+  when: dotfiles_is_wsl | bool
+  tags:
+    - wsl
+    - base
+
+- name: WSL | Install
+  ansible.builtin.include_tasks: "{{ wsl_install_tasks }}"
+  vars:
+    wsl_install_tasks: "{{ lookup('ansible.builtin.first_found', wsl_install_lookup) }}"
+    wsl_install_lookup:
+      files:
+        - "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
+        - "{{ ansible_distribution }}.yml"
+        - "{{ ansible_os_family }}.yml"
+      paths:
+        - "{{ role_path }}/tasks/install"
+  when: dotfiles_is_wsl | bool
+  tags:
+    - wsl
+    - base
+    - install
+
+- name: WSL | Configure
+  ansible.builtin.include_tasks: "{{ role_path }}/tasks/configure.yml"
+  when:
+    - dotfiles_is_wsl | bool
+    - wsl_interop_available | default(false) | bool
+  tags:
+    - wsl
+    - base
+    - configure
+
+- name: WSL | Verify
+  ansible.builtin.include_tasks: "{{ role_path }}/tasks/verify.yml"
+  when:
+    - dotfiles_is_wsl | bool
+    - not ansible_check_mode
+  tags:
+    - wsl
+    - base
+    - verify

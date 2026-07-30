@@ -1,0 +1,24 @@
+---
+- name: Python | Query uv
+  ansible.builtin.command: "{{ python_uv_binary }} --version"
+  register: python_uv_check
+  changed_when: false
+  failed_when: false
+  when: python_uv_enabled | bool
+
+- name: Python | Assert uv is usable
+  ansible.builtin.assert:
+    that:
+      - python_uv_check.rc == 0
+    fail_msg: "uv did not install correctly: {{ python_uv_check.stderr | default('no output') }}"
+    success_msg: "{{ python_uv_check.stdout | trim }}"
+    quiet: true
+  when: python_uv_enabled | bool
+
+- name: Python | Assert the system interpreter is present
+  ansible.builtin.assert:
+    that:
+      - ansible_python_version is version('3.10', '>=')
+    fail_msg: "python3 is missing or too old: {{ ansible_python_version | default('unknown') }}"
+    success_msg: "python {{ ansible_python_version }}"
+    quiet: true

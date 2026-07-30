@@ -56,7 +56,6 @@ This project follows [Conventional Commits 1.0.0](https://www.conventionalcommit
 - `PATCH` Semantic Versioning are triggered by using the **fix** type to indicate a bugfix to the codebase.
 - **Other types** are of no Semantic Versioning impact as follows:
   - **build** for code changes impacting the local build process
-  - **bump** for releasing the code
   - **chore** for on-going recurring activities (i.e.: dependencies update)
   - **ci** for code changes impacting the CI build process
   - **docs** for documentation changes
@@ -65,3 +64,16 @@ This project follows [Conventional Commits 1.0.0](https://www.conventionalcommit
   - **revert** for revert code changes if required
   - **style** for style and lint the current code base
   - **test** for code changes impacting the test suites for this codebase
+
+## Releases
+
+Releases are automated by
+[release-please](https://github.com/googleapis/release-please). It keeps a
+standing `chore(main): release X.Y.Z` pull request open, updating `CHANGELOG.md`
+and `version.txt` as commits land. Merging that pull request creates the git tag
+and the GitHub Release. There is nothing to run by hand, and no `bump` commit
+type -- that is why it is absent from the list above.
+
+The version is inferred from the squashed commit subject, which is why pull
+request titles are linted: `fix:` gives a patch, `feat:` a minor, and a `!`
+suffix or a `BREAKING CHANGE:` footer a major.

@@ -1,0 +1,16 @@
+---
+- name: VSCode | Query the installed version
+  ansible.builtin.command: "{{ vscode_binary }} --version"
+  register: vscode_version_check
+  changed_when: false
+  failed_when: false
+  when: vscode_supported | bool
+
+- name: VSCode | Assert code is usable
+  ansible.builtin.assert:
+    that:
+      - vscode_version_check.rc == 0
+    fail_msg: "code did not install correctly: {{ vscode_version_check.stderr | default('no output') }}"
+    success_msg: "code {{ vscode_version_check.stdout_lines | first | default('') }}"
+    quiet: true
+  when: vscode_supported | bool

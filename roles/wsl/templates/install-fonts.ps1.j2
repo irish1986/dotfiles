@@ -1,0 +1,61 @@
+# Managed by the dotfiles playbook (roles/wsl). Piped over stdin, never written
+# to disk, which also sidesteps ExecutionPolicy entirely.
+$ErrorActionPreference = 'Stop'
+Add-Type -AssemblyName PresentationCore
+
+$src  = Join-Path $env:LOCALAPPDATA 'Temp\dotfiles-fonts'
+$dest = Join-Path $env:LOCALAPPDATA 'Microsoft\Windows\Fonts'
+$reg  = 'HKCU:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts'
+
+New-Item -ItemType Directory -Force -Path $dest | Out-Null
+
+# NOT New-Item -Force: on an existing *registry* key that recreates it and
+# deletes every value inside, so each run wiped the entire font registry --
+# including registrations made by other means -- and re-added only the fonts
+# this script happened to process. -Force is safe for directories, not keys.
+if (-not (Test-Path $reg)) { New-Item -Path $reg -Force | Out-Null }
+
+# The registry value *name* must be the font's Win32 friendly name, e.g.
+# "Hack Nerd Font Bold (TrueType)" -- not the filename. GlyphTypeface is used
+# rather than System.Drawing.PrivateFontCollection because the latter reports
+# the family for every weight, so all four would collide on one key and only the
+# last would survive.
+function Get-FontFriendlyName([string]$Path) {
+    $gt   = New-Object Windows.Media.GlyphTypeface ([Uri]$Path)
+    $fam  = $gt.Win32FamilyNames.Values | Select-Object -First 1
+    $face = $gt.Win32FaceNames.Values   | Select-Object -First 1
+    (("$fam $face").Trim() -replace '\s+', ' ')
+}
+
+foreach ($f in Get-ChildItem -Path $src -Filter *.ttf -File) {
+    $target  = Join-Path $dest $f.Name
+    $name    = "{0} (TrueType)" -f (Get-FontFriendlyName $f.FullName)
+    # Per-user entries need the full path as the value; a bare filename only
+    # works for fonts under %windir%\Fonts.
+    $have    = (Get-ItemProperty -Path $reg -Name $name -ErrorAction SilentlyContinue).$name
+    $present = Test-Path $target
+    $current = $present -and ((Get-Item $target).Length -eq $f.Length)
+
+    if ($current -and ($have -eq $target)) { continue }
+
+    if (-not $current) {
+        try {
+            Copy-Item -LiteralPath $f.FullName -Destination $target -Force -ErrorAction Stop
+            Write-Output "INSTALLED: $name"
+        } catch [System.IO.IOException] {
+            # A font file already loaded by a running process cannot be replaced.
+            # The existing copy still works, so this is reported rather than
+            # failing the run -- replacing it needs those apps closed.
+            Write-Output "LOCKED: $name (in use; existing copy left in place)"
+            if (-not $present) { throw }
+        }
+    }
+
+    # Always reconciled, even when the file could not be replaced: the file
+    # being present is not the same as Windows knowing about it, and an
+    # unregistered font is invisible to Terminal's font picker.
+    if ($have -ne $target) {
+        New-ItemProperty -Path $reg -Name $name -Value $target -PropertyType String -Force | Out-Null
+        Write-Output "REGISTERED: $name"
+    }
+}

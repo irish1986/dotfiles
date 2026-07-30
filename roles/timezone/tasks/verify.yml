@@ -1,0 +1,17 @@
+---
+- name: Timezone | Query the configured timezone
+  ansible.builtin.command: timedatectl show --property=Timezone --value
+  register: timezone_check
+  changed_when: false
+  failed_when: false
+
+- name: Timezone | Assert the timezone is set
+  ansible.builtin.assert:
+    that:
+      - timezone_check.rc == 0
+      - timezone_check.stdout | trim == timezone_name
+    fail_msg: >-
+      Timezone is '{{ timezone_check.stdout | trim }}', expected
+      '{{ timezone_name }}'.
+    success_msg: "timezone {{ timezone_name }}"
+    quiet: true

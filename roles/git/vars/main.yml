@@ -1,0 +1,15 @@
+---
+git_binary: git
+git_config_file: "{{ dotfiles_home }}/.gitconfig"
+git_ignore_file: "{{ dotfiles_home }}/.gitignore"
+git_signing_key_path: "{{ dotfiles_home }}/.ssh/{{ git_signing_key }}"
+git_allowed_signers: "{{ dotfiles_home }}/.ssh/allowed_signers"
+git_project_dir: "{{ dotfiles_home }}/git/{{ git_user_login }}"
+
+# Paths that must be absolute in the config file.
+git_computed_config:
+  core.excludesfile: "{{ git_ignore_file }}"
+  gpg.ssh.allowedSignersFile: "{{ git_allowed_signers }}"
+  user.email: "{{ git_user_email }}"
+  user.name: "{{ git_user_name }}"
+  user.signingkey: "{{ git_signing_key_path }}"

@@ -1,9 +1,44 @@
 ---
-- name: "NVM | Checking for Distribution Config: {{ ansible_distribution }}"
-  ansible.builtin.stat:
-    path: "{{ role_path }}/tasks/{{ ansible_distribution }}.yml"
-  register: system_distribution_config
+# Orchestrator only: no module calls other than include_vars / include_tasks.
 
-- name: "NVM | Run Tasks: {{ ansible_distribution }}"
-  ansible.builtin.include_tasks: "{{ ansible_distribution }}.yml"
-  when: system_distribution_config.stat.exists
+- name: NVM | Load release specific variables
+  ansible.builtin.include_vars: "{{ nvm_vars_file }}"
+  loop: "{{ query('ansible.builtin.first_found', nvm_vars_lookup) }}"
+  loop_control:
+    loop_var: nvm_vars_file
+  vars:
+    nvm_vars_lookup:
+      files:
+        - "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
+        - "{{ ansible_distribution }}.yml"
+        - "{{ ansible_os_family }}.yml"
+      paths:
+        - "{{ role_path }}/vars"
+      skip: true
+  tags:
+    - nvm
+    - dev
+
+- name: NVM | Install
+  ansible.builtin.include_tasks: "{{ nvm_install_tasks }}"
+  vars:
+    nvm_install_tasks: "{{ lookup('ansible.builtin.first_found', nvm_install_lookup) }}"
+    nvm_install_lookup:
+      files:
+        - "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
+        - "{{ ansible_distribution }}.yml"
+        - "{{ ansible_os_family }}.yml"
+      paths:
+        - "{{ role_path }}/tasks/install"
+  tags:
+    - nvm
+    - dev
+    - install
+
+- name: NVM | Verify
+  ansible.builtin.include_tasks: "{{ role_path }}/tasks/verify.yml"
+  when: not ansible_check_mode
+  tags:
+    - nvm
+    - dev
+    - verify

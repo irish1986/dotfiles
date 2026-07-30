@@ -1,0 +1,60 @@
+---
+git_packages:
+  - git
+  - git-lfs
+  # Replaces the deleted bfg role: same job, no JRE, and packaged from 24.04.
+  - git-filter-repo
+
+# gh comes from GitHub's own repository, not the archive: jammy has no gh
+# package at all (it first appeared in 23.04), and noble's is pinned at 2.45
+# while upstream is far ahead. The previous role simply asked apt for `gh`,
+# which fails outright on 22.04.
+git_install_gh: true
+git_gh_packages:
+  - gh
+git_gh_apt_uri: https://cli.github.com/packages
+git_gh_apt_key_url: https://cli.github.com/packages/githubcli-archive-keyring.gpg
+git_gh_apt_suite: stable
+git_gh_apt_components:
+  - main
+
+# Identity. No defaults worth guessing -- verify.yml asserts these are set.
+git_user_email: ""
+git_user_name: ""
+git_user_login: ""
+git_signing_key: id_ed25519.pub
+
+# Directory created for checkouts, under ~/git/<login>.
+git_manage_project_dir: true
+
+# Written verbatim into ~/.gitconfig. Override or extend in group_vars.
+git_config:
+  advice.diverging: false
+  branch.sort: -committerdate
+  color.ui: auto
+  column.ui: auto
+  commit.gpgsign: true
+  commit.verbose: true
+  # false, not input: this is a Linux checkout even when the host is Windows.
+  core.autocrlf: false
+  core.editor: code --wait
+  diff.algorithm: histogram
+  diff.colorMoved: zebra
+  fetch.all: true
+  fetch.prune: true
+  fetch.pruneTags: true
+  fetch.writeCommitGraph: true
+  gpg.format: ssh
+  help.autocorrect: prompt
+  init.defaultBranch: main
+  log.abbrevCommit: true
+  pull.rebase: true
+  push.autoSetupRemote: true
+  push.default: simple
+  push.followTags: true
+  rebase.autoStash: true
+  rerere.autoupdate: true
+  rerere.enabled: true
+  status.short: true
+  tag.gpgsign: true
+  tag.sort: version:refname

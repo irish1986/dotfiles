@@ -1,0 +1,14 @@
+---
+- name: Tailscale | Query the installed version
+  ansible.builtin.command: "{{ tailscale_binary }} version"
+  register: tailscale_version_check
+  changed_when: false
+  failed_when: false
+
+- name: Tailscale | Assert tailscale is usable
+  ansible.builtin.assert:
+    that:
+      - tailscale_version_check.rc == 0
+    fail_msg: "tailscale did not install correctly: {{ tailscale_version_check.stderr | default('no output') }}"
+    success_msg: "tailscale {{ tailscale_version_check.stdout_lines | first | default('') }}"
+    quiet: true
