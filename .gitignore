@@ -8,3 +8,7 @@
 # *contents* of group_vars rather than the directory: git never descends into
 # an excluded directory, so a negation for a file inside one is never applied.
 /inventory/group_vars/*
+
+# MkDocs build output and plugin caches
+/site
+/.cache

@@ -48,6 +48,12 @@ repos:
         name: "general | check XML files"
       - id: check-yaml
         name: "general | check YAML files"
+        # mkdocs.yml uses PyYAML-specific tags (!!python/name:...) for Material's
+        # superfences, which yaml.safe_load cannot construct. Excluded rather than
+        # passing --unsafe, which would weaken YAML checking for every Ansible
+        # file in the repository. yamllint parses it fine -- it uses an
+        # event-stream loader that does not resolve tags.
+        exclude: ^mkdocs\.yml$
       - id: end-of-file-fixer
         name: "general | fix end of file"
       - id: check-executables-have-shebangs

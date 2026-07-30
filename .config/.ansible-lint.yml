@@ -17,6 +17,11 @@ exclude_paths:
   - .config/
   - .github/
   - .venv/
+  # The pre-commit hook hands ansible-lint every *.yml in the repository, and
+  # load-failure is fatal even at profile min -- so mkdocs.yml's Python tags must
+  # be excluded here too, not only from check-yaml.
+  - docs/
+  - mkdocs.yml
   - scripts/
   - site/
 

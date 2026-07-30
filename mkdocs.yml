@@ -1,0 +1,123 @@
+---
+site_name: dotfiles
+site_description: >-
+  Ansible playbook that provisions a Windows 11 + WSL2 Ubuntu workstation.
+site_url: https://irish1986.github.io/dotfiles/
+repo_url: https://github.com/irish1986/dotfiles
+repo_name: irish1986/dotfiles
+edit_uri: edit/main/docs/
+copyright: MIT licensed
+site_dir: site
+
+# Turns MkDocs warnings into failures under `mkdocs build --strict`, which is how
+# the docs job gates pull requests. Broken internal links and nav entries
+# pointing at missing files then fail CI rather than shipping.
+validation:
+  omitted_files: warn
+  absolute_links: warn
+  unrecognized_links: warn
+  anchors: warn
+
+theme:
+  name: material
+  # No logo: the previous README hot-linked one from an unrelated upstream
+  # repository. An icon needs no asset and cannot rot.
+  icon:
+    logo: material/console-line
+    repo: fontawesome/brands/github
+  palette:
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Follow system theme
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: teal
+      accent: teal
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: teal
+      accent: teal
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - content.action.edit
+    - content.code.annotate
+    - content.code.copy
+    - navigation.indexes
+    - navigation.sections
+    - navigation.tabs
+    - navigation.top
+    - navigation.tracking
+    - search.highlight
+    - search.suggest
+    - toc.follow
+
+plugins:
+  - search
+  # Order matters: gen-files populates the in-memory file tree during on_files,
+  # and literate-nav reads the generated SUMMARY.md during on_nav.
+  - gen-files:
+      scripts:
+        - scripts/gen_docs.py
+  - literate-nav:
+      nav_file: SUMMARY.md
+  - git-revision-date-localized:
+      enable_creation_date: false
+      fallback_to_build_date: true
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+
+nav:
+  - Home: index.md
+  - Getting started:
+      - getting-started/index.md
+      - Prerequisites: getting-started/prerequisites.md
+      - Configuration: getting-started/configuration.md
+      - Windows and WSL: getting-started/windows-wsl.md
+      - Secrets: getting-started/secrets.md
+  # Entirely generated; the nav comes from the SUMMARY.md gen_docs.py writes.
+  - Roles: roles/
+  - Reference:
+      - reference/index.md
+      - Variables: reference/variables.md
+      - Collections: reference/collections.md
+      - Command line: reference/cli.md
+      - Playbook: reference/playbook.md
+  - Architecture:
+      - architecture/index.md
+      - Role layout: architecture/roles.md
+      - Windows and WSL: architecture/wsl.md
+  - Contributing:
+      - contributing/index.md
+      - Documentation: contributing/documentation.md
+      - Security: contributing/security.md
+  - About:
+      - Changelog: about/changelog.md
+      - Manual setup: about/manual-install.md
+      - Troubleshooting: about/troubleshooting.md
+      - Licence: about/licence.md
