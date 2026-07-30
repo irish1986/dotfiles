@@ -71,3 +71,35 @@ updates:
       pre-commit-all:
         patterns:
           - "*"
+
+  # Enabled now that pyproject.toml and uv.lock exist. This entry was previously
+  # declared with no manifest anywhere in the repository, which logged a
+  # permanent "no dependency files found" on every scheduled run.
+  - package-ecosystem: "uv"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "America/Toronto"
+    open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
+    labels:
+      - "dependencies"
+      - "python"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+    groups:
+      python-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+      python-major:
+        patterns:
+          - "*"
+        update-types:
+          - "major"

@@ -1,108 +1,94 @@
 # dotfiles
 
-![dotfiles-logo](https://github.com/TechDufus/dotfiles/assets/46715299/6c1d626d-28d2-41e3-bde5-981d9bf93462)
-
 <p align="center">
-    <a href="https://github.com/irish1986/dotfiles/actions/workflows/main.yml"><img align="center" src="https://github.com/irish1986/dotfiles/actions/workflows/main.yml/badge.svg" alt="ci pipeline"></a>
+    <a href="https://github.com/irish1986/dotfiles/actions/workflows/ci.yml"><img align="center" src="https://github.com/irish1986/dotfiles/actions/workflows/ci.yml/badge.svg" alt="ci"></a>
+    <a href="https://github.com/irish1986/dotfiles/actions/workflows/docs.yml"><img align="center" src="https://github.com/irish1986/dotfiles/actions/workflows/docs.yml/badge.svg" alt="docs"></a>
+    <a href="https://github.com/irish1986/dotfiles/releases/latest"><img align="center" src="https://img.shields.io/github/v/release/irish1986/dotfiles" alt="release"></a>
     <a href="https://github.com/irish1986/dotfiles/issues"><img align="center" src="https://img.shields.io/github/issues/irish1986/dotfiles" alt="issues"></a>
-    <a href="https://github.com/irish1986/dotfiles/pulls"><img align="center" src="https://img.shields.io/github/issues-pr/irish1986/dotfiles" alt="pull requests"></a>
-    <a href="https://github.com/irish1986/dotfiles/commits/main"><img align="center" src="https://img.shields.io/github/commit-activity/m/irish1986/dotfiles" alt="commit frequency"></a>
+    <a href="https://github.com/irish1986/dotfiles/blob/main/.github/LICENSE"><img align="center" src="https://img.shields.io/github/license/irish1986/dotfiles" alt="licence"></a>
 </p>
 
----
+Ansible playbook that provisions a Windows 11 + WSL2 Ubuntu workstation, and the
+shell, editor and tooling configuration that goes with it.
 
-## Goals
+**Documentation: <https://irish1986.github.io/dotfiles/>**
 
-Provide idempotent deployment mechanism for my computers from a versioned controlled source targeting `Ubuntu` that is easy to set up and maintain.  I am mostly using this setup with WSL2 on Windows 11 to sync various workstation and laptops; both for personal and professional usage. Signed
-
-## Getting Started
-
-### Setup WSL2
-
-```powershell
-wsl --unregister ${existing-distro}
-wsl --install -d ${target-distro}
-wsl --setdefault ${target-distro}
-```
-
-### ssh-key management
-
-You will need to add a valid ssh-key to your GitHub account.
-
-You can either create a WSL2 owned key as following:
-
-```bash
-ssh-keygen -o -a 100 -t ed25519 -f ~/.ssh/id_ed25519 -N '' -C $USER@$HOSTNAME
-```
-
-You can also share Windows key with WSL2 owned key as following:
-
-```bash
-cp -r /mnt/c/Users/$USER/.ssh/id_ed25519* ~/.ssh
-chmod 600 ~/.ssh/id_ed25519*
-cat ~/.ssh/id_ed25519.pub | clip.exe
-```
-
-Sometimes it is useful to pull your existing public keys from GitHub.
-
-```bash
-curl https://github.com/irish1986.keys >> ~/.ssh/authorized_keys
-```
-
-### Install
-
-`scripts/setup` bootstraps a fresh Ubuntu install and is safe to re-run. It
-installs `uv`, then `ansible-core` and the pinned Galaxy collections, clones this
-repository to `~/.dotfiles`, seeds `inventory/group_vars/all.yml` from the
-example, and applies the playbook.
+## Quick start
 
 ```bash
 bash -c "$(curl -fsSL https://raw.githubusercontent.com/irish1986/dotfiles/main/scripts/setup)"
 ```
 
-Note the `bash -c "$(curl ...)"` form rather than `curl | bash`: it passes the
-script as an argument, so stdin stays on the terminal and `sudo` can prompt.
+That takes a bare Ubuntu install to a working workstation, and is safe to run
+again afterwards. Note the form — `bash -c "$(curl ...)"` passes the script as an
+argument, so stdin stays on the terminal and `sudo` can prompt; `curl | bash`
+would consume stdin and the prompt would hang.
 
-Which roles run is decided by `dotfiles_roles` in
-`inventory/group_vars/all.yml`. Re-runs take arguments:
+Re-runs take arguments:
 
 ```bash
-~/.dotfiles/scripts/setup --tags zsh,git      # only these roles
+~/.dotfiles/scripts/setup --tags zsh,git      # only those roles
 ~/.dotfiles/scripts/setup --tags configure    # only config, no installs
 ~/.dotfiles/scripts/setup --check --diff      # preview, change nothing
-~/.dotfiles/scripts/setup --skip-tags update  # skip the apt upgrade
 ~/.dotfiles/scripts/setup --help
 ```
 
-Run logs are kept in `~/.local/state/dotfiles/`.
+## Goals
 
-### Secrets
+- **One command on a fresh machine**, and safe to re-run.
+- **Every supported Ubuntu LTS** — 22.04, 24.04 and 26.04, with no codename
+  hardcoded anywhere.
+- **WSL2 first.** The Windows side is managed too: Terminal settings, fonts,
+  clipboard, `wsl.conf` and `.wslconfig`.
+- **Fail loudly.** Each role ends by asserting the thing it installs actually
+  works, so a role cannot quietly do nothing.
 
-I am using Bitwarden integration with Ansible to retrieve secrets from Secrets Manager and inject them into the Ansible playbook. The lookup plugin will inject retrieved secrets as masked environment variables inside an Ansible playbook. To setup the collection:
+## Documentation
 
-`scripts/setup` installs the SDK into the `ansible-core` environment
-(`uv tool install --with bitwarden-sdk`), which is required because the lookup
-runs controller-side and must be importable by the interpreter running
-`ansible-playbook`. Only the token needs setting:
+| Section | Contents |
+| --- | --- |
+| [Getting started](https://irish1986.github.io/dotfiles/getting-started/) | Install, configure, secrets |
+| [Roles](https://irish1986.github.io/dotfiles/roles/) | What each role does, generated from its source |
+| [Reference](https://irish1986.github.io/dotfiles/reference/) | Variables, collections, CLI, playbook |
+| [Architecture](https://irish1986.github.io/dotfiles/architecture/) | Role layout and the WSL boundary |
+| [Troubleshooting](https://irish1986.github.io/dotfiles/about/troubleshooting/) | Things that go wrong |
 
-```bash
-export BWS_ACCESS_TOKEN="<your-bws-access-token>"
-```
+Role pages, the variables table and the collections table are generated from the
+repository on every docs build, so they cannot drift from the code.
 
-### Setup
+## Configuration
 
-`scripts/setup` seeds `inventory/group_vars/all.yml` automatically on a fresh
-clone, filling in the user, home directory and hostname. To do it by hand, or
-to reset it, copy the [example](https://github.com/irish1986/dotfiles/blob/main/docs/examples/group_vars-all.yml) and adjust it. `all.yml` is
-gitignored because it holds machine identity.
+Machine configuration lives in `inventory/group_vars/all.yml`, which is
+gitignored because it holds identity. `scripts/setup` seeds it from
+[`docs/examples/group_vars-all.yml`](docs/examples/group_vars-all.yml) on a fresh
+clone, filling in your user, home directory and hostname. To reset it:
 
 ```bash
 cp ~/.dotfiles/docs/examples/group_vars-all.yml ~/.dotfiles/inventory/group_vars/all.yml
 ```
 
-## Reference
+`dotfiles_roles` in that file decides which roles run.
 
-This repo is heavily influenced by:
+## Local development
 
- 1. [ALT-F4-LLC](https://github.com/ALT-F4-LLC/dotfiles)
- 2. [TechDufus](https://github.com/TechDufus/dotfiles)
+```bash
+uv run mkdocs serve                # docs at http://127.0.0.1:8000
+prek run --all-files               # every lint hook
+scripts/check-structure            # role layout checks
+ansible-playbook main.yml --check  # preview, change nothing
+```
+
+## Contributing
+
+Commit conventions and the release process are in
+[CONTRIBUTING.md](.github/CONTRIBUTING.md). Releases are automated by
+release-please; there is nothing to run by hand.
+
+## Credits
+
+Heavily influenced by [ALT-F4-LLC](https://github.com/ALT-F4-LLC/dotfiles) and
+[TechDufus](https://github.com/TechDufus/dotfiles).
+
+## Licence
+
+MIT — see [LICENSE](.github/LICENSE).
