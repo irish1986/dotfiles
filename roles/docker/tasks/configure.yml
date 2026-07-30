@@ -23,7 +23,7 @@
   become: true
   notify: Docker | Restart docker
 
-- name: "Docker | Add {{ dotfiles_user }} to the docker group"
+- name: "Docker | Add the login user to the docker group: {{ dotfiles_user }}"
   ansible.builtin.user:
     name: "{{ dotfiles_user }}"
     groups: docker

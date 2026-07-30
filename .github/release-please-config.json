@@ -1,0 +1,69 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "bump-minor-pre-major": false,
+  "bump-patch-for-minor-pre-major": false,
+  "changelog-sections": [
+    {
+      "section": "Features",
+      "type": "feat"
+    },
+    {
+      "section": "Bug Fixes",
+      "type": "fix"
+    },
+    {
+      "section": "Performance",
+      "type": "perf"
+    },
+    {
+      "section": "Reverts",
+      "type": "revert"
+    },
+    {
+      "section": "Refactoring",
+      "type": "refactor"
+    },
+    {
+      "section": "Documentation",
+      "type": "docs"
+    },
+    {
+      "section": "Build System",
+      "type": "build"
+    },
+    {
+      "hidden": true,
+      "section": "CI/CD",
+      "type": "ci"
+    },
+    {
+      "hidden": true,
+      "section": "Miscellaneous",
+      "type": "chore"
+    },
+    {
+      "hidden": true,
+      "section": "Styling",
+      "type": "style"
+    },
+    {
+      "hidden": true,
+      "section": "Tests",
+      "type": "test"
+    }
+  ],
+  "draft": false,
+  "include-component-in-tag": false,
+  "include-v-in-tag": true,
+  "packages": {
+    ".": {
+      "changelog-path": "CHANGELOG.md",
+      "package-name": "dotfiles"
+    }
+  },
+  "prerelease": false,
+  "pull-request-header": "Automated release PR. Merging this creates the tag and the GitHub Release.",
+  "pull-request-title-pattern": "chore(main): release ${version}",
+  "release-type": "simple",
+  "separate-pull-requests": false
+}

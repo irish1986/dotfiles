@@ -23,7 +23,7 @@
 # A map is a permanent lie the moment the vendor catches up and someone has to
 # notice and delete it; the probe self-heals on the next run. 403 and 404 both
 # mean "not published here" for the CDNs in use.
-- name: "Apt Repo | Probe {{ apt_repo_name }} for suite {{ apt_repo_suite }}"
+- name: "Apt Repo | Probe the requested suite: {{ apt_repo_name ~ ' ' ~ apt_repo_suite }}"
   ansible.builtin.uri:
     url: "{{ apt_repo_uri }}/dists/{{ apt_repo_suite }}/Release"
     method: HEAD
@@ -40,21 +40,21 @@
     - apt_repo_probe | bool
     - apt_repo_suite_fallback | length > 0
 
-- name: "Apt Repo | Select the effective suite for {{ apt_repo_name }}"
+- name: "Apt Repo | Select the effective suite: {{ apt_repo_name }}"
   ansible.builtin.set_fact:
     apt_repo_effective_suite: >-
       {{ apt_repo_suite
          if (apt_repo_probe_result.status | default(200)) == 200
          else apt_repo_suite_fallback }}
 
-- name: "Apt Repo | Report the suite fallback for {{ apt_repo_name }}"
+- name: "Apt Repo | Report the suite fallback: {{ apt_repo_name }}"
   ansible.builtin.debug:
     msg: >-
       {{ apt_repo_name }} does not publish a suite for
       {{ apt_repo_suite }} yet; falling back to {{ apt_repo_effective_suite }}.
   when: apt_repo_effective_suite != apt_repo_suite
 
-- name: "Apt Repo | Configure {{ apt_repo_name }}"
+- name: "Apt Repo | Configure the repository: {{ apt_repo_name }}"
   ansible.builtin.deb822_repository:
     name: "{{ apt_repo_name }}"
     types: "{{ apt_repo_types }}"
@@ -69,7 +69,7 @@
   become: true
   register: apt_repo_configured
 
-- name: "Apt Repo | Refresh the apt cache for {{ apt_repo_name }}"
+- name: "Apt Repo | Refresh the apt cache: {{ apt_repo_name }}"
   ansible.builtin.apt:
     update_cache: true
   become: true

@@ -1,0 +1,87 @@
+---
+name: Dependabot Auto-Merge
+run-name: Auto-merge check for ${{ github.event.pull_request.title }}
+
+# Replaces the previous label-then-batch-merge pair, which had five problems:
+#
+#   1. It could not fire at all. It keyed on a workflow_run for "CI - Pull
+#      Request", a workflow name that stopped existing when those files became
+#      unparseable, so no PR was ever labelled.
+#   2. The batch job ran up to 24h after the label was applied and used
+#      `gh pr merge --squash` without --auto, so GitHub was never asked whether
+#      checks were green *now*. A dependency broken by an overnight sibling merge
+#      went straight into main.
+#   3. The branch filter `*-minor-patch-*` never matched
+#      dependabot/pre-commit/pre-commit-all-<hash>, so pre-commit updates were
+#      silently excluded forever.
+#   4. Nothing removed the label on failure, so an unmergeable PR was retried and
+#      warned every morning indefinitely.
+#   5. It reimplemented a feature already enabled on this repository.
+#
+# `gh pr merge --auto` hands the "is it green now" decision to GitHub, which
+# re-evaluates continuously and merges the instant the last required check
+# passes. No label, no cron, no queue, no stale state.
+on: # yamllint disable-line rule:truthy
+  pull_request_target:
+    branches:
+      - main
+    types:
+      - opened
+      - reopened
+      - synchronize
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  auto-merge:
+    name: Enable Auto-Merge
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+
+    # pull_request_target, not pull_request: for Dependabot-triggered
+    # pull_request events GitHub downgrades GITHUB_TOKEN to read-only and
+    # withholds secrets, so an explicit pull-requests: write block is silently
+    # ignored and `gh pr merge` fails with a 403.
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      # There is deliberately no actions/checkout in this job. pull_request_target
+      # runs in the base-repo context with a writable token, so executing any
+      # code from the PR head would be a privilege-escalation path. This
+      # constraint is load-bearing -- do not add a checkout here.
+      - name: Fetch Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Approve and enable auto-merge
+        if: steps.metadata.outputs.update-type != 'version-update:semver-major'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: |
+          set -euo pipefail
+          # Harmless while the ruleset requires zero approvals, and means a
+          # review requirement can be added later without deadlocking bot PRs.
+          gh pr review --approve "${PR_URL}"
+          # --squash, not --merge: allow_merge_commit is false on this repository,
+          # which is why the org's reusable-dependabot-auto.yml cannot be used
+          # here as-is.
+          gh pr merge --auto --squash "${PR_URL}"
+
+      - name: Flag major updates for review
+        if: steps.metadata.outputs.update-type == 'version-update:semver-major'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: gh pr edit "${PR_URL}" --add-label "type/major"
