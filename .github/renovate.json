@@ -1,31 +1,53 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "ansible-galaxy": {
-    "managerFilePatterns": [
-      "/(^|/)collections/.+\\.ya?ml(?:\\.j2)?$/"
-    ]
-  },
+  "dependencyDashboard": true,
   "dependencyDashboardTitle": "Renovate Dashboard",
+  "enabledManagers": [
+    "ansible-galaxy"
+  ],
   "extends": [
     "config:recommended",
-    ":disableRateLimiting",
-    ":timezone(America/New_York)",
-    ":semanticCommits"
+    ":semanticCommits",
+    ":semanticCommitTypeAll(chore)",
+    ":timezone(America/Toronto)"
+  ],
+  "labels": [
+    "dependencies",
+    "ansible",
+    "renovate/ansible"
   ],
   "packageRules": [
     {
-      "groupName": "all non-major dependencies",
-      "groupSlug": "all-minor-patch",
-      "matchPackageNames": [
-        "*"
+      "addLabels": [
+        "type/minor"
+      ],
+      "automerge": true,
+      "automergeType": "pr",
+      "groupName": "ansible collections",
+      "groupSlug": "ansible-collections",
+      "matchManagers": [
+        "ansible-galaxy"
       ],
       "matchUpdateTypes": [
         "minor",
         "patch"
+      ],
+      "platformAutomerge": true
+    },
+    {
+      "addLabels": [
+        "type/major"
+      ],
+      "automerge": false,
+      "matchManagers": [
+        "ansible-galaxy"
+      ],
+      "matchUpdateTypes": [
+        "major"
       ]
     }
   ],
-  "pre-commit": {
-    "enabled": true
-  }
+  "schedule": [
+    "before 6am on monday"
+  ]
 }

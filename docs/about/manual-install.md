@@ -1,23 +1,28 @@
-# Install
+# Manual setup
 
-This repo is build with automation and fast execution as a key principal.  Although, sometimes it makes sense to setup your workstation manually.  Here how to manually setup and install my `.dotfiles` configuration.  This guide is really a simplified version and does not include all tasks and steps automated.
+**This is a reference, not the install path.** This page documents by hand
+roughly what the playbook does for you -- to explain the automation, and to
+bootstrap a machine where you cannot run Ansible. For a normal install see
+[Getting started](../getting-started/index.md).
+
+It is a simplified account and does not cover every task the roles perform.
 
 ## Setup Windows Terminal
 
 > [!NOTE]
 > Windows Terminal requires Windows 10 2004 (build 19041) or later
 
-Install the [Windows Terminal from the Microsoft Store](store-install-link).  This allows you to always be on the latest version when we release new builds with automatic upgrades.
+Install the [Windows Terminal from the Microsoft Store](https://aka.ms/terminal).  This allows you to always be on the latest version when we release new builds with automatic upgrades.
 
-## Setup additionals fonts
+## Setup Nerd Fonts
 
 Nerd Fonts patches developer targeted fonts with a high number of glyphs (icons). Specifically to add a high number of extra glyphs from popular `iconic fonts`.  This setup
 
-Download your prefered fonts from [Nerd Fonts Downloads](https://www.nerdfonts.com/font-downloads); my favorite is [Hack Nerd Font](https://github.com/ryanoasis/nerd-fonts/releases/download/v3.2.1/Hack.zip).
+Download your preferred fonts from [Nerd Fonts Downloads](https://www.nerdfonts.com/font-downloads); my favorite is [Hack Nerd Font](https://github.com/ryanoasis/nerd-fonts/releases/latest).
 
 Navigate to `Settings => Personalisation => Fonts` and install the downloaded fonts.
 
-Open `Windows Terminal`, navigate to `Default => Apperance => Font Face` and select your custom fonts to be used as default for all Terminal shell.
+Open `Windows Terminal`, navigate to `Default => Appearance => Font Face` and select your custom fonts to be used as default for all Terminal shell.
 
 ## Setup WSL
 
@@ -45,6 +50,8 @@ sudo apt install curl git wget -y
 
 ## Setup ZSH
 
+*Automated by the [zsh role](../roles/zsh.md).*
+
 The Z shell (Zsh) is a Unix shell that can be used as an interactive login shell and as a command interpreter for shell scripting. Zsh is an extended Bourne shell with many improvements and is POSIX compliant.
 
 ```bash
@@ -52,6 +59,8 @@ sudo apt install zsh -y
 ```
 
 ### Setup OMZ
+
+*Automated by the [zsh role](../roles/zsh.md).*
 
 Oh My Zsh is a delightful, open source, community-driven framework for managing your Zsh configuration. It comes bundled with thousands of helpful functions, helpers, plugins, themes, and a few things that make you shout...
 
@@ -70,6 +79,8 @@ source $ZSH/oh-my-zsh.sh
 
 ### Setup P10K theme
 
+*Automated by the [zsh role](../roles/zsh.md).*
+
 Install [Powerlevel10k](https://github.com/romkatv/powerlevel10k) a Zsh theme
 
 > [!NOTE]
@@ -83,6 +94,8 @@ git clone https://github.com/romkatv/powerlevel10k.git ${ZSH_CUSTOM:-~/.oh-my-zs
 Edit your `~/.zshrc` and replace with `ZSH_THEME="powerlevel10k/powerlevel10k"` and run `source ~/.zshrc`.  You will be `p10k configure` will run automatically, follow the wizard configuration steps as per your desired.
 
 ### Setup plugins
+
+*Automated by the [zsh role](../roles/zsh.md).*
 
 OMZ comes with many plugins improving `zsh` experience.  Let's install the following dependencies.
 
@@ -153,6 +166,8 @@ plugins=(
 
 ### Setup aliases and env
 
+*Automated by the [zsh role](../roles/zsh.md).*
+
 `.zshaliases` Command line aliases are very useful, allowing you to have command shortcuts for lengthier commands.
 
 ```bash
@@ -173,6 +188,8 @@ cat ~/.zshenv
 
 ## Setup TMUX
 
+*Automated by the [tmux role](../roles/tmux.md).*
+
 tmux is a terminal multiplexer. It lets you switch easily between several programs in one terminal, detach them (they keep running in the background) and reattach them to a different terminal
 
 ```bash
@@ -181,13 +198,15 @@ sudo apt install tmux -y
 
 ### Setup TPM
 
+*Automated by the [tmux role](../roles/tmux.md).*
+
 Tmux Plugin Manager (TPM) is a TMUX plugin manager, just like OMZ but for TMUX.
 
 ```bash
 git clone https://github.com/tmux-plugins/tpm ~/.config/tmux/plugins/tpm
 ```
 
-TMUX configuration can be rather complexe to explain, just get this files you should be good to go.
+TMUX configuration can be rather complex to explain, just get this files you should be good to go.
 
 ```bash
 cd ~/.config/tmux/
@@ -209,10 +228,12 @@ plugins=(
 
 TMUX will be launch automatically upon opening a terminal session.  For the first setup you need to enter the following keystroke:
 
-`ctrl+spacebar` followd by `shift+i` which will trigger Tmux Plugin Manager and install dependencies.
+`ctrl+spacebar` followed by `shift+i` which will trigger Tmux Plugin Manager and install dependencies.
 You can manually run `tmux source ~/.config/tmux/tmux.conf` to reload tmux configuration
 
 ## Setup ansible
+
+*Automated by the [ansible_tools role](../roles/ansible_tools.md).*
 
 If you plan to run this automated playbook and edit `all.yml` configuration files.
 

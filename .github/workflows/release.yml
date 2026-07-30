@@ -1,0 +1,70 @@
+---
+name: Release
+run-name: Release check triggered by ${{ github.actor }}
+
+on: # yamllint disable-line rule:truthy
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  # release-please maintains a standing "chore(main): release X.Y.Z" pull request
+  # and creates the tag and GitHub Release when it merges.
+  #
+  # It is used rather than `cz bump` or semantic-release because both push a bump
+  # commit straight to main, and ruleset 6028081 enforces required_signatures on
+  # the default branch with an empty bypass list -- an unsigned bot push is
+  # rejected outright. release-please only writes to
+  # release-please--branches--main, and the tag is created through the API.
+  #
+  # RELEASE_TOKEN must be a PAT (or App token), not GITHUB_TOKEN: pull requests
+  # opened by GITHUB_TOKEN do not trigger `pull_request` workflows, so the
+  # release PR would get no checks at all and could never satisfy the required
+  # CI OK context.
+  release-please:
+    name: Release Please
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+
+    steps:
+      - name: Run release-please
+        id: release
+        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
+        with:
+          token: ${{ secrets.RELEASE_TOKEN }}
+          config-file: .github/release-please-config.json
+          manifest-file: .github/.release-please-manifest.json
+
+      - name: Summarise
+        env:
+          RELEASE_CREATED: ${{ steps.release.outputs.release_created }}
+          TAG_NAME: ${{ steps.release.outputs.tag_name }}
+          PR_NUMBER: ${{ steps.release.outputs.pr && fromJSON(steps.release.outputs.pr).number || '' }}
+        run: |
+          set -euo pipefail
+          if [[ "${RELEASE_CREATED}" == "true" ]]; then
+            {
+              printf '### Released `%s`\n\n' "${TAG_NAME}"
+              printf 'https://github.com/%s/releases/tag/%s\n' "${GITHUB_REPOSITORY}" "${TAG_NAME}"
+            } >> "${GITHUB_STEP_SUMMARY}"
+          elif [[ -n "${PR_NUMBER}" ]]; then
+            printf '### Release PR updated: #%s\n' "${PR_NUMBER}" >> "${GITHUB_STEP_SUMMARY}"
+          else
+            printf '### No releasable changes since the last release.\n' >> "${GITHUB_STEP_SUMMARY}"
+          fi

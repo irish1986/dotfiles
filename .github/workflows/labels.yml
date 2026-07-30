@@ -1,0 +1,56 @@
+---
+name: Labels
+run-name: Repository label sync triggered by ${{ github.actor }}
+
+on: # yamllint disable-line rule:truthy
+  push:
+    # branches was missing: without it this fired on any branch touching the
+    # files below, so a PR editing labels.yml mutated repository-wide labels
+    # before review.
+    branches:
+      - main
+    paths:
+      - .github/labels.yml
+      - .github/workflows/labels.yml
+  # A sibling of push, not a child of it. Previously nested one level deeper,
+  # which YAML accepted as an unknown key of `push` -- so the scheduled sync
+  # never ran at all.
+  schedule:
+    - cron: "0 3 * * 1"
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: Report the changes without applying them
+        type: boolean
+        default: true
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  labels:
+    name: Sync Labels
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+
+    permissions:
+      contents: read
+      issues: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Sync labels
+        uses: crazy-max/ghaction-github-labeler@548a7c3603594ec17c819e1239f281a3b801ab4d # v6.0.0
+        with:
+          yaml-file: .github/labels.yml
+          # true, deliberately. With false, any label absent from labels.yml is
+          # deleted repository-wide and stripped from every issue and PR that
+          # carries it. Flip only after a dry-run dispatch shows an acceptable
+          # diff.
+          skip-delete: true
+          dry-run: ${{ github.event_name == 'workflow_dispatch' && inputs.dry-run || false }}
