@@ -1,0 +1,35 @@
+---
+- name: GGShield | Resolve the release to install
+  when: ggshield_version | length == 0
+  block:
+    - name: GGShield | Query the latest release
+      ansible.builtin.uri:
+        url: "{{ ggshield_releases_api }}"
+        headers: "{{ dotfiles_github_headers }}"
+      register: ggshield_release
+      changed_when: false
+      check_mode: false
+
+    - name: GGShield | Register the latest release
+      ansible.builtin.set_fact:
+        ggshield_resolved_version: "{{ ggshield_release.json.tag_name | regex_replace('^v', '') }}"
+
+- name: GGShield | Register the pinned release
+  ansible.builtin.set_fact:
+    ggshield_resolved_version: "{{ ggshield_version | regex_replace('^v', '') }}"
+  when: ggshield_version | length > 0
+
+# dpkg's record rather than `ggshield --version`, so the guard compares the same string apt would install and does not re-fetch a 30 MB .deb on every run.
+- name: GGShield | Query the installed version
+  ansible.builtin.command: dpkg-query -W -f='${Version}' {{ ggshield_package_name }}
+  register: ggshield_installed
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: GGShield | Install the upstream release
+  ansible.builtin.apt:
+    deb: "{{ ggshield_release_url }}"
+    state: present
+  become: true
+  when: ggshield_installed.stdout is not search('^' ~ (ggshield_resolved_version | regex_escape))

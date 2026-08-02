@@ -3,7 +3,7 @@ galaxy_info:
   role_name: git
   namespace: dotfiles
   author: irish1986
-  description: git, git-lfs, gh and the global git configuration.
+  description: git, git-lfs and the global git configuration.
   license: MIT
   min_ansible_version: "2.16"
   platforms:
@@ -11,6 +11,5 @@ galaxy_info:
       versions:
         - jammy
         - noble
-# Always empty. Role dependencies bypass dotfiles_roles selection and execute
-# silently; ordering is expressed once, in that list.
+# Always empty. Role dependencies bypass dotfiles_roles selection and execute silently; ordering is expressed once, in that list.
 dependencies: []

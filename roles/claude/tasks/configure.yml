@@ -1,0 +1,37 @@
+---
+- name: Claude | Ensure the configuration directory exists
+  ansible.builtin.file:
+    path: "{{ claude_config_dir }}"
+    state: directory
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0700"
+
+# force: false is the whole point: settings.json is seeded once and then belongs to the user. Claude Code writes to it whenever /config changes a setting, and a managed template would silently revert every one of those edits on the next run.
+- name: Claude | Seed the settings file
+  ansible.builtin.copy:
+    content: "{{ claude_settings | to_nice_json }}\n"
+    dest: "{{ claude_settings_file }}"
+    force: false
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0600"
+
+- name: Claude | Write the global instructions
+  ansible.builtin.blockinfile:
+    path: "{{ claude_instructions_file }}"
+    marker: "<!-- {mark} ANSIBLE MANAGED BLOCK -->"
+    create: true
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0644"
+    block: |
+      # Global instructions
+
+      Managed by the dotfiles repository (roles/claude). Edits inside the markers are overwritten;
+      add anything of your own outside them.
+
+      - Conventional Commits for every commit message.
+      - Match the surrounding code: its naming, its comment density, its idioms.
+      - Say what was verified and what was not. Never report a check as passing without running it.
+  when: claude_manage_instructions | bool

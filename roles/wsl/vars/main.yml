@@ -3,8 +3,7 @@ wsl_conf_path: /etc/wsl.conf
 wsl_local_bin: "{{ dotfiles_home }}/.local/bin"
 wsl_win32yank_path: "{{ dotfiles_home }}/.local/bin/win32yank.exe"
 
-# Absolute, not PATH-resolved. Interop binaries are only on PATH when
-# appendWindowsPath is on, and this role must keep working if it is turned off.
+# Absolute, not PATH-resolved. Interop binaries are only on PATH when appendWindowsPath is on, and this role must keep working if it is turned off.
 wsl_system32: /mnt/c/Windows/System32
 wsl_cmd: /mnt/c/Windows/System32/cmd.exe
 wsl_powershell: /mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe
@@ -15,8 +14,7 @@ wsl_terminal_candidates:
   - "{{ wsl_windows_home }}/AppData/Local/Packages/Microsoft.WindowsTerminalPreview_8wekyb3d8bbwe/LocalState/settings.json"
   - "{{ wsl_windows_home }}/AppData/Local/Microsoft/Windows Terminal/settings.json"
 
-# Written by the previous implementation, which omitted the LocalState/ path
-# segment and so left a file Terminal has never read.
+# Written by the previous implementation, which omitted the LocalState/ path segment and so left a file Terminal has never read.
 wsl_terminal_stray_settings:
   - "{{ wsl_windows_home }}/AppData/Local/Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/settings.json"
   - "{{ wsl_windows_home }}/AppData/Local/Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/elevated-state.json"

@@ -1,18 +1,13 @@
 #!/usr/bin/env python3
 """Generate documentation pages at build time.
 
-Run by mkdocs-gen-files during `mkdocs build`. Nothing here is written into
-docs/ -- pages go into MkDocs' in-memory file tree -- so generated content
-cannot be committed stale, edited by mistake, or drift from the roles it
-describes.
+Run by mkdocs-gen-files during `mkdocs build`. Nothing here is written into docs/ -- pages go into MkDocs' in-memory file tree -- so generated content cannot be committed stale, edited by mistake, or drift from the roles it describes.
 
 What is generated:
 
-  roles/<role>.md      one page per role, from defaults/, vars/, meta/, tasks/,
-                       handlers/, files/ and templates/
-  roles/index.md       the role matrix, including whether each role is in the
-                       default selection
-  roles/SUMMARY.md     nav for the roles section (mkdocs-literate-nav)
+  roles/<role>.md           docs/roles/<role>.md plus tables derived from the role
+  roles/index.md            the role matrix, and the default selection
+  roles/SUMMARY.md          nav for the roles section (mkdocs-literate-nav)
   reference/variables.md    every key in the example group_vars
   reference/collections.md  the pinned Galaxy collections
   about/changelog.md        mirror of /CHANGELOG.md
@@ -20,8 +15,7 @@ What is generated:
   contributing/security.md  mirror of .github/SECURITY.md
   about/licence.md          mirror of .github/LICENSE
 
-Mirrored files have no copy under docs/, so the single source of truth stays
-where GitHub expects to find it.
+A role page replaces its source page in the file tree, so the prose is authored under docs/ like every other page while the mechanical half cannot be edited by hand. Mirrored files have no copy under docs/, so the single source of truth stays where GitHub expects to find it.
 """
 
 from __future__ import annotations
@@ -36,14 +30,14 @@ import yaml
 
 ROOT = Path(__file__).resolve().parent.parent
 ROLES_DIR = ROOT / "roles"
+ROLE_DOCS_DIR = ROOT / "docs" / "roles"
 REPO_URL = "https://github.com/irish1986/dotfiles"
 BLOB = f"{REPO_URL}/blob/main"
 
 # Internal helpers, not user-selectable roles.
 HELPER_ROLES = {"apt_repo"}
 
-# Set MKDOCS_STRICT_ROLES=1 to fail the build when a role has no README. Left
-# off by default so the site builds while READMEs are still being written.
+# Set MKDOCS_STRICT_ROLES=1 to fail the build when a role has no page under docs/roles/. Left off by default so the site builds while they are still being written.
 STRICT = os.environ.get("MKDOCS_STRICT_ROLES") == "1"
 
 problems: list[str] = []
@@ -68,8 +62,7 @@ def default_roles() -> list[str]:
 def doc_comments(path: Path) -> dict[str, str]:
     """Map each top-level key to the comment block immediately above it.
 
-    Comments are where the *reason* for a default lives, and that is the part
-    worth publishing -- the value itself is already visible.
+    Comments are where the *reason* for a default lives, and that is the part worth publishing -- the value itself is already visible.
     """
     if not path.is_file():
         return {}
@@ -160,30 +153,25 @@ def render_role(role: Path, defaults_order: list[str]) -> str:
     defaults = load_yaml(role / "defaults" / "main.yml") or {}
     comments = doc_comments(role / "defaults" / "main.yml")
     facts = role_facts(role)
-    readme = role / "README.md"
+    prose = ROLE_DOCS_DIR / f"{name}.md"
 
     lines: list[str] = [f"# {name}", ""]
 
     if info.get("description"):
         lines += [str(info["description"]).strip(), ""]
 
-    if readme.is_file():
-        body = readme.read_text().strip()
+    if prose.is_file():
+        body = prose.read_text().strip()
         # Drop the H1: this page already has one, and two would trip MD025.
         body = re.sub(r"\A#\s+\S.*\n+", "", body)
-        # A README links as ../../docs/x.md, which is correct when browsing
-        # roles/<role>/README.md on GitHub. The rendered page lives at
-        # roles/<role>.md, one level shallower, so the prefix is rewritten here
-        # rather than making the READMEs wrong in one of the two places.
-        body = body.replace("../../docs/", "../")
         # Demote the rest so they nest under the generated H1.
         body = re.sub(r"^(#{2,5})\s", r"#\1 ", body, flags=re.M)
         lines += [body, ""]
     else:
-        problems.append(f"roles/{name}: no README.md")
+        problems.append(f"docs/roles/{name}.md: missing")
         lines += [
             "!!! warning \"Undocumented\"",
-            f"    `roles/{name}/README.md` does not exist yet, so this page shows",
+            f"    `docs/roles/{name}.md` does not exist yet, so this page shows",
             "    only what could be derived from the role's source.",
             "",
         ]
@@ -278,9 +266,10 @@ def main() -> None:
     summary = ["* [Overview](index.md)"]
     for role in roles:
         page = f"roles/{role.name}.md"
+        # Writing to the same src_uri as docs/roles/<role>.md replaces it in the file tree, so the published page is prose plus generated tables and the edit link still lands on the hand-written half.
         with mkdocs_gen_files.open(page, "w") as handle:
             handle.write(render_role(role, order))
-        mkdocs_gen_files.set_edit_path(page, f"roles/{role.name}/README.md")
+        mkdocs_gen_files.set_edit_path(page, page)
         summary.append(f"* [{role.name}]({role.name}.md)")
 
     with mkdocs_gen_files.open("roles/SUMMARY.md", "w") as handle:

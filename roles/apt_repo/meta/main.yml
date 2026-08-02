@@ -4,8 +4,7 @@ galaxy_info:
   namespace: dotfiles
   author: irish1986
   description: >-
-    Configure a third-party apt repository as a deb822 .sources file, probing
-    the requested suite and falling back when the vendor lags a new release.
+    Configure a third-party apt repository as a deb822 .sources file, probing the requested suite and falling back when the vendor lags a new release.
   license: MIT
   min_ansible_version: "2.16"
   platforms:

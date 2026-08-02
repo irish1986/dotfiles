@@ -2,9 +2,7 @@
 #
 # scripts/setup - bootstrap and re-apply the irish1986/dotfiles Ansible playbook.
 #
-# Bootstrap from a bare Ubuntu install. Note the form: `bash -c "$(curl ...)"`
-# passes the script as argv[1], so stdin stays attached to the terminal and
-# prompts (sudo, --ask-become-pass) work. `curl | bash` would consume stdin.
+# Bootstrap from a bare Ubuntu install. Note the form: `bash -c "$(curl ...)"` passes the script as argv[1], so stdin stays attached to the terminal and prompts (sudo, --ask-become-pass) work. `curl | bash` would consume stdin.
 #
 #   bash -c "$(curl -fsSL https://raw.githubusercontent.com/irish1986/dotfiles/main/scripts/setup)"
 #
@@ -12,8 +10,7 @@
 #
 #   ~/.dotfiles/scripts/setup --tags zsh,git --check
 #
-# Designed to be run repeatedly. Being unable to update must never stop a
-# bootstrap, so every non-essential step degrades to a warning. See --help.
+# Designed to be run repeatedly. Being unable to update must never stop a bootstrap, so every non-essential step degrades to a warning. See --help.
 
 set -Eeuo pipefail
 
@@ -26,15 +23,11 @@ readonly REPO_SSH="git@github.com:${REPO_SLUG}.git"
 
 readonly MIN_OS_VERSION="22.04"
 
-# Floor is the strictest requires_ansible among the pinned collections in
-# collections/requirements.yml. Ceiling is because ansible-core 2.24 removes
-# INJECT_FACTS_AS_VARS, which every role in this repo still relies on.
+# Floor is the strictest requires_ansible among the pinned collections in collections/requirements.yml. Ceiling is because ansible-core 2.24 removes INJECT_FACTS_AS_VARS, which every role in this repo still relies on.
 readonly ANSIBLE_CORE_SPEC="ansible-core>=2.16,<2.24"
 readonly MIN_ANSIBLE_CORE="2.16"
 
-# Injected into the ansible-core environment rather than installed as separate
-# tools: bitwarden.secrets.lookup runs controller-side and must be importable by
-# the interpreter running ansible-playbook.
+# Injected into the ansible-core environment rather than installed as separate tools: bitwarden.secrets.lookup runs controller-side and must be importable by the interpreter running ansible-playbook.
 readonly -a ANSIBLE_CORE_EXTRAS=(bitwarden-sdk)
 
 readonly STATE_DIR="${XDG_STATE_HOME:-${HOME}/.local/state}/dotfiles"
@@ -44,9 +37,7 @@ readonly LOCAL_BIN="${HOME}/.local/bin"
 readonly LOG_KEEP=10
 readonly LOG_TAIL=40
 
-# Every apt call goes through these. DPkg::Lock::Timeout matters more than it
-# looks: roles/update installs and enables unattended-upgrades, so run N arms
-# the daemon that holds the dpkg lock and breaks run N+1.
+# Every apt call goes through these. DPkg::Lock::Timeout matters more than it looks: roles/update installs and enables unattended-upgrades, so run N arms the daemon that holds the dpkg lock and breaks run N+1.
 readonly -a APT_ENV=(
   DEBIAN_FRONTEND=noninteractive
   DEBCONF_NONINTERACTIVE_SEEN=true
@@ -103,9 +94,7 @@ OPT_REMOTE_PROTOCOL="auto"
 
 #--- Output -------------------------------------------------------------------
 #
-# Every printf below uses a *constant* format string, with all variable data
-# passed as %s arguments. A '%' in a package name or a git error can therefore
-# never corrupt the output, which the previous version could not promise.
+# Every printf below uses a *constant* format string, with all variable data passed as %s arguments. A '%' in a package name or a git error can therefore never corrupt the output, which the previous version could not promise.
 
 setup_colors() {
   if [[ -t 1 ]]; then
@@ -126,10 +115,7 @@ info() { printf '%s   ->  %s%s\n' "$C_BLUE" "$1" "$C_RESET"; }
 warn() { printf '%s  [!]  %s%s\n' "$C_YELLOW" "$1" "$C_RESET" >&2; }
 oops() { printf '%s  [x]  %s%s\n' "$C_RED" "$1" "$C_RESET" >&2; }
 
-# task_begin prints a pending line; task_ok replaces it. A [v] therefore only
-# ever appears after the work actually succeeded -- the previous version printed
-# the *previous* task as complete regardless of outcome, and marked the playbook
-# done before running it.
+# task_begin prints a pending line; task_ok replaces it. A [v] therefore only ever appears after the work actually succeeded -- the previous version printed the *previous* task as complete regardless of outcome, and marked the playbook done before running it.
 task_begin() {
   TASK="$1"
   printf '%s  [ ]  %s%s\n' "$C_DIM" "$TASK" "$C_RESET"
@@ -159,9 +145,7 @@ init_state() {
   printf 'dotfiles setup %s\n' "$SETUP_VERSION" >> "$LOG_FILE"
 }
 
-# The log is appended to, never truncated, and never deleted on failure. The
-# previous version truncated it on every command and rm'd it before exiting,
-# which made post-mortem debugging impossible.
+# The log is appended to, never truncated, and never deleted on failure. The previous version truncated it on every command and rm'd it before exiting, which made post-mortem debugging impossible.
 log_tail() {
   [[ -s $LOG_FILE ]] || return 0
   printf '%s  --- last %s lines of %s ---%s\n' "$C_DIM" "$LOG_TAIL" "$LOG_FILE" "$C_RESET" >&2
@@ -183,10 +167,7 @@ prune_logs() {
 
 #--- Command execution --------------------------------------------------------
 #
-# No eval. Commands are argv arrays, so quoting hazards and shell injection via
-# $HOME/$USER/$HOSTNAME are gone by construction. stdin is /dev/null for logged
-# commands: anything that would prompt fails fast instead of hanging on a blank
-# screen, which was the previous version's worst failure mode.
+# No eval. Commands are argv arrays, so quoting hazards and shell injection via $HOME/$USER/$HOSTNAME are gone by construction. stdin is /dev/null for logged commands: anything that would prompt fails fast instead of hanging on a blank screen, which was the previous version's worst failure mode.
 
 run() {
   local status=0
@@ -307,7 +288,7 @@ Options:
       --no-reexec         do not hand over to the freshly checked-out script
       --generate-ssh-key  create ~/.ssh/id_ed25519 if absent
       --remote-protocol P origin protocol after provisioning: auto|ssh|https
-  -y, --yes               assume yes for all prompts
+  -y, --yes               assume yes for all prompts, including the playbook's
   -v, --verbose           increase ansible verbosity (repeatable)
   -h, --help              show this help
       --version           show the script version
@@ -414,8 +395,7 @@ parse_args() {
         PASSTHROUGH=("$@")
         break
         ;;
-      # An unknown option is an error rather than being forwarded silently, so a
-      # typo cannot become an accidental --limit.
+      # An unknown option is an error rather than being forwarded silently, so a typo cannot become an accidental --limit.
       -*)
         oops "Unknown option: $1"
         printf '      Extra ansible arguments go after --\n' >&2
@@ -436,8 +416,7 @@ detect_os() {
     oops "/etc/os-release is missing; cannot identify this system"
     return 1
   fi
-  # Sourced in a subshell so NAME, VERSION, ID and friends cannot clobber script
-  # state, which the previous version's bare `source` did.
+  # Sourced in a subshell so NAME, VERSION, ID and friends cannot clobber script state, which the previous version's bare `source` did.
   local line
   while IFS= read -r line; do
     case "$line" in
@@ -471,9 +450,7 @@ preflight() {
     return 1
   fi
 
-  # The previous version's unsupported-OS branch ran `echo`, which exits 0, so
-  # Debian, Fedora and Arch fell straight through to ansible-playbook with
-  # ansible never installed.
+  # The previous version's unsupported-OS branch ran `echo`, which exits 0, so Debian, Fedora and Arch fell straight through to ansible-playbook with ansible never installed.
   if [[ $OS_ID != ubuntu ]]; then
     if [[ $OS_ID_LIKE == *debian* ]]; then
       warn "${OS_PRETTY:-$OS_ID} is Debian-like but untested; only Ubuntu is supported."
@@ -507,11 +484,7 @@ load_env_file() {
 
 #--- Sudo ---------------------------------------------------------------------
 #
-# Warming the ticket here covers this script's own apt calls. It does NOT cover
-# ansible: the local connection plugin runs `sudo -H -S -n` with all fds piped,
-# so it has no controlling tty, and sudo's default tty_tickets keys the
-# timestamp to the terminal -- the ticket created by an interactive `sudo -v`
-# does not satisfy that lookup. Hence --ask-become-pass below when needed.
+# Warming the ticket here covers this script's own apt calls. It does NOT cover ansible: the local connection plugin runs `sudo -H -S -n` with all fds piped, so it has no controlling tty, and sudo's default tty_tickets keys the timestamp to the terminal -- the ticket created by an interactive `sudo -v` does not satisfy that lookup. Hence --ask-become-pass below when needed.
 
 sudo_init() {
   if ! have sudo; then
@@ -548,8 +521,7 @@ ensure_base_packages() {
   local -a missing=()
   local pkg
   for pkg in "${BASE_PACKAGES[@]}"; do
-    # `dpkg -s` alone reports 0 for deinstall/config-files state, so the Status
-    # line is checked rather than the exit code.
+    # `dpkg -s` alone reports 0 for deinstall/config-files state, so the Status line is checked rather than the exit code.
     if ! dpkg -s "$pkg" 2> /dev/null | grep -q '^Status:.*ok installed'; then
       missing+=("$pkg")
     fi
@@ -617,13 +589,9 @@ ensure_uv() {
 
 # ansible-core is installed and used from uv, not apt and not the PPA:
 #
-#  * ppa:ansible/ansible ships the batteries-included `ansible` package, whose
-#    bundled collections shadow the five pinned in collections/requirements.yml,
-#    and the PPA may have no pocket at all for a brand-new LTS.
-#  * jammy's archive ansible-core is 2.12, below the >=2.16 those collections
-#    declare, so the distro package cannot satisfy this repo on 22.04.
-#  * PEP 668 blocks `pip install` into the system python on 24.04+, which is how
-#    the old bitwarden-sdk step was meant to work and never could.
+#  * ppa:ansible/ansible ships the batteries-included `ansible` package, whose bundled collections shadow the five pinned in collections/requirements.yml, and the PPA may have no pocket at all for a brand-new LTS.
+#  * jammy's archive ansible-core is 2.12, below the >=2.16 those collections declare, so the distro package cannot satisfy this repo on 22.04.
+#  * PEP 668 blocks `pip install` into the system python on 24.04+, which is how the old bitwarden-sdk step was meant to work and never could.
 ensure_ansible() {
   local uv_ansible="${LOCAL_BIN}/ansible-playbook"
   local installed=""
@@ -650,8 +618,7 @@ ensure_ansible() {
     task_ok
   fi
 
-  # Resolved by path rather than via PATH, so the run cannot silently pick up a
-  # different ansible that happens to come first.
+  # Resolved by path rather than via PATH, so the run cannot silently pick up a different ansible that happens to come first.
   ANSIBLE_PLAYBOOK_BIN="$uv_ansible"
   ANSIBLE_GALAXY_BIN="${LOCAL_BIN}/ansible-galaxy"
   if [[ ! -x $ANSIBLE_PLAYBOOK_BIN || ! -x $ANSIBLE_GALAXY_BIN ]]; then
@@ -667,11 +634,7 @@ ensure_ansible() {
 
 #--- Repository ---------------------------------------------------------------
 #
-# Every failure path here is a warning, not an error. Being unable to update
-# must never stop a bootstrap: the playbook on disk is still worth running. The
-# previous version's bare `git pull` exited 1 on a dirty tree, a diverged
-# history, a detached HEAD or a missing upstream -- and this repo is meant to be
-# edited locally, so that fired constantly.
+# Every failure path here is a warning, not an error. Being unable to update must never stop a bootstrap: the playbook on disk is still worth running. The previous version's bare `git pull` exited 1 on a dirty tree, a diverged history, a detached HEAD or a missing upstream -- and this repo is meant to be edited locally, so that fired constantly.
 
 ensure_repo() {
   if [[ ! -d $DOTFILES_DIR ]]; then
@@ -755,8 +718,7 @@ update_repo() {
   task_ok
 }
 
-# Bootstrapped over curl, the running script has no file on disk and may be
-# older than the one just cloned. Hand over once, guarded against loops.
+# Bootstrapped over curl, the running script has no file on disk and may be older than the one just cloned. Hand over once, guarded against loops.
 maybe_reexec() {
   local checked_out="${DOTFILES_DIR}/scripts/setup"
   if ((OPT_NO_REEXEC)); then
@@ -768,8 +730,7 @@ maybe_reexec() {
   if [[ ! -x $checked_out ]]; then
     return 0
   fi
-  # $0 is "bash" and BASH_SOURCE is unset under `bash -c "$(curl ...)"`, so the
-  # script genuinely cannot compare itself against the checkout.
+  # $0 is "bash" and BASH_SOURCE is unset under `bash -c "$(curl ...)"`, so the script genuinely cannot compare itself against the checkout.
   if [[ ${BASH_SOURCE[0]:-} == "$checked_out" ]]; then
     return 0
   fi
@@ -781,11 +742,7 @@ maybe_reexec() {
 
 #--- Configuration ------------------------------------------------------------
 #
-# inventory/group_vars/all.yml is gitignored, so a fresh clone does not have it.
-# Without it every role variable is undefined, and the playbook used to swallow
-# the resulting failures and report success. Seeding it here is the difference
-# between a real bootstrap and a silent no-op -- and is the single biggest reason
-# the old script "did not work all the time".
+# inventory/group_vars/all.yml is gitignored, so a fresh clone does not have it. Without it every role variable is undefined, and the playbook used to swallow the resulting failures and report success. Seeding it here is the difference between a real bootstrap and a silent no-op -- and is the single biggest reason the old script "did not work all the time".
 
 ensure_group_vars() {
   local target="${DOTFILES_DIR}/inventory/group_vars/all.yml"
@@ -813,8 +770,7 @@ ensure_group_vars() {
     -e "s|^dotfiles_hostname: .*|dotfiles_hostname: ${host}|" \
     "$example" > "$target"
 
-  # A reshuffle of the example must fail loudly rather than silently leaving the
-  # placeholder values in place.
+  # A reshuffle of the example must fail loudly rather than silently leaving the placeholder values in place.
   if ! grep -qx "dotfiles_user: ${USER}" "$target"; then
     task_fail
     oops "Seeding produced no dotfiles_user line; ${example} may have changed shape."
@@ -824,11 +780,7 @@ ensure_group_vars() {
   warn "Review ${target} -- git identity and role selection still need your values."
 }
 
-# Key *material* belongs to roles/ssh, which imports the Windows key on WSL and
-# manages authorized_keys. This only guarantees the directory and permissions.
-# The previous version guarded on authorized_keys while creating id_ed25519, so
-# an existing key with no authorized_keys meant ssh-keygen prompted to overwrite
-# -- hanging, or destroying the private key.
+# Key *material* belongs to roles/ssh, which imports the Windows key on WSL and manages authorized_keys. This only guarantees the directory and permissions. The previous version guarded on authorized_keys while creating id_ed25519, so an existing key with no authorized_keys meant ssh-keygen prompted to overwrite -- hanging, or destroying the private key.
 ensure_ssh_dir() {
   local dir="${HOME}/.ssh"
   task_begin "Securing ~/.ssh"
@@ -859,10 +811,7 @@ ensure_ssh_dir() {
 
 #--- Collections --------------------------------------------------------------
 #
-# Keyed on a checksum of the requirement file plus the ansible-core version.
-# Unchanged means skipped entirely; changed means --force, because without it
-# ansible-galaxy leaves an already-present collection alone regardless of the
-# version pinned, so bumping a pin had no effect on an existing machine.
+# Keyed on a checksum of the requirement file plus the ansible-core version. Unchanged means skipped entirely; changed means --force, because without it ansible-galaxy leaves an already-present collection alone regardless of the version pinned, so bumping a pin had no effect on an existing machine.
 
 install_collections() {
   local req="${DOTFILES_DIR}/collections/requirements.yml"
@@ -942,9 +891,11 @@ build_playbook_args() {
     done
     PLAYBOOK_ARGS+=("-${v}")
   fi
-  # ansible does not inherit the ticket warmed above (see sudo_init), so it is
-  # asked for a become password whenever passwordless sudo is unavailable. After
-  # one successful run roles/system grants NOPASSWD and this stops happening.
+  # --yes covers the playbook's confirmation prompt too, not just this script's. Without this, CI and any other unattended caller would reach the pause, get an empty answer from a non-interactive stdin, and abort.
+  if ((OPT_YES)); then
+    PLAYBOOK_ARGS+=(-e dotfiles_confirm=false)
+  fi
+  # ansible does not inherit the ticket warmed above (see sudo_init), so it is asked for a become password whenever passwordless sudo is unavailable. After one successful run roles/user grants NOPASSWD and this stops happening.
   if ! sudo -n true 2> /dev/null; then
     PLAYBOOK_ARGS+=(--ask-become-pass)
   fi
@@ -964,23 +915,18 @@ run_playbook() {
   fi
 
   info "Running playbook"
-  # ansible.cfg sets inventory and roles_path relative to the repo, so the cwd
-  # matters. This replaces the previous version's `popd`, which was unreachable
-  # after a failure under set -e.
+  # ansible.cfg sets inventory and roles_path relative to the repo, so the cwd matters. This replaces the previous version's `popd`, which was unreachable after a failure under set -e.
   cd "$DOTFILES_DIR"
   export ANSIBLE_CONFIG="${DOTFILES_DIR}/ansible.cfg"
 
-  # Deliberately not wrapped in run(): ansible's output belongs on the terminal,
-  # and it may need to prompt for the become password.
+  # Deliberately not wrapped in run(): ansible's output belongs on the terminal, and it may need to prompt for the become password.
   if ! run_tty "$ANSIBLE_PLAYBOOK_BIN" "${PLAYBOOK_ARGS[@]}"; then
     EXIT_HINT="The playbook failed. Re-run with -v for detail, or --tags <role> to isolate."
     return 1
   fi
 }
 
-# Cloning must be HTTPS -- on a bare machine there is no key yet -- but origin
-# is SSH and the repo is otherwise SSH-oriented, so a bootstrapped machine could
-# not push. Switched only once GitHub actually authenticates.
+# Cloning must be HTTPS -- on a bare machine there is no key yet -- but origin is SSH and the repo is otherwise SSH-oriented, so a bootstrapped machine could not push. Switched only once GitHub actually authenticates.
 switch_remote_to_ssh() {
   local current
   current="$(git -C "$DOTFILES_DIR" remote get-url origin 2> /dev/null || true)"
@@ -1009,8 +955,7 @@ switch_remote_to_ssh() {
   fi
 
   task_begin "Checking SSH access to GitHub"
-  # Captured rather than piped into grep: ssh -T git@github.com exits 1 even on
-  # success, and pipefail would turn that into a false negative.
+  # Captured rather than piped into grep: ssh -T git@github.com exits 1 even on success, and pipefail would turn that into a false negative.
   local probe=""
   probe="$(ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new \
     -T git@github.com 2>&1 || true)"

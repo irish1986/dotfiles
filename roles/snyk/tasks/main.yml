@@ -1,0 +1,44 @@
+---
+# Orchestrator only: no module calls other than include_vars / include_tasks.
+
+- name: Snyk | Load release specific variables
+  ansible.builtin.include_vars: "{{ snyk_vars_file }}"
+  loop: "{{ query('ansible.builtin.first_found', snyk_vars_lookup) }}"
+  loop_control:
+    loop_var: snyk_vars_file
+  vars:
+    snyk_vars_lookup:
+      files:
+        - "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
+        - "{{ ansible_distribution }}.yml"
+        - "{{ ansible_os_family }}.yml"
+      paths:
+        - "{{ role_path }}/vars"
+      skip: true
+  tags:
+    - snyk
+    - sec
+
+- name: Snyk | Install
+  ansible.builtin.include_tasks: "{{ snyk_install_tasks }}"
+  vars:
+    snyk_install_tasks: "{{ lookup('ansible.builtin.first_found', snyk_install_lookup) }}"
+    snyk_install_lookup:
+      files:
+        - "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
+        - "{{ ansible_distribution }}.yml"
+        - "{{ ansible_os_family }}.yml"
+      paths:
+        - "{{ role_path }}/tasks/install"
+  tags:
+    - snyk
+    - sec
+    - install
+
+- name: Snyk | Verify
+  ansible.builtin.include_tasks: "{{ role_path }}/tasks/verify.yml"
+  when: not ansible_check_mode
+  tags:
+    - snyk
+    - sec
+    - verify

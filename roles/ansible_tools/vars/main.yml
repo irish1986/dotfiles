@@ -1,7 +1,5 @@
 ---
-# Prefixed ansible_tools_ rather than ansible_: the ansible_* namespace belongs
-# to gathered facts, and a role that shadows one of them fails in ways that are
-# very hard to trace.
+# Prefixed ansible_tools_ rather than ansible_: the ansible_* namespace belongs to gathered facts, and a role that shadows one of them fails in ways that are very hard to trace.
 ansible_tools_uv_binary: "{{ dotfiles_home }}/.local/bin/uv"
 ansible_tools_local_bin: "{{ dotfiles_home }}/.local/bin"
 ansible_tools_venv_python: "{{ dotfiles_home }}/.local/share/uv/tools/ansible-core/bin/python"

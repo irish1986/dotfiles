@@ -5,32 +5,24 @@ description = "Documentation toolchain for the irish1986/dotfiles Ansible playbo
 readme = "README.md"
 requires-python = ">=3.12"
 
-# Kept in [project.dependencies] rather than a dependency group so that the `uv`
-# ecosystem in .github/dependabot.yml has a manifest to update. That entry
-# previously existed with no manifest anywhere in the repository and logged a
-# permanent "no dependency files found" on every scheduled run.
+# Kept in [project.dependencies] rather than a dependency group so that the `uv` ecosystem in .github/dependabot.yml has a manifest to update. That entry previously existed with no manifest anywhere in the repository and logged a permanent "no dependency files found" on every scheduled run.
 dependencies = [
   "mkdocs-material>=9.6.0",
-  # Generates a page per role at build time from defaults/, meta/ and tasks/.
-  # Hand-written role pages would go stale the moment a role changes, and there
-  # are 27 of them.
+  # Generates a page per role at build time from defaults/, meta/ and tasks/. Hand-written role pages would go stale the moment a role changes, and there are 27 of them.
   "mkdocs-gen-files>=0.5.0",
-  # Lets the generated role section supply its own nav from a SUMMARY.md, so
-  # adding a role does not require editing mkdocs.yml.
+  # Lets the generated role section supply its own nav from a SUMMARY.md, so adding a role does not require editing mkdocs.yml.
   "mkdocs-literate-nav>=0.6.1",
   "mkdocs-git-revision-date-localized-plugin>=1.3.0",
   "pyyaml>=6.0.2",
 ]
 
 [dependency-groups]
-# Linters that CI and pre-commit also run, so they can be exercised locally with
-# `uv sync --group lint`.
+# Linters that CI and pre-commit also run, so they can be exercised locally with `uv sync --group lint`.
 lint = [
   "ansible-lint>=25.0.0",
   "yamllint>=1.35.0",
 ]
 
-# There is no importable Python package here. This file exists to pin the
-# documentation toolchain; do not try to build or install the project itself.
+# There is no importable Python package here. This file exists to pin the documentation toolchain; do not try to build or install the project itself.
 [tool.uv]
 package = false

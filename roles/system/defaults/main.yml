@@ -10,12 +10,6 @@ system_packages:
   - wget
 
 system_manage_hostname: true
-system_manage_sudoers: true
-
-# A validated drop-in rather than surgery on /etc/sudoers. The previous
-# blockinfile had no validate:, so a bad render locked the machine out of sudo.
-system_sudoers_file: /etc/sudoers.d/90-dotfiles
-system_sudoers_nopasswd: true
 
 # Installed only on a virtualised guest that is not WSL.
 system_guest_agent_packages:

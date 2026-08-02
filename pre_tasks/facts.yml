@@ -1,10 +1,7 @@
 ---
 # Resolves the environment into real, typed facts.
 #
-# Replaces the previous whoami.yml, which shelled out to `cat /proc/version` and
-# stored the *string* "true"/"false". A non-empty string is truthy in Jinja, so
-# `when: not ansible_host_environment_is_wsl` evaluated to False on every host
-# regardless of environment, silently disabling several roles.
+# Replaces the previous whoami.yml, which shelled out to `cat /proc/version` and stored the *string* "true"/"false". A non-empty string is truthy in Jinja, so `when: not ansible_host_environment_is_wsl` evaluated to False on every host regardless of environment, silently disabling several roles.
 
 - name: Facts | Resolve the target user and home directory
   ansible.builtin.set_fact:
@@ -15,10 +12,8 @@
          | regex_replace('/+$', '') }}
 
 # Two independent signals, because neither is reliable alone:
-#   * ansible_virtualization_type reports "wsl" on some ansible-core versions but
-#     "container" on others (2.16.3 reports "container" on WSL2).
+#   * ansible_virtualization_type reports "wsl" on some ansible-core versions but "container" on others (2.16.3 reports "container" on WSL2).
 #   * the kernel string is stable across both WSL1 ("...-Microsoft") and WSL2
-#     ("...-microsoft-standard-WSL2"), so it is the dependable fallback.
 - name: Facts | Detect WSL
   ansible.builtin.set_fact:
     dotfiles_is_wsl: >-
@@ -28,9 +23,7 @@
 
 - name: Facts | Detect the runtime environment
   ansible.builtin.set_fact:
-    # The real precondition for every service task. Replaces `not is_wsl`, which
-    # never expressed what it meant: WSL2 with `systemd=true` in wsl.conf does
-    # have systemd, and a CI container does not.
+    # The real precondition for every service task. Replaces `not is_wsl`, which never expressed what it meant: WSL2 with `systemd=true` in wsl.conf does have systemd, and a CI container does not.
     dotfiles_has_systemd: "{{ ansible_service_mgr == 'systemd' }}"
     # WSL also reports virtualization_type "container", hence the is_wsl guard.
     dotfiles_in_container: >-
@@ -39,8 +32,7 @@
 
 - name: Facts | Decide whether reboots are permitted
   ansible.builtin.set_fact:
-    # `ansible.builtin.reboot` on WSL kills the distro; in a container it kills
-    # the job.
+    # `ansible.builtin.reboot` on WSL kills the distro; in a container it kills the job.
     dotfiles_can_reboot: >-
       {{ not ((dotfiles_is_wsl | bool) or (dotfiles_in_container | bool)) }}
 
@@ -55,9 +47,7 @@
     # Computed once here instead of by four separate roles.
     dotfiles_dpkg_architecture: "{{ dotfiles_dpkg_arch.stdout }}"
 
-# Unauthenticated api.github.com allows 60 requests/hour per IP, and CI runners
-# share IPs. Roles that query releases send these headers so a token lifts the
-# limit when one is available, and nothing breaks when it is not.
+# Unauthenticated api.github.com allows 60 requests/hour per IP, and CI runners share IPs. Roles that query releases send these headers so a token lifts the limit when one is available, and nothing breaks when it is not.
 - name: Facts | Build the GitHub API headers
   ansible.builtin.set_fact:
     dotfiles_github_headers: >-
@@ -75,10 +65,7 @@
       - ansible_distribution_version in dotfiles_supported_versions
       - ansible_version.full is version(dotfiles_min_ansible_version, '>=')
     fail_msg: >-
-      Unsupported target: {{ ansible_distribution }} {{ ansible_distribution_version }}
-      running ansible-core {{ ansible_version.full }}.
-      Supported: Ubuntu {{ dotfiles_supported_versions | join(', ') }}
-      with ansible-core >= {{ dotfiles_min_ansible_version }}.
+      Unsupported target: {{ ansible_distribution }} {{ ansible_distribution_version }} running ansible-core {{ ansible_version.full }}. Supported: Ubuntu {{ dotfiles_supported_versions | join(', ') }} with ansible-core >= {{ dotfiles_min_ansible_version }}.
     quiet: true
 
 - name: Facts | Show the resolved environment

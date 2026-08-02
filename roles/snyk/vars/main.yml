@@ -1,0 +1,8 @@
+---
+snyk_binary: snyk
+snyk_binary_path: "{{ snyk_install_dir }}/snyk"
+
+# Upstream names the amd64 asset `snyk-linux` with no architecture at all, and only suffixes the others.
+snyk_asset: "snyk-linux{{ '' if dotfiles_dpkg_architecture == 'amd64' else '-' ~ dotfiles_dpkg_architecture }}"
+snyk_release_url: "{{ snyk_download_base }}/v{{ snyk_resolved_version }}/{{ snyk_asset }}"
+snyk_checksum_url: "{{ snyk_release_url }}.sha256"

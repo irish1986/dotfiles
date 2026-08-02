@@ -1,0 +1,56 @@
+---
+- name: GitHub | Ensure the configuration directory exists
+  ansible.builtin.file:
+    path: "{{ github_config_dir }}"
+    state: directory
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0700"
+
+- name: GitHub | Read the current configuration
+  ansible.builtin.command: "{{ github_binary }} config get {{ github_config_entry.key }}"
+  environment: "{{ github_environment }}"
+  register: github_config_current
+  loop: "{{ github_config | dict2items }}"
+  loop_control:
+    loop_var: github_config_entry
+    label: "{{ github_config_entry.key }}"
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: GitHub | Write the configuration
+  ansible.builtin.command: >-
+    {{ github_binary }} config set {{ github_config_result.github_config_entry.key }}
+    {{ github_config_result.github_config_entry.value | quote }}
+  environment: "{{ github_environment }}"
+  loop: "{{ github_config_current.results }}"
+  loop_control:
+    loop_var: github_config_result
+    label: "{{ github_config_result.github_config_entry.key }}"
+  when: github_config_result.stdout | trim != github_config_result.github_config_entry.value
+  changed_when: true
+
+- name: GitHub | Read the current aliases
+  ansible.builtin.command: "{{ github_binary }} alias list"
+  environment: "{{ github_environment }}"
+  register: github_alias_list
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+# `gh alias list` prints one "name: expansion" line per alias, so matching the whole line catches a renamed expansion as well as a missing alias. --clobber because a plain `alias set` fails on an alias that already exists.
+- name: GitHub | Write the aliases
+  ansible.builtin.command: >-
+    {{ github_binary }} alias set {{ github_alias_entry.key }}
+    {{ github_alias_entry.value | quote }} --clobber
+  environment: "{{ github_environment }}"
+  loop: "{{ github_aliases | dict2items }}"
+  loop_control:
+    loop_var: github_alias_entry
+    label: "{{ github_alias_entry.key }}"
+  when: >-
+    github_alias_list.stdout | default('')
+    is not search('^' ~ (github_alias_entry.key | regex_escape) ~ ': '
+                  ~ (github_alias_entry.value | regex_escape) ~ '$', multiline=True)
+  changed_when: true

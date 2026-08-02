@@ -3,10 +3,7 @@ update_upgrade: full
 update_autoclean: true
 update_autoremove: true
 
-# unattended-upgrades is what makes run N+1 flaky: it holds the dpkg lock on a
-# freshly booted machine, so the next bare apt call fails. Left enabled because
-# unattended security updates are worth it, but every apt task in this repo now
-# passes a lock timeout rather than failing immediately.
+# unattended-upgrades is what makes run N+1 flaky: it holds the dpkg lock on a freshly booted machine, so the next bare apt call fails. Left enabled because unattended security updates are worth it, but every apt task in this repo now passes a lock timeout rather than failing immediately.
 update_unattended_enabled: true
 update_unattended_packages:
   - unattended-upgrades

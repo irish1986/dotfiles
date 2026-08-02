@@ -19,8 +19,7 @@
     - wsl
     - base
 
-# Everything below is a no-op off WSL, so the whole role short-circuits rather
-# than gating a dozen individual tasks.
+# Everything below is a no-op off WSL, so the whole role short-circuits rather than gating a dozen individual tasks.
 - name: WSL | Detect the Windows host
   ansible.builtin.include_tasks: "{{ role_path }}/tasks/detect.yml"
   when: dotfiles_is_wsl | bool

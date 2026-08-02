@@ -1,0 +1,17 @@
+---
+- name: Herdr | Ensure the config directory exists
+  ansible.builtin.file:
+    path: "{{ herdr_config_dir }}"
+    state: directory
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0755"
+
+# The running server holds its own copy: a changed file takes effect on the next `herdr` start, not immediately. No handler restarts it -- that would kill live panes and any agent running in them to apply a theme.
+- name: Herdr | Deploy config.toml
+  ansible.builtin.copy:
+    src: config.toml
+    dest: "{{ herdr_config_dir }}/config.toml"
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0644"

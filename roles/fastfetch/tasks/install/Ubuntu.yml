@@ -1,7 +1,5 @@
 ---
-# The previous role queried the latest release, assigned it twice (the second
-# assignment read .stdout off a string, yielding ''), printed it with debug,
-# removed neofetch and stopped. fastfetch was never installed.
+# The previous role queried the latest release, assigned it twice (the second assignment read .stdout off a string, yielding ''), printed it with debug, removed neofetch and stopped. fastfetch was never installed.
 - name: Fastfetch | Resolve the release to install
   when: fastfetch_version | length == 0
   block:

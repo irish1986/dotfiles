@@ -1,6 +1,5 @@
 ---
-# Asset names, not a family label. The previous value was fonts.nf: Nerd, which
-# built .../Nerd.zip -- an asset that has never existed in a Nerd Fonts release.
+# Asset names, not a family label. The previous value was fonts.nf: Nerd, which built .../Nerd.zip -- an asset that has never existed in a Nerd Fonts release.
 fonts_nerd_fonts:
   - Hack
 

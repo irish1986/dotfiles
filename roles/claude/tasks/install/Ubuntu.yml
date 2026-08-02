@@ -1,0 +1,24 @@
+---
+- name: Claude | Install dependencies
+  ansible.builtin.apt:
+    name: "{{ claude_dependencies }}"
+    state: present
+  become: true
+
+- name: Claude | Configure the upstream apt repository
+  ansible.builtin.include_role:
+    name: apt_repo
+  vars:
+    apt_repo_name: claude-code
+    apt_repo_uri: "{{ claude_apt_uri }}"
+    apt_repo_key_url: "{{ claude_apt_key_url }}"
+    apt_repo_suite: "{{ claude_apt_suite }}"
+    apt_repo_components: "{{ claude_apt_components }}"
+    # The suite is a release channel, not this machine's codename, so there is nothing a probe against dists/<codename> could tell us.
+    apt_repo_probe: false
+
+- name: Claude | Install packages
+  ansible.builtin.apt:
+    name: "{{ claude_packages }}"
+    state: present
+  become: true

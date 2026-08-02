@@ -5,9 +5,7 @@
     state: present
   become: true
 
-# On WSL the hostname is owned by /etc/wsl.conf: the hostname module's change
-# does not survive a wsl --shutdown, which is why a machine configured this way
-# reverts to the Windows computer name on the next start.
+# On WSL the hostname is owned by /etc/wsl.conf: the hostname module's change does not survive a wsl --shutdown, which is why a machine configured this way reverts to the Windows computer name on the next start.
 - name: System | Hostname
   when:
     - system_manage_hostname | bool
@@ -25,37 +23,6 @@
           127.0.0.1  localhost
           {{ dotfiles_loopback_address }}  {{ dotfiles_hostname }}
       become: true
-
-- name: System | Sudoers
-  when: system_manage_sudoers | bool
-  block:
-    - name: System | Ensure the sudo group exists
-      ansible.builtin.group:
-        name: sudo
-        state: present
-      become: true
-
-    - name: System | Ensure the sudo group has privileges
-      ansible.builtin.lineinfile:
-        dest: /etc/sudoers
-        state: present
-        regexp: ^%sudo
-        line: "%sudo ALL=(ALL:ALL) ALL"
-        validate: /usr/sbin/visudo -cf %s
-      become: true
-
-    - name: "System | Grant passwordless sudo: {{ dotfiles_user }}"
-      ansible.builtin.copy:
-        dest: "{{ system_sudoers_file }}"
-        content: | # pragma: allowlist secret
-          # Managed by the dotfiles playbook (roles/system). Do not edit.
-          {{ dotfiles_user }} ALL=(ALL) NOPASSWD: ALL
-        owner: root
-        group: root
-        mode: "0440"
-        validate: /usr/sbin/visudo -cf %s
-      become: true
-      when: system_sudoers_nopasswd | bool
 
 - name: System | Install the guest agent
   ansible.builtin.apt:

@@ -1,0 +1,81 @@
+---
+- name: Copilot | Install dependencies
+  ansible.builtin.apt:
+    name: "{{ copilot_dependencies }}"
+    state: present
+  become: true
+
+- name: Copilot | Resolve the release to install
+  when: copilot_version | length == 0
+  block:
+    - name: Copilot | Query the latest release
+      ansible.builtin.uri:
+        url: "{{ copilot_releases_api }}"
+        headers: "{{ dotfiles_github_headers }}"
+      register: copilot_release
+      changed_when: false
+      check_mode: false
+      # An unauthenticated runner that has burned its 60 requests/hour must not take the play down; the guard below falls back to leaving an existing install alone.
+      failed_when: false
+
+    - name: Copilot | Register the latest release
+      ansible.builtin.set_fact:
+        copilot_resolved_version: "{{ copilot_release.json.tag_name | regex_replace('^v', '') }}"
+      when: copilot_release.status | default(0) == 200
+
+- name: Copilot | Register the pinned release
+  ansible.builtin.set_fact:
+    copilot_resolved_version: "{{ copilot_version | regex_replace('^v', '') }}"
+  when: copilot_version | length > 0
+
+- name: Copilot | Query the installed version
+  ansible.builtin.command: "{{ copilot_binary_path }} --version"
+  register: copilot_installed
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+# `copilot --version` prints more than the number, so match the semver out of it rather than comparing the whole line.
+- name: Copilot | Register the installed version
+  ansible.builtin.set_fact:
+    copilot_installed_version: >-
+      {{ copilot_installed.stdout | default('') | regex_search('[0-9]+\.[0-9]+\.[0-9]+') | default('', true) }}
+
+# The installer always overwrites, so it is the version comparison that keeps the run idempotent. When the release could not be resolved and something is already installed, do nothing rather than reinstall blindly -- a second converge would otherwise always report changed.
+- name: Copilot | Install copilot
+  when: >-
+    copilot_installed_version | length == 0
+    or (copilot_resolved_version | default('') | length > 0
+        and copilot_installed_version != copilot_resolved_version)
+  block:
+    - name: Copilot | Create a staging file
+      ansible.builtin.tempfile:
+        state: file
+        suffix: copilot-install.sh
+      register: copilot_script
+      changed_when: false
+
+    - name: Copilot | Download the install script
+      ansible.builtin.get_url:
+        url: "{{ copilot_install_script_url }}"
+        dest: "{{ copilot_script.path }}"
+        mode: "0755"
+        force: true
+      changed_when: false
+
+    - name: Copilot | Run the install script
+      ansible.builtin.command: "{{ copilot_script.path }}"
+      environment:
+        # Empty means latest, which is what the script does with an unset VERSION.
+        VERSION: "{{ copilot_resolved_version | default('') }}"
+        PREFIX: "{{ copilot_install_prefix }}"
+        # With the install directory already on PATH the script's `command -v copilot` succeeds, so it skips the branch that offers to append an export line to a shell profile -- a write this role does not want and cannot make idempotent.
+        PATH: "{{ copilot_install_prefix }}/bin:{{ ansible_env.PATH }}"
+      changed_when: true
+  always:
+    - name: Copilot | Remove the staging file
+      ansible.builtin.file:
+        path: "{{ copilot_script.path | default('') }}"
+        state: absent
+      when: copilot_script.path is defined
+      changed_when: false

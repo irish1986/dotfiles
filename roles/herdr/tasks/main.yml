@@ -1,0 +1,51 @@
+---
+# Orchestrator only: no module calls other than include_vars / include_tasks.
+
+- name: Herdr | Load release specific variables
+  ansible.builtin.include_vars: "{{ herdr_vars_file }}"
+  loop: "{{ query('ansible.builtin.first_found', herdr_vars_lookup) }}"
+  loop_control:
+    loop_var: herdr_vars_file
+  vars:
+    herdr_vars_lookup:
+      files:
+        - "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
+        - "{{ ansible_distribution }}.yml"
+        - "{{ ansible_os_family }}.yml"
+      paths:
+        - "{{ role_path }}/vars"
+      skip: true
+  tags:
+    - herdr
+    - shell
+
+- name: Herdr | Install
+  ansible.builtin.include_tasks: "{{ herdr_install_tasks }}"
+  vars:
+    herdr_install_tasks: "{{ lookup('ansible.builtin.first_found', herdr_install_lookup) }}"
+    herdr_install_lookup:
+      files:
+        - "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
+        - "{{ ansible_distribution }}.yml"
+        - "{{ ansible_os_family }}.yml"
+      paths:
+        - "{{ role_path }}/tasks/install"
+  tags:
+    - herdr
+    - shell
+    - install
+
+- name: Herdr | Configure
+  ansible.builtin.include_tasks: "{{ role_path }}/tasks/configure.yml"
+  tags:
+    - herdr
+    - shell
+    - configure
+
+- name: Herdr | Verify
+  ansible.builtin.include_tasks: "{{ role_path }}/tasks/verify.yml"
+  when: not ansible_check_mode
+  tags:
+    - herdr
+    - shell
+    - verify

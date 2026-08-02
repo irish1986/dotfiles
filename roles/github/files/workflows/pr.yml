@@ -1,0 +1,184 @@
+---
+name: CI - Pull Request
+run-name: Continuous Integration for PR-${{ github.event.pull_request.number }} by ${{ github.actor }}
+
+on: # yamllint disable-line rule:truthy
+  pull_request:
+    branches:
+      - main
+    paths-ignore:
+      - 'README.md'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+
+  pre-commit:
+    name: Pre-Commit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+
+      - name: Run Pre-Commit Checks
+        uses: j178/prek-action@6ad80277337ad479fe43bd70701c3f7f8aa74db3 # v2.0.3
+        env:
+          SKIP: "ggshield, pytest, uv-export"
+
+  secret:
+    needs:
+      - pre-commit
+    name: Secret Scanning
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+
+  detect-changes:
+    name: Affected Packages
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.affected.outputs.matrix }}
+      has-packages: ${{ steps.affected.outputs.matrix != '[]' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Determine affected packages
+        id: affected
+        run: |
+          MATRIX=$(python3 scripts/ci_affected_packages/ci_affected_packages.py "${{ github.event.pull_request.base.sha }}")
+          echo "matrix=${MATRIX}" >> "$GITHUB_OUTPUT"
+          echo "Affected packages: ${MATRIX}"
+        shell: bash
+
+  code_build:
+    needs:
+      - pre-commit
+      - detect-changes
+    if: needs.detect-changes.outputs.has-packages == 'true'
+    name: Build & Unit Test (${{ matrix.package }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04]
+        python-version: ["3.12", "3.14"]
+        package: ${{ fromJson(needs.detect-changes.outputs.matrix) }}
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+
+      - name: Install UV
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Setup Python ${{ matrix.python-version }}
+        id: setup-python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          uv sync --all-packages --dev --frozen
+        shell: bash
+
+      - name: Lint - Ruff check
+        id: lint
+        run: |
+          uv run ruff check packages/${{ matrix.package }}
+        shell: bash
+
+      - name: Type check - ty
+        id: typecheck
+        run: |
+          uv run ty check packages/${{ matrix.package }}
+        shell: bash
+
+      - name: Build - Build package
+        id: build
+        run: |
+          uv build --package ${{ matrix.package }}
+        shell: bash
+
+      - name: Pytest - Run Unit Test
+        id: test
+        run: |
+          uv run pytest packages/${{ matrix.package }}/tests
+        shell: bash
+
+  code_scan:
+    needs:
+      - pre-commit
+    name: Vulnerabilities Scan
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm]
+    timeout-minutes: 10
+
+    steps:
+      - name: Run SAST Scan
+        id: sast
+        run: |
+          echo Run SAST
+          echo "::warning::Must implement a code scanning mechanism."
+        shell: bash
+
+      - name: Run SCA Scan
+        id: sca
+        run: |
+          echo Run SCA
+          echo "::warning::Must implement a dependencies scanning mechanism."
+        shell: bash
+
+  gating:
+    needs:
+      - code_build
+      - code_scan
+      - secret
+    if: always()
+    name: Gating
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+
+    steps:
+      - name: Run Gating Check
+        run: |
+          fail=0
+          if [[ "${{ needs.code_build.result }}" != "success" && "${{ needs.code_build.result }}" != "skipped" ]]; then
+            echo "::error::code_build did not succeed (result: ${{ needs.code_build.result }})"
+            fail=1
+          fi
+          if [[ "${{ needs.code_scan.result }}" != "success" ]]; then
+            echo "::error::code_scan did not succeed (result: ${{ needs.code_scan.result }})"
+            fail=1
+          fi
+          if [[ "${{ needs.secret.result }}" != "success" ]]; then
+            echo "::error::secret did not succeed (result: ${{ needs.secret.result }})"
+            fail=1
+          fi
+          if [[ "$fail" -eq 1 ]]; then
+            exit 1
+          fi
+          echo "All required checks passed (or were correctly skipped)."
+        shell: bash

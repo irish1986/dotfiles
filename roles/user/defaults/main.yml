@@ -1,0 +1,25 @@
+---
+# The account is configured, not created: scripts/setup refuses to run as root and provisions the invoking user, so by the time this role runs the user already exists.
+
+user_manage_shell: true
+user_shell: /usr/bin/zsh
+
+user_manage_groups: true
+# Every group here is created before the user joins it, so one run converges. Skipping a group that does not exist yet would instead move the change to the second run, and CI asserts changed=0 there. Pre-creating docker is safe: its postinst only calls addgroup when the group is absent.
+user_groups:
+  - sudo
+  - docker
+
+user_manage_sudoers: true
+# A validated drop-in rather than surgery on /etc/sudoers. The path is unchanged from when the system role owned this, so an already-provisioned machine reuses the same file instead of collecting a second one.
+user_sudoers_file: /etc/sudoers.d/90-dotfiles
+user_sudoers_nopasswd: true
+
+user_manage_directories: true
+# Paths are relative to dotfiles_home. The modes match what Ubuntu already creates, so applying this role to a provisioned machine never widens a directory that was private: .config and .local/bin are 0755 as the system role and the uv installer leave them, everything else stays 0700. The one deliberate change is .local/state, which Ubuntu leaves 0755 and which holds logs and shell history.
+user_directories:
+  - {path: .cache, mode: "0700"}
+  - {path: .config, mode: "0755"}
+  - {path: .local/bin, mode: "0755"}
+  - {path: .local/share, mode: "0700"}
+  - {path: .local/state, mode: "0700"}

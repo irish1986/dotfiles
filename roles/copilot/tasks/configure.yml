@@ -1,0 +1,38 @@
+---
+- name: Copilot | Ensure the configuration directory exists
+  ansible.builtin.file:
+    path: "{{ copilot_config_dir }}"
+    state: directory
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0700"
+
+# Only settings.json and copilot-instructions.md belong to the user. config.json in the same directory is application state the CLI manages itself -- it holds loggedInUsers, installedPlugins and firstLaunchAt -- so this role never touches it.
+- name: Copilot | Seed the settings file
+  ansible.builtin.copy:
+    content: "{{ copilot_settings | to_nice_json }}\n"
+    dest: "{{ copilot_settings_file }}"
+    force: false
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0600"
+  when: copilot_settings | length > 0
+
+- name: Copilot | Write the global instructions
+  ansible.builtin.blockinfile:
+    path: "{{ copilot_instructions_file }}"
+    marker: "<!-- {mark} ANSIBLE MANAGED BLOCK -->"
+    create: true
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0644"
+    block: |
+      # Global instructions
+
+      Managed by the dotfiles repository (roles/copilot). Edits inside the markers are overwritten;
+      add anything of your own outside them.
+
+      - Conventional Commits for every commit message.
+      - Match the surrounding code: its naming, its comment density, its idioms.
+      - Say what was verified and what was not. Never report a check as passing without running it.
+  when: copilot_manage_instructions | bool

@@ -67,13 +67,6 @@ This project follows [Conventional Commits 1.0.0](https://www.conventionalcommit
 
 ## Releases
 
-Releases are automated by
-[release-please](https://github.com/googleapis/release-please). It keeps a
-standing `chore(main): release X.Y.Z` pull request open, updating `CHANGELOG.md`
-and `version.txt` as commits land. Merging that pull request creates the git tag
-and the GitHub Release. There is nothing to run by hand, and no `bump` commit
-type -- that is why it is absent from the list above.
+Releases are automated by [release-please](https://github.com/googleapis/release-please). It keeps a standing `chore(main): release X.Y.Z` pull request open, updating `CHANGELOG.md` and `version.txt` as commits land. Merging that pull request creates the git tag and the GitHub Release. There is nothing to run by hand, and no `bump` commit type -- that is why it is absent from the list above.
 
-The version is inferred from the squashed commit subject, which is why pull
-request titles are linted: `fix:` gives a patch, `feat:` a minor, and a `!`
-suffix or a `BREAKING CHANGE:` footer a major.
+The version is inferred from the squashed commit subject, which is why pull request titles are linted: `fix:` gives a patch, `feat:` a minor, and a `!` suffix or a `BREAKING CHANGE:` footer a major.

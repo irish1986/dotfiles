@@ -1,0 +1,52 @@
+---
+- name: Snyk | Resolve the release to install
+  when: snyk_version | length == 0
+  block:
+    - name: Snyk | Query the latest release
+      ansible.builtin.uri:
+        url: "{{ snyk_releases_api }}"
+        headers: "{{ dotfiles_github_headers }}"
+      register: snyk_release
+      changed_when: false
+      check_mode: false
+
+    - name: Snyk | Register the latest release
+      ansible.builtin.set_fact:
+        snyk_resolved_version: "{{ snyk_release.json.tag_name | regex_replace('^v', '') }}"
+
+- name: Snyk | Register the pinned release
+  ansible.builtin.set_fact:
+    snyk_resolved_version: "{{ snyk_version | regex_replace('^v', '') }}"
+  when: snyk_version | length > 0
+
+- name: Snyk | Query the installed version
+  ansible.builtin.command: "{{ snyk_binary_path }} --version"
+  register: snyk_installed
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Snyk | Install the release
+  when: >-
+    (snyk_installed.stdout | default('') | regex_search('[0-9]+\.[0-9]+\.[0-9]+') | default('', true))
+    != snyk_resolved_version
+  block:
+    # The published .sha256 is read separately rather than handed to get_url as a checksum URL: that form matches the line by the destination's basename, and the file names the asset (`snyk-linux`), not the binary this installs (`snyk`).
+    - name: Snyk | Fetch the published checksum
+      ansible.builtin.uri:
+        url: "{{ snyk_checksum_url }}"
+        return_content: true
+      register: snyk_checksum
+      changed_when: false
+      check_mode: false
+
+    # get_url stages to a temporary file, verifies, and only then moves it into place, so a mismatch never leaves a partial binary on PATH.
+    - name: Snyk | Install the binary
+      ansible.builtin.get_url:
+        url: "{{ snyk_release_url }}"
+        dest: "{{ snyk_binary_path }}"
+        checksum: "sha256:{{ snyk_checksum.content.split() | first }}"
+        owner: root
+        group: root
+        mode: "0755"
+      become: true

@@ -1,0 +1,32 @@
+---
+claude_packages:
+  - claude-code
+
+# Anthropic publishes a signed apt repository, so the binary is verified by apt and upgraded by the update role like everything else. The alternative, `curl https://claude.ai/install.sh | bash`, installs an unmanaged copy under ~/.local that replaces itself in the background -- which is exactly the state this repo exists to avoid.
+claude_apt_uri: https://downloads.claude.ai/claude-code/apt/stable
+claude_apt_key_url: https://downloads.claude.ai/keys/claude-code.asc
+# A release channel, not a distribution codename: `stable` trails `latest` by roughly a week and skips releases with known regressions.
+claude_apt_suite: stable
+claude_apt_components:
+  - main
+
+claude_dependencies:
+  - ca-certificates
+  - curl
+  - gnupg
+
+claude_config_dir: "{{ dotfiles_home }}/.claude"
+
+# Seeded into ~/.claude/settings.json only when that file does not exist. Claude Code rewrites the file itself whenever /config changes a setting, so a managed template would revert those edits on the next run.
+claude_settings:
+  theme: dark
+  editorMode: normal
+  cleanupPeriodDays: 30
+  permissions:
+    defaultMode: default
+  env:
+    # The binary belongs to dpkg. Letting the background updater swap it out leaves apt reporting a version that is no longer on disk.
+    DISABLE_AUTOUPDATER: "1"
+
+# The managed block in ~/.claude/CLAUDE.md. Anything outside the markers is left alone.
+claude_manage_instructions: true

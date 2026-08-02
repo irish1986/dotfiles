@@ -1,0 +1,31 @@
+---
+# Shows the selection and waits, so a run that was meant to be `--tags docker` is caught before it converges seventeen roles.
+#
+# Runs after validate.yml deliberately: a typo in dotfiles_roles should fail on its own terms rather than be presented for approval and only then blow up.
+
+- name: Confirm | Show the run plan
+  ansible.builtin.debug:
+    msg: >-
+      {{ ['', 'About to apply ' ~ (dotfiles_roles | length) ~ ' role(s) to '
+          ~ dotfiles_user ~ '@' ~ dotfiles_hostname | default(ansible_hostname)
+          ~ ' (' ~ ansible_distribution ~ ' ' ~ ansible_distribution_version ~ ')', '']
+         + (dotfiles_roles | map('regex_replace', '^', '  ' ~ loop_marker) | list)
+         + ['', tag_line, ''] }}
+  vars:
+    loop_marker: "- "
+    # ansible_run_tags is ["all"] unless --tags narrowed the run. Surfacing it matters: --tags filters the list above, so what is printed is the selection, not necessarily what will execute.
+    tag_line: >-
+      tags={{ ansible_run_tags | join(',') }} skip_tags={{ ansible_skip_tags | join(',') if ansible_skip_tags | length > 0 else 'none' }}
+
+- name: Confirm | Wait for approval
+  ansible.builtin.pause:
+    prompt: |-
+      Proceed? [y/N]
+  register: dotfiles_confirm_reply
+
+# A bare `pause` returns an empty string when stdin is not a terminal -- ansible warns and continues rather than blocking. Treating empty as "no" is what keeps that from silently becoming an unattended full converge; set dotfiles_confirm: false (or pass --yes) for that case, so it is a decision rather than an accident.
+- name: Confirm | Stop unless approval was given
+  ansible.builtin.fail:
+    msg: >-
+      Aborted at the confirmation prompt. Re-run with --yes, or set dotfiles_confirm: false in inventory/group_vars/all.yml, to skip it.
+  when: dotfiles_confirm_reply.user_input | default('') | trim | lower not in ['y', 'yes']

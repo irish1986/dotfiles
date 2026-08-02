@@ -35,9 +35,7 @@
           - wsl_clipboard_check.rc == 0
           - wsl_clipboard_check.stdout == 'dotfiles-clipboard-probe'
         fail_msg: >-
-          Clipboard round-trip returned
-          {{ wsl_clipboard_check.stdout | default('') | to_json }};
-          expected "dotfiles-clipboard-probe" with no trailing CR or newline.
+          Clipboard round-trip returned {{ wsl_clipboard_check.stdout | default('') | to_json }}; expected "dotfiles-clipboard-probe" with no trailing CR or newline.
         success_msg: clipboard round-trips cleanly
         quiet: true
       when: wsl_manage_win32yank | bool

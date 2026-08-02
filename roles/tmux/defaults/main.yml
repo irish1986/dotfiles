@@ -4,7 +4,6 @@ tmux_packages:
 
 tmux_config_dir: "{{ dotfiles_home }}/.config/tmux"
 
-# Pinned: TPM has no releases, so a moving target here would silently change
-# plugin behaviour on every run.
+# Pinned: TPM has no releases, so a moving target here would silently change plugin behaviour on every run.
 tmux_tpm_repo: https://github.com/tmux-plugins/tpm
 tmux_tpm_version: 7bdb7ca

@@ -33,9 +33,7 @@ on: # yamllint disable-line rule:truthy
       - uv.lock
   workflow_dispatch:
 
-# roles/** and collections/requirements.yml are in the path filters because role
-# pages, the variables table and the collections table are generated from them at
-# build time -- a role change with no docs/ change still changes the site.
+# roles/** and collections/requirements.yml are in the path filters because role pages, the variables table and the collections table are generated from them at build time -- a role change with no docs/ change still changes the site.
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -63,10 +61,7 @@ jobs:
         with:
           enable-cache: true
 
-      # --strict turns MkDocs warnings into failures, so a broken internal link
-      # or a nav entry pointing at a missing file fails here rather than
-      # shipping. MKDOCS_STRICT_ROLES additionally fails the build when a role
-      # has no README, so a new role cannot land undocumented.
+      # --strict turns MkDocs warnings into failures, so a broken internal link or a nav entry pointing at a missing file fails here rather than shipping. MKDOCS_STRICT_ROLES additionally fails the build when a role has no page under docs/roles/, so a new role cannot land undocumented.
       - name: Build the site
         env:
           MKDOCS_STRICT_ROLES: "1"
@@ -78,9 +73,7 @@ jobs:
         with:
           path: site
 
-  # Deploys through the OIDC artifact flow rather than committing a built site to
-  # a gh-pages branch: no contents: write, and nothing generated is ever pushed
-  # into the repository.
+  # Deploys through the OIDC artifact flow rather than committing a built site to a gh-pages branch: no contents: write, and nothing generated is ever pushed into the repository.
   deploy:
     name: Deploy
     if: github.event_name != 'pull_request'

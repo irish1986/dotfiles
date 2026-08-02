@@ -1,4 +1,3 @@
 ---
-# WSL takes its clock from the Windows host; there is no timesync daemon to
-# manage and setting the timezone inside the distro is the only useful part.
+# WSL takes its clock from the Windows host; there is no timesync daemon to manage and setting the timezone inside the distro is the only useful part.
 timezone_timesync_supported: "{{ not (dotfiles_is_wsl | bool) }}"

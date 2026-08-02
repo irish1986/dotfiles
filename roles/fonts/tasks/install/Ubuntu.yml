@@ -1,6 +1,5 @@
 ---
-# fc-cache lives in fontconfig, which a minimal image does not carry -- so the
-# handler that rebuilds the cache had nothing to run.
+# fc-cache lives in fontconfig, which a minimal image does not carry -- so the handler that rebuilds the cache had nothing to run.
 - name: Fonts | Install dependencies
   ansible.builtin.apt:
     name: "{{ fonts_dependencies }}"
@@ -27,8 +26,7 @@
     fonts_resolved_version: "{{ fonts_version }}"
   when: fonts_version | length > 0
 
-# mode 0755, not 0644: a directory without the execute bit cannot be traversed,
-# so the unarchive below could never write into it.
+# mode 0755, not 0644: a directory without the execute bit cannot be traversed, so the unarchive below could never write into it.
 - name: Fonts | Ensure the font directory exists
   ansible.builtin.file:
     path: "{{ fonts_dir }}"

@@ -1,11 +1,7 @@
 ---
 # Every label that should exist on this repository.
 #
-# The workflow runs with skip-delete: true, so anything listed here is created or
-# updated and nothing is removed. Before ever flipping that to false, dispatch
-# the workflow with dry-run and read the diff: this file previously listed 15
-# labels, none of which matched the 21 actually in use, so deletion would have
-# stripped every area/, renovate/ and type/ label from every issue and PR.
+# The workflow runs with skip-delete: true, so anything listed here is created or updated and nothing is removed. Before ever flipping that to false, dispatch the workflow with dry-run and read the diff: this file previously listed 15 labels, none of which matched the 21 actually in use, so deletion would have stripped every area/, renovate/ and type/ label from every issue and PR.
 
 # -- Area -------------------------------------------------------------------
 - name: area/ansible
@@ -85,8 +81,7 @@
   description: Patch update
 
 # -- Release automation -----------------------------------------------------
-# Applied and cleared by release-please, which cannot label a release without
-# them if deletion is ever enabled.
+# Applied and cleared by release-please, which cannot label a release without them if deletion is ever enabled.
 - name: "autorelease: pending"
   color: "ededed"
   description: Release pending - managed by release-please

@@ -11,14 +11,7 @@ docker_dependencies:
   - curl
   - gnupg
 
-# Add the login user to the docker group so `docker` works without sudo.
-# Takes effect on the next login session.
-docker_manage_group: true
-
-# Image/container/volume store. Left unset so Docker uses its default,
-# /var/lib/docker. Relocating it into $HOME buys nothing on WSL -- /home and
-# /var share one ext4.vhdx -- and Docker requires the directory root-owned 0710,
-# which is hostile to anything that walks the home directory.
+# Image/container/volume store. Left unset so Docker uses its default, /var/lib/docker. Relocating it into $HOME buys nothing on WSL -- /home and /var share one ext4.vhdx -- and Docker requires the directory root-owned 0710, which is hostile to anything that walks the home directory.
 docker_data_root: ""
 
 docker_address_pool_base: 172.10.0.0/16
@@ -26,8 +19,7 @@ docker_address_pool_size: 24
 docker_experimental: true
 docker_buildkit: true
 
-# download.docker.com publishes one suite per Ubuntu codename and lags new
-# releases. apt_repo probes the suite and falls back to noble when absent.
+# download.docker.com publishes one suite per Ubuntu codename and lags new releases. apt_repo probes the suite and falls back to noble when absent.
 docker_apt_uri: "https://download.docker.com/linux/{{ ansible_distribution | lower }}"
 docker_apt_key_url: "https://download.docker.com/linux/{{ ansible_distribution | lower }}/gpg"
 docker_apt_suite: "{{ ansible_distribution_release }}"

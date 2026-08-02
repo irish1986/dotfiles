@@ -2,10 +2,7 @@
 tailscale_binary: tailscale
 tailscale_service_name: tailscaled
 
-# Left behind by Tailscale's own documented install steps, which write a .list
-# with signed-by pointing at /usr/share/keyrings. apt refuses to load two
-# sources for the same URI with different Signed-By values, so the legacy pair
-# must go before the .sources file can take effect.
+# Left behind by Tailscale's own documented install steps, which write a .list with signed-by pointing at /usr/share/keyrings. apt refuses to load two sources for the same URI with different Signed-By values, so the legacy pair must go before the .sources file can take effect.
 tailscale_legacy_artifacts:
   - /etc/apt/sources.list.d/tailscale.list
   - /usr/share/keyrings/tailscale-archive-keyring.gpg

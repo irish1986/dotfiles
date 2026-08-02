@@ -35,13 +35,6 @@
     - base
     - install
 
-- name: System | Configure
-  ansible.builtin.include_tasks: "{{ role_path }}/tasks/configure.yml"
-  tags:
-    - system
-    - base
-    - configure
-
 - name: System | Verify
   ansible.builtin.include_tasks: "{{ role_path }}/tasks/verify.yml"
   when: not ansible_check_mode

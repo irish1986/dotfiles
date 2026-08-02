@@ -33,9 +33,7 @@
             src: "{{ git_signing_key_path }}"
           register: git_signing_key_content
 
-        # marker: keyed on the email, so rotating a key replaces that signer's
-        # line instead of appending a second one. Without it blockinfile grows
-        # the file every time the key changes.
+        # marker: keyed on the email, so rotating a key replaces that signer's line instead of appending a second one. Without it blockinfile grows the file every time the key changes.
         - name: Git | Add the allowed signer
           ansible.builtin.blockinfile:
             path: "{{ git_allowed_signers }}"

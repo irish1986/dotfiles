@@ -1,21 +1,20 @@
 ---
-- name: Python | Query uv
-  ansible.builtin.command: "{{ python_uv_binary }} --version"
-  register: python_uv_check
+- name: Python | Query the distro interpreter
+  ansible.builtin.command: "{{ python_binary }} --version"
+  register: python_version_check
   changed_when: false
   failed_when: false
-  when: python_uv_enabled | bool
 
-- name: Python | Assert uv is usable
+- name: Python | Assert the distro interpreter is present
   ansible.builtin.assert:
     that:
-      - python_uv_check.rc == 0
-    fail_msg: "uv did not install correctly: {{ python_uv_check.stderr | default('no output') }}"
-    success_msg: "{{ python_uv_check.stdout | trim }}"
+      - python_version_check.rc == 0
+    fail_msg: "{{ python_binary }} is missing: {{ python_version_check.stderr | default('no output') }}"
+    success_msg: "{{ python_version_check.stdout | trim }}"
     quiet: true
-  when: python_uv_enabled | bool
 
-- name: Python | Assert the system interpreter is present
+# ansible_python_version is the interpreter ansible itself runs on, pinned to the distro python by inventory/hosts.yml. Asserting on it is what catches a pin that has drifted to something older than the collections require.
+- name: Python | Assert the interpreter is recent enough
   ansible.builtin.assert:
     that:
       - ansible_python_version is version('3.10', '>=')

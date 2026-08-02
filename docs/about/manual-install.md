@@ -1,9 +1,6 @@
 # Manual setup
 
-**This is a reference, not the install path.** This page documents by hand
-roughly what the playbook does for you -- to explain the automation, and to
-bootstrap a machine where you cannot run Ansible. For a normal install see
-[Getting started](../getting-started/index.md).
+**This is a reference, not the install path.** This page documents by hand roughly what the playbook does for you -- to explain the automation, and to bootstrap a machine where you cannot run Ansible. For a normal install see [Getting started](../getting-started/index.md).
 
 It is a simplified account and does not cover every task the roles perform.
 
@@ -84,8 +81,7 @@ source $ZSH/oh-my-zsh.sh
 Install [Powerlevel10k](https://github.com/romkatv/powerlevel10k) a Zsh theme
 
 > [!NOTE]
-> Powerlevel10k project is deemed feature complete, has no roadmap for new features and most bugs will go unfixed.
-> If you are not comfortable, look at [Starship](https://starship.rs/) which is a blazing-fast alternative to p10k.
+> Powerlevel10k project is deemed feature complete, has no roadmap for new features and most bugs will go unfixed. If you are not comfortable, look at [Starship](https://starship.rs/) which is a blazing-fast alternative to p10k.
 
 ```bash
 git clone https://github.com/romkatv/powerlevel10k.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/themes/powerlevel10k
@@ -228,8 +224,7 @@ plugins=(
 
 TMUX will be launch automatically upon opening a terminal session.  For the first setup you need to enter the following keystroke:
 
-`ctrl+spacebar` followed by `shift+i` which will trigger Tmux Plugin Manager and install dependencies.
-You can manually run `tmux source ~/.config/tmux/tmux.conf` to reload tmux configuration
+`ctrl+spacebar` followed by `shift+i` which will trigger Tmux Plugin Manager and install dependencies. You can manually run `tmux source ~/.config/tmux/tmux.conf` to reload tmux configuration
 
 ## Setup ansible
 

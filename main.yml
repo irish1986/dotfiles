@@ -15,15 +15,19 @@
       tags:
         - always
 
+    # Opt-out, not opt-in: the default is to ask. A run that converges the machine without being asked should be something you turned on -- via dotfiles_confirm, `scripts/setup --yes`, or -e -- rather than the default. Skipped under --check, which changes nothing and so has nothing to approve.
+    - name: DotFiles | Confirm the run plan
+      ansible.builtin.import_tasks: pre_tasks/confirm.yml
+      when:
+        - dotfiles_confirm | default(true) | bool
+        - not ansible_check_mode
+      tags:
+        - always
+
   tasks:
-    # Which roles run is decided by dotfiles_roles in group_vars, in order.
-    # --tags filters that selection for a single run; it does not replace it.
+    # Which roles run is decided by dotfiles_roles in group_vars, in order. --tags filters that selection for a single run; it does not replace it.
     #
-    # There is deliberately no rescue: here. The previous version caught every
-    # failure from every role, printed a debug message, and then reported
-    # "Playbook ran without any issue" from a post_task -- so the play was
-    # structurally incapable of reporting failure. PLAY RECAP and the
-    # profile_tasks callback report the truth.
+    # There is deliberately no rescue: here. The previous version caught every failure from every role, printed a debug message, and then reported "Playbook ran without any issue" from a post_task -- so the play was structurally incapable of reporting failure. PLAY RECAP and the profile_tasks callback report the truth.
     - name: "DotFiles | Role: {{ dotfiles_role }}"
       ansible.builtin.include_role:
         name: "{{ dotfiles_role }}"

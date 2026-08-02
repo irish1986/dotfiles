@@ -1,6 +1,5 @@
 ---
-# The previous role only stat'd /usr/local/bin/tailscale and registered the
-# result -- it never installed anything, and nothing consumed the fact.
+# The previous role only stat'd /usr/local/bin/tailscale and registered the result -- it never installed anything, and nothing consumed the fact.
 - name: Tailscale | Remove pre-deb822 repository artefacts
   ansible.builtin.file:
     path: "{{ tailscale_legacy_artifact }}"

@@ -24,7 +24,49 @@
       - ssh_dir_check.stat.exists
       - ssh_dir_check.stat.mode == '0700'
     fail_msg: >-
-      {{ ssh_dir }} is {{ ssh_dir_check.stat.mode | default('missing') }};
-      ssh refuses to use a keypair in a group- or world-readable directory.
+      {{ ssh_dir }} is {{ ssh_dir_check.stat.mode | default('missing') }}; ssh refuses to use a keypair in a group- or world-readable directory.
     success_msg: "{{ ssh_dir }} is 0700"
     quiet: true
+
+- name: SSH | Verify the client configuration
+  when: ssh_manage_config | bool
+  block:
+    - name: SSH | Check the configuration file permissions
+      ansible.builtin.stat:
+        path: "{{ ssh_config_file }}"
+      register: ssh_config_stat
+
+    - name: SSH | Assert the configuration file is private
+      ansible.builtin.assert:
+        that:
+          - ssh_config_stat.stat.exists
+          - ssh_config_stat.stat.mode == '0600'
+        fail_msg: >-
+          {{ ssh_config_file }} is {{ ssh_config_stat.stat.mode | default('missing') }}; ssh ignores a config file that is writable by anyone but its owner.
+        success_msg: "{{ ssh_config_file }} is 0600"
+        quiet: true
+
+    # `ssh -G` resolves the config the way a real connection would, without connecting. Reading it back from the installed file catches a bad merge that the blockinfile validate step could not see, because validate only ever saw this role's own block.
+    - name: SSH | Resolve the effective configuration
+      ansible.builtin.command: ssh -G example.com
+      register: ssh_effective
+      changed_when: false
+      failed_when: false
+
+    - name: SSH | Assert the configuration resolves
+      ansible.builtin.assert:
+        that:
+          - ssh_effective.rc == 0
+        fail_msg: "{{ ssh_config_file }} does not parse: {{ ssh_effective.stderr | default('no output') }}"
+        success_msg: "{{ ssh_config_file }} parses"
+        quiet: true
+
+    # Not "are the defaults weak" -- OpenSSH has not shipped a CBC cipher in its default list for years, so that assertion would pass against an empty file and prove nothing. This asserts the block is the one being obeyed, which is the failure mode that actually happens: a `Host *` entry added above the marker silently wins every keyword, and the only visible symptom is an option that is present in the file and has no effect.
+    - name: SSH | Assert the managed defaults are in effect
+      ansible.builtin.assert:
+        that:
+          - ssh_effective.stdout is search('(?im)^ciphers ' ~ (ssh_config_options.Ciphers | regex_escape) ~ '$')
+        fail_msg: >-
+          ssh resolves a different cipher list than {{ ssh_config_file }} sets. Something above the managed block claims `Host *` -- ssh takes the first value it finds for a keyword, so that entry wins.
+        success_msg: "the managed defaults are in effect"
+        quiet: true

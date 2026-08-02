@@ -1,8 +1,6 @@
 ---
 # ── .wslconfig ────────────────────────────────────────────────────────────
-# No mode: on any /mnt/c write. Once [automount] metadata is on, a mode set here
-# really applies, and a restrictive Linux mode on a Windows-side file is not
-# what anyone wants.
+# No mode: on any /mnt/c write. Once [automount] metadata is on, a mode set here really applies, and a restrictive Linux mode on a Windows-side file is not what anyone wants.
 - name: WSL | Deploy .wslconfig
   ansible.builtin.template:
     src: wslconfig.j2
@@ -15,8 +13,7 @@
   notify: WSL | Shutdown required
 
 # ── Windows-side fonts ────────────────────────────────────────────────────
-# Ordered before the Terminal merge: the settings reference a Nerd Font by name,
-# and Terminal silently falls back to a default if it is not registered yet.
+# Ordered before the Terminal merge: the settings reference a Nerd Font by name, and Terminal silently falls back to a default if it is not registered yet.
 - name: WSL | Register the fonts with Windows
   when: wsl_manage_windows_fonts | bool
   block:
@@ -43,17 +40,13 @@
       register: wsl_font_install
       become: false
       changed_when: >-
-        'INSTALLED:' in wsl_font_install.stdout
-        or 'REGISTERED:' in wsl_font_install.stdout
+        'INSTALLED:' in wsl_font_install.stdout or 'REGISTERED:' in wsl_font_install.stdout
       notify: WSL | Terminal restart required
 
     - name: WSL | Report fonts that could not be replaced
       ansible.builtin.debug:
         msg: >-
-          Some fonts are loaded by a running process and were left at their
-          existing version. Close Windows Terminal and any editor using them,
-          then re-run --tags wsl to update:
-          {{ wsl_font_install.stdout_lines | select('search', '^LOCKED:') | join('; ') }}
+          Some fonts are loaded by a running process and were left at their existing version. Close Windows Terminal and any editor using them, then re-run --tags wsl to update: {{ wsl_font_install.stdout_lines | select('search', '^LOCKED:') | join('; ') }}
       when: "'LOCKED:' in (wsl_font_install.stdout | default(''))"
   always:
     - name: WSL | Remove the staged fonts
@@ -94,8 +87,7 @@
     - name: WSL | Report that Terminal was not found
       ansible.builtin.debug:
         msg: >-
-          No Windows Terminal settings.json found; skipping. Looked in
-          {{ wsl_terminal_candidates | join(', ') }}.
+          No Windows Terminal settings.json found; skipping. Looked in {{ wsl_terminal_candidates | join(', ') }}.
       when: wsl_terminal_settings_path | length == 0
 
     - name: WSL | Merge the managed settings
@@ -111,11 +103,7 @@
           ansible.builtin.set_fact:
             wsl_terminal_json: "{{ wsl_terminal_current.content | b64decode | from_json }}"
 
-        # Resolved by inspecting the live profile list rather than computed. The
-        # AppX generator's GUID is not reproducible from any documented formula,
-        # so a templated settings.json cannot express the profile actually in
-        # use -- which is why the previous static file pinned a GUID that only
-        # matched one machine and one Ubuntu version.
+        # Resolved by inspecting the live profile list rather than computed. The AppX generator's GUID is not reproducible from any documented formula, so a templated settings.json cannot express the profile actually in use -- which is why the previous static file pinned a GUID that only matched one machine and one Ubuntu version.
         - name: WSL | Resolve the default profile
           ansible.builtin.set_fact:
             wsl_terminal_default_guid: >-

@@ -7,6 +7,35 @@
     group: "{{ dotfiles_user }}"
     mode: "0700"
 
+- name: SSH | Write the client configuration
+  when: ssh_manage_config | bool
+  block:
+    - name: SSH | Ensure the control socket directory exists
+      ansible.builtin.file:
+        path: "{{ ssh_control_dir }}"
+        state: directory
+        owner: "{{ dotfiles_user }}"
+        group: "{{ dotfiles_user }}"
+        mode: "0700"
+
+    # Appended, not templated: ~/.ssh/config is a file the user adds Host entries to, and this role owns only the trailing defaults. Landing at the end is also what makes the block work at all -- ssh takes the first value it finds for a keyword, so `Host *` above a host-specific block would win over it.
+    #
+    # validate runs `ssh -G` against the candidate file before it is installed. A typo'd keyword is a parse error that would otherwise break every ssh invocation on the machine, including the ones later in this play.
+    - name: SSH | Write the hardened defaults
+      ansible.builtin.blockinfile:
+        path: "{{ ssh_config_file }}"
+        marker: "# {mark} ANSIBLE MANAGED BLOCK defaults"
+        create: true
+        owner: "{{ dotfiles_user }}"
+        group: "{{ dotfiles_user }}"
+        mode: "0600"
+        validate: "ssh -G -F %s example.com"
+        block: |
+          Host *
+          {% for ssh_option in (ssh_config_options | combine(ssh_computed_config)) | dict2items %}
+            {{ ssh_option.key }} {{ ssh_option.value }}
+          {% endfor %}
+
 - name: SSH | Import the GitHub public keys
   ansible.posix.authorized_key:
     user: "{{ dotfiles_user }}"
@@ -16,8 +45,7 @@
     - ssh_import_github_keys | bool
     - ssh_github_user | length > 0
 
-# Gated on WSL, unlike the previous version which stat'd /mnt/c unconditionally
-# and so ran two pointless probes on every non-WSL host.
+# Gated on WSL, unlike the previous version which stat'd /mnt/c unconditionally and so ran two pointless probes on every non-WSL host.
 - name: SSH | Seed the keypair from Windows
   when:
     - ssh_import_from_windows | bool

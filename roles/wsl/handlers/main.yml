@@ -1,6 +1,5 @@
 ---
-# Deliberately a message, not an action. `wsl --shutdown` must run from Windows;
-# invoking it from inside the distro would terminate the playbook mid-run.
+# Deliberately a message, not an action. `wsl --shutdown` must run from Windows; invoking it from inside the distro would terminate the playbook mid-run.
 - name: WSL | Shutdown required
   ansible.builtin.debug:
     msg: >-

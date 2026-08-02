@@ -16,6 +16,5 @@ tailscale_apt_suite_fallback: noble
 tailscale_apt_components:
   - main
 
-# Bringing the node up needs an auth key and is an interactive, stateful
-# decision; the role installs the client and leaves `tailscale up` to you.
+# Bringing the node up needs an auth key and is an interactive, stateful decision; the role installs the client and leaves `tailscale up` to you.
 tailscale_manage_service: true

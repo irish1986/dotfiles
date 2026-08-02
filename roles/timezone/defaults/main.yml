@@ -1,10 +1,6 @@
 ---
 timezone_name: Etc/UTC
 
-# Ubuntu's default time sync. The previous implementation removed this and
-# installed `ntp` instead -- on noble `ntp` is only a transitional package that
-# pulls in ntpsec, so that traded a working default for a shim, and it removed
-# systemd-timesyncd *before* installing the replacement, leaving no time sync
-# at all if the install failed.
+# Ubuntu's default time sync. The previous implementation removed this and installed `ntp` instead -- on noble `ntp` is only a transitional package that pulls in ntpsec, so that traded a working default for a shim, and it removed systemd-timesyncd *before* installing the replacement, leaving no time sync at all if the install failed.
 timezone_manage_timesync: true
 timezone_timesync_service: systemd-timesyncd

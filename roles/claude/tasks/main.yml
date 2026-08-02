@@ -1,0 +1,51 @@
+---
+# Orchestrator only: no module calls other than include_vars / include_tasks.
+
+- name: Claude | Load release specific variables
+  ansible.builtin.include_vars: "{{ claude_vars_file }}"
+  loop: "{{ query('ansible.builtin.first_found', claude_vars_lookup) }}"
+  loop_control:
+    loop_var: claude_vars_file
+  vars:
+    claude_vars_lookup:
+      files:
+        - "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
+        - "{{ ansible_distribution }}.yml"
+        - "{{ ansible_os_family }}.yml"
+      paths:
+        - "{{ role_path }}/vars"
+      skip: true
+  tags:
+    - claude
+    - dev
+
+- name: Claude | Install
+  ansible.builtin.include_tasks: "{{ claude_install_tasks }}"
+  vars:
+    claude_install_tasks: "{{ lookup('ansible.builtin.first_found', claude_install_lookup) }}"
+    claude_install_lookup:
+      files:
+        - "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
+        - "{{ ansible_distribution }}.yml"
+        - "{{ ansible_os_family }}.yml"
+      paths:
+        - "{{ role_path }}/tasks/install"
+  tags:
+    - claude
+    - dev
+    - install
+
+- name: Claude | Configure
+  ansible.builtin.include_tasks: "{{ role_path }}/tasks/configure.yml"
+  tags:
+    - claude
+    - dev
+    - configure
+
+- name: Claude | Verify
+  ansible.builtin.include_tasks: "{{ role_path }}/tasks/verify.yml"
+  when: not ansible_check_mode
+  tags:
+    - claude
+    - dev
+    - verify

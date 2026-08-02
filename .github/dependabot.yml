@@ -9,16 +9,11 @@ version: 2
 #                           Renovate (ansible-galaxy) -- Dependabot has no
 #                           Galaxy ecosystem, see .github/renovate.json
 #
-# The `uv` ecosystem is deliberately absent until a Python manifest exists.
-# There is no pyproject.toml, uv.lock or requirements*.txt in the repository, so
-# declaring it produced a permanent "no dependency files found" error on every
-# scheduled run. Re-add it alongside the docs toolchain manifest.
+# The `uv` ecosystem is deliberately absent until a Python manifest exists. There is no pyproject.toml, uv.lock or requirements*.txt in the repository, so declaring it produced a permanent "no dependency files found" error on every scheduled run. Re-add it alongside the docs toolchain manifest.
 updates:
   - package-ecosystem: "github-actions"
     directory: "/"
-    # Weekly, not daily. Every merge cuts a patch release, and grouped daily
-    # updates against a 7-day cooldown mostly produce nothing anyway; batching
-    # keeps the release stream legible.
+    # Weekly, not daily. Every merge cuts a patch release, and grouped daily updates against a 7-day cooldown mostly produce nothing anyway; batching keeps the release stream legible.
     schedule:
       interval: "weekly"
       day: "monday"
@@ -31,9 +26,7 @@ updates:
       - "dependencies"
       - "github-actions"
     commit-message:
-      # include: scope yields "ci(deps): bump ...", which is a valid Conventional
-      # Commit and passes the PR-title lint. The bare `deps` prefix used before
-      # is not a valid type and would have failed it.
+      # include: scope yields "ci(deps): bump ...", which is a valid Conventional Commit and passes the PR-title lint. The bare `deps` prefix used before is not a valid type and would have failed it.
       prefix: "ci"
       include: "scope"
     groups:
@@ -43,8 +36,7 @@ updates:
         update-types:
           - "minor"
           - "patch"
-      # Kept separate on purpose: dependabot-auto-merge.yml does not auto-merge
-      # major updates, so they land as their own reviewable PR.
+      # Kept separate on purpose: dependabot-auto-merge.yml does not auto-merge major updates, so they land as their own reviewable PR.
       github-actions-major:
         patterns:
           - "*"
@@ -72,9 +64,7 @@ updates:
         patterns:
           - "*"
 
-  # Enabled now that pyproject.toml and uv.lock exist. This entry was previously
-  # declared with no manifest anywhere in the repository, which logged a
-  # permanent "no dependency files found" on every scheduled run.
+  # Enabled now that pyproject.toml and uv.lock exist. This entry was previously declared with no manifest anywhere in the repository, which logged a permanent "no dependency files found" on every scheduled run.
   - package-ecosystem: "uv"
     directory: "/"
     schedule:

@@ -1,5 +1,0 @@
-require('dotfiles.core.disable')
-require('dotfiles.core.globals')
-require('dotfiles.core.options')
-require('dotfiles.core.keymaps')
-require('dotfiles.core.autocommands')

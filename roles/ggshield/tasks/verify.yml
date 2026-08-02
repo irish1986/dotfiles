@@ -1,0 +1,14 @@
+---
+- name: GGShield | Query the installed version
+  ansible.builtin.command: "{{ ggshield_binary }} --version"
+  register: ggshield_version_check
+  changed_when: false
+  failed_when: false
+
+- name: GGShield | Assert ggshield is usable
+  ansible.builtin.assert:
+    that:
+      - ggshield_version_check.rc == 0
+    fail_msg: "ggshield did not install correctly: {{ ggshield_version_check.stderr | default('no output') }}"
+    success_msg: "{{ ggshield_version_check.stdout | trim }}"
+    quiet: true

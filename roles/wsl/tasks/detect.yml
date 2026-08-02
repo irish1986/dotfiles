@@ -1,7 +1,5 @@
 ---
-# Interop, not WSL. /run/WSL is present whenever the interop server is running;
-# it is absent when [interop] enabled=false, and every Windows-side task in this
-# role depends on interop rather than on merely being inside WSL.
+# Interop, not WSL. /run/WSL is present whenever the interop server is running; it is absent when [interop] enabled=false, and every Windows-side task in this role depends on interop rather than on merely being inside WSL.
 - name: WSL | Detect interop
   ansible.builtin.stat:
     path: /run/WSL
@@ -15,10 +13,7 @@
 - name: WSL | Resolve the Windows user profile
   when: wsl_interop_available | bool
   block:
-    # chdir is mandatory. Run from a WSL path, cmd.exe emits three lines of UNC
-    # warning on stdout *before* the value, which then has to be parsed off.
-    # Resolving the profile path rather than the user name also survives
-    # C:\Users\name.DOMAIN, redirected profiles and a non-C: profile drive.
+    # chdir is mandatory. Run from a WSL path, cmd.exe emits three lines of UNC warning on stdout *before* the value, which then has to be parsed off. Resolving the profile path rather than the user name also survives C:\Users\name.DOMAIN, redirected profiles and a non-C: profile drive.
     - name: WSL | Query USERPROFILE
       ansible.builtin.command:
         cmd: "{{ wsl_cmd }} /c echo %USERPROFILE%"
@@ -60,8 +55,7 @@
 
 - name: WSL | Register the Windows host facts
   ansible.builtin.set_fact:
-    # Falls back to the configured user name so the role degrades rather than
-    # failing when interop is unavailable.
+    # Falls back to the configured user name so the role degrades rather than failing when interop is unavailable.
     wsl_windows_home: >-
       {{ (wsl_windows_home_path.stdout | default('') | trim)
          if (wsl_windows_home_path.stdout | default('') | trim | length) > 0

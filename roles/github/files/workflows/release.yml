@@ -1,0 +1,130 @@
+---
+name: CI - Release
+run-name: Continuous Integration release triggered by ${{ github.actor }}
+
+on: # yamllint disable-line rule:truthy
+  workflow_run:
+    workflows:
+      - "CI - Main"
+    types:
+      - completed
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  CZ_VERSION: "4.16.3"
+
+jobs:
+
+  release:
+    if: >-
+      ${{
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.head_branch == 'main' &&
+        !startsWith(github.event.workflow_run.head_commit.message, 'bump:')
+      }}
+    name: Semantic Release
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.workflow_run.head_sha }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install UV
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Setup Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: "3.12"
+
+      - name: Configure Git identity
+        id: config
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        shell: bash
+
+      - name: Bump version
+        id: bump
+        run: |
+          set -euo pipefail
+          CZ=(uvx --from "commitizen==${CZ_VERSION}" cz)
+
+          rc=0
+          "${CZ[@]}" bump --yes --changelog || rc=$?
+
+          if [[ "$rc" -eq 3 || "$rc" -eq 21 ]]; then
+            echo "No releasable commits since last tag — skipping release."
+            echo "released=false" >> "$GITHUB_OUTPUT"
+          elif [[ "$rc" -ne 0 ]]; then
+            echo "::error::cz bump failed with exit code $rc"
+            exit "$rc"
+          else
+            VERSION=$("${CZ[@]}" version --project)
+            echo "Released v$VERSION"
+            echo "released=true" >> "$GITHUB_OUTPUT"
+            echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          fi
+        shell: bash
+
+      - name: Push tag
+        if: steps.bump.outputs.released == 'true'
+        id: tag
+        env:
+          VERSION: ${{ steps.bump.outputs.version }}
+        run: |
+          set -euo pipefail
+          git push origin HEAD:main
+          git push origin "v$VERSION"
+        shell: bash
+
+      - name: Create GH Release
+        if: steps.bump.outputs.released == 'true'
+        id: release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.bump.outputs.version }}
+        run: |
+          set -euo pipefail
+          uvx --from "commitizen==${CZ_VERSION}" cz changelog "$VERSION" --dry-run > release_notes.md || true
+          gh release create "v$VERSION" --title "v$VERSION" --notes-file release_notes.md --verify-tag
+        shell: bash
+
+      - name: Update open PR branches
+        if: steps.bump.outputs.released == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          # The release bump rewrote `version` in every package pyproject.toml and
+          # uv.lock. Any open PR is now behind main, so its merge ref carries the
+          # bumped pyprojects against a stale uv.lock and the uv-lock pre-commit
+          # hook fails. Merging main into each PR brings the bump in and re-syncs
+          # the lock. PRs with conflicts are skipped (they need manual attention).
+          for PR in $(gh pr list --state open --json number --jq '.[].number'); do
+            echo "::group::PR #${PR}"
+            if gh pr update-branch "${PR}"; then
+              echo "Updated PR #${PR} with main."
+            else
+              echo "::warning::Could not auto-update PR #${PR} (conflict or already current). Skipping."
+            fi
+            echo "::endgroup::"
+          done
+        shell: bash

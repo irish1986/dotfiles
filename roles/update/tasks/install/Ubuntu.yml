@@ -41,8 +41,7 @@
     path: "{{ update_reboot_marker }}"
   register: update_reboot_required
 
-# Gated on dotfiles_can_reboot: `reboot` terminates a WSL distro and kills a CI
-# container, in both cases taking the playbook run with it.
+# Gated on dotfiles_can_reboot: `reboot` terminates a WSL distro and kills a CI container, in both cases taking the playbook run with it.
 - name: Update | Reboot
   ansible.builtin.reboot:
     msg: Rebooting to complete the system upgrade
@@ -55,9 +54,7 @@
 - name: Update | Report a pending reboot
   ansible.builtin.debug:
     msg: >-
-      A reboot is required to complete the upgrade, but this environment cannot
-      be rebooted by Ansible. Restart it yourself
-      {{ "(from Windows: wsl --shutdown)" if dotfiles_is_wsl | bool else "" }}.
+      A reboot is required to complete the upgrade, but this environment cannot be rebooted by Ansible. Restart it yourself {{ "(from Windows: wsl --shutdown)" if dotfiles_is_wsl | bool else "" }}.
   when:
     - update_reboot_required.stat.exists
     - not (dotfiles_can_reboot | bool)

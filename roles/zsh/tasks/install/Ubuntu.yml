@@ -5,20 +5,12 @@
     state: present
   become: true
 
-- name: ZSH | Set the login shell
-  ansible.builtin.user:
-    name: "{{ dotfiles_user }}"
-    shell: "{{ zsh_shell }}"
-  become: true
-
 - name: ZSH | Detect oh-my-zsh
   ansible.builtin.stat:
     path: "{{ zsh_omz_dir }}"
   register: zsh_omz_existing
 
-# Runs as the login user, not root. Under the old global become this installed
-# oh-my-zsh into a root-owned tree in the user's home, which is why every file
-# under ~/.oh-my-zsh/custom ended up owned by root.
+# Runs as the login user, not root. Under the old global become this installed oh-my-zsh into a root-owned tree in the user's home, which is why every file under ~/.oh-my-zsh/custom ended up owned by root.
 - name: ZSH | Install oh-my-zsh
   when: not zsh_omz_existing.stat.exists
   block:
@@ -43,8 +35,7 @@
         ZSH: "{{ zsh_omz_dir }}"
       changed_when: true
   always:
-    # The old handler removed ~/oh-my-zsh.install.sh while the download went to
-    # /tmp, so it cleaned nothing.
+    # The old handler removed ~/oh-my-zsh.install.sh while the download went to /tmp, so it cleaned nothing.
     - name: ZSH | Remove the staging file
       ansible.builtin.file:
         path: "{{ zsh_omz_script.path | default('') }}"

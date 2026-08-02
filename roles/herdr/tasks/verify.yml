@@ -1,0 +1,14 @@
+---
+- name: Herdr | Query the installed version
+  ansible.builtin.command: "{{ herdr_binary_path }} --version"
+  register: herdr_version_check
+  changed_when: false
+  failed_when: false
+
+- name: Herdr | Assert herdr is usable
+  ansible.builtin.assert:
+    that:
+      - herdr_version_check.rc == 0
+    fail_msg: "herdr did not install correctly: {{ herdr_version_check.stderr | default('no output') }}"
+    success_msg: "{{ herdr_version_check.stdout | trim }}"
+    quiet: true

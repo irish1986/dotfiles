@@ -1,0 +1,17 @@
+---
+# The upstream installer is user-scoped and always lands here.
+rust_home: "{{ dotfiles_home }}/.cargo"
+rust_rustup_home: "{{ dotfiles_home }}/.rustup"
+
+rust_bin_dir: "{{ rust_home }}/bin"
+rust_cargo_binary: "{{ rust_bin_dir }}/cargo"
+rust_rustc_binary: "{{ rust_bin_dir }}/rustc"
+rust_rustup_binary: "{{ rust_bin_dir }}/rustup"
+
+# Sourced by the zsh role's .zshrc, behind a guard, to put rust_bin_dir on PATH.
+rust_env_script: "{{ rust_home }}/env"
+
+# rustup reads these to decide where to install. They are exported for every rustup call, not just the installer: without them a task inheriting a different HOME would silently operate on a second, empty toolchain tree.
+rust_environment:
+  CARGO_HOME: "{{ rust_home }}"
+  RUSTUP_HOME: "{{ rust_rustup_home }}"

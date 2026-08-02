@@ -4,8 +4,7 @@
     that:
       - (ansible_tools_uv_binary) is file
     fail_msg: >-
-      uv is not installed. The python role provides it; list python before
-      ansible_tools in dotfiles_roles.
+      uv is not installed. The uv role provides it; list uv before ansible_tools in dotfiles_roles.
     quiet: true
 
 - name: Ansible Tools | Remove the apt and PPA install
@@ -26,9 +25,7 @@
       loop_control:
         loop_var: ansible_tools_ppa_artifact
 
-# Keyed on what uv manages, not on whether a binary exists: uv refuses to
-# overwrite an executable it did not create, so an apt-installed ansible would
-# make a plain install fail on every run. --force adopts it once.
+# Keyed on what uv manages, not on whether a binary exists: uv refuses to overwrite an executable it did not create, so an apt-installed ansible would make a plain install fail on every run. --force adopts it once.
 - name: Ansible Tools | List the uv managed tools
   ansible.builtin.command: "{{ ansible_tools_uv_binary }} tool list"
   environment:
@@ -41,9 +38,7 @@
 - name: Ansible Tools | Install ansible-core
   ansible.builtin.command:
     cmd: >-
-      {{ ansible_tools_uv_binary }} tool install --force
-      {{ ansible_tools_core_package }}{{ ('==' ~ ansible_tools_core_version) if ansible_tools_core_version | length > 0 else '' }}
-      {% for extra in ansible_tools_core_extras %}--with {{ extra }} {% endfor %}
+      {{ ansible_tools_uv_binary }} tool install --force {{ ansible_tools_core_package }}{{ ('==' ~ ansible_tools_core_version) if ansible_tools_core_version | length > 0 else '' }} {% for extra in ansible_tools_core_extras %}--with {{ extra }} {% endfor %}
   when: ansible_tools_uv_list.stdout is not search('^' ~ ansible_tools_core_package, multiline=True)
   changed_when: true
 

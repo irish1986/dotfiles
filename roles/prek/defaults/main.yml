@@ -1,6 +1,4 @@
 ---
-# Installed with uv, the single Python tool manager for this repo. The previous
-# role queried the latest release, printed it with debug, and stopped -- prek
-# was never installed, despite .zshaliases aliasing pre-commit to it.
+# Installed with uv, the single Python tool manager for this repo. The previous role queried the latest release, printed it with debug, and stopped -- prek was never installed, despite .zshaliases aliasing pre-commit to it.
 prek_package: prek
 prek_version: "" # empty installs the latest

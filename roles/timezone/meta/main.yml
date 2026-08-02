@@ -11,6 +11,5 @@ galaxy_info:
       versions:
         - jammy
         - noble
-# Always empty. Role dependencies bypass dotfiles_roles selection and execute
-# silently; ordering is expressed once, in that list.
+# Always empty. Role dependencies bypass dotfiles_roles selection and execute silently; ordering is expressed once, in that list.
 dependencies: []

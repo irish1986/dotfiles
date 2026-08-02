@@ -1,0 +1,66 @@
+---
+- name: User | Sudoers
+  when: user_manage_sudoers | bool
+  block:
+    - name: User | Ensure the sudo group exists
+      ansible.builtin.group:
+        name: sudo
+        state: present
+      become: true
+
+    - name: User | Ensure the sudo group has privileges
+      ansible.builtin.lineinfile:
+        dest: /etc/sudoers
+        state: present
+        regexp: ^%sudo
+        line: "%sudo ALL=(ALL:ALL) ALL"
+        validate: /usr/sbin/visudo -cf %s
+      become: true
+
+    # validate: is the difference between a typo and a machine that has lost sudo. The blockinfile this replaced had none, so a bad render locked the host out.
+    - name: "User | Grant passwordless sudo: {{ dotfiles_user }}"
+      ansible.builtin.copy:
+        dest: "{{ user_sudoers_file }}"
+        content: "{{ user_sudoers_content }}"
+        owner: root
+        group: root
+        mode: "0440"
+        validate: /usr/sbin/visudo -cf %s
+      become: true
+      when: user_sudoers_nopasswd | bool
+
+- name: User | Groups
+  when: user_manage_groups | bool
+  block:
+    # Created rather than skipped when absent. `user: groups=docker` fails outright on a group that does not exist, and deferring the membership to a later run would report changed on the second converge -- which is exactly what CI asserts against.
+    - name: User | Ensure the groups exist
+      ansible.builtin.group:
+        name: "{{ user_group }}"
+        state: present
+      become: true
+      loop: "{{ user_groups }}"
+      loop_control:
+        loop_var: user_group
+
+    - name: "User | Add the login user to the groups: {{ dotfiles_user }}"
+      ansible.builtin.user:
+        name: "{{ dotfiles_user }}"
+        groups: "{{ user_groups }}"
+        append: true
+      become: true
+
+- name: User | Login shell
+  when: user_manage_shell | bool
+  block:
+    - name: User | Detect the login shell
+      ansible.builtin.stat:
+        path: "{{ user_shell }}"
+      register: user_shell_stat
+
+    # Guarded on the binary existing. The zsh role set this unconditionally, which would write a shell into /etc/passwd that does not resolve if the package ever failed to install -- and a login shell that does not exist is not a problem you can log in to fix.
+    - name: "User | Set the login shell: {{ user_shell }}"
+      ansible.builtin.user:
+        name: "{{ dotfiles_user }}"
+        shell: "{{ user_shell }}"
+      become: true
+      when: user_shell_stat.stat.exists

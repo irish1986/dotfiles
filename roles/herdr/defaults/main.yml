@@ -1,0 +1,15 @@
+---
+# herdr publishes a standalone binary per platform and no Linux package, so there is no apt repository to point at -- the same arrangement as the snyk role. The upstream one-liner (`curl -fsSL https://herdr.dev/install.sh | sh`) is not used: it only ever installs the latest release, so a pin would be impossible and every run would be unguarded.
+herdr_version: "" # empty resolves the latest release
+# The same manifest `herdr update` reads, so an install and an in-place update agree on what "latest" is. It is also what makes the GitHub API unnecessary here: no rate limit, no token.
+herdr_manifest_url: https://herdr.dev/latest.json
+herdr_download_base: https://github.com/herdrdev/herdr/releases/download
+
+# User-scoped, matching the upstream installer's default and where uv and prek already put their binaries. herdr is a per-user terminal multiplexer, not a system service, so nothing here needs become.
+herdr_install_dir: "{{ dotfiles_home }}/.local/bin"
+
+# herdr keeps config, plugin lock, logs and its sockets in one directory, so this is not only where config.toml lands -- it is the runtime directory too, and the role only ever writes config.toml inside it.
+herdr_config_dir: "{{ dotfiles_home }}/.config/herdr"
+
+# Upstream publishes no .sha256 beside its assets, unlike snyk. Set this to a sha256 hex digest -- alongside a pinned herdr_version -- to have get_url verify the download; empty skips verification.
+herdr_checksum: ""

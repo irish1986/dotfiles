@@ -19,13 +19,11 @@
     nvm_resolved_version: "{{ nvm_version }}"
   when: nvm_version | length > 0
 
-# creates: makes this a no-op once nvm.sh exists, so the installer is fetched
-# once rather than on every run.
+# creates: makes this a no-op once nvm.sh exists, so the installer is fetched once rather than on every run.
 - name: NVM | Install nvm
   ansible.builtin.shell:
     cmd: >-
-      set -o pipefail &&
-      curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/{{ nvm_resolved_version }}/install.sh | bash
+      set -o pipefail && curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/{{ nvm_resolved_version }}/install.sh | bash
     creates: "{{ nvm_script }}"
     executable: /bin/bash
   environment:

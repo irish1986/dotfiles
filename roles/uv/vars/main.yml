@@ -1,0 +1,4 @@
+---
+uv_binary: uv
+# The upstream installer is user-scoped and always lands here; ansible_tools and prek hardcode the same path because they cannot see this role's variables.
+uv_binary_path: "{{ dotfiles_home }}/.local/bin/uv"

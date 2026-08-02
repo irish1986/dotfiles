@@ -1,4 +1,3 @@
 ---
-# Each release ships <Name>NerdFont-Regular.ttf; used as the creates: guard so
-# the archive is fetched once rather than on every run.
+# Each release ships <Name>NerdFont-Regular.ttf; used as the creates: guard so the archive is fetched once rather than on every run.
 fonts_probe_suffix: NerdFont-Regular.ttf

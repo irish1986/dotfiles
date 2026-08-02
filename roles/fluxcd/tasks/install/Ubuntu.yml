@@ -10,10 +10,7 @@
     path: "{{ fluxcd_binary_path }}"
   register: fluxcd_existing
 
-# The upstream installer is fetched to a private temp file rather than a fixed
-# /tmp path: a predictable name in a world-writable directory is a symlink
-# attack waiting to happen, and the old `force: true` re-downloaded it on every
-# run even when flux was already installed.
+# The upstream installer is fetched to a private temp file rather than a fixed /tmp path: a predictable name in a world-writable directory is a symlink attack waiting to happen, and the old `force: true` re-downloaded it on every run even when flux was already installed.
 - name: Flux | Install flux
   when: not fluxcd_existing.stat.exists
   block:

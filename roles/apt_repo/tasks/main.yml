@@ -8,9 +8,7 @@
     fail_msg: apt_repo requires apt_repo_name, apt_repo_uri and apt_repo_key_url.
     quiet: true
 
-# deb822_repository is implemented on top of python3-debian, which is not
-# installed by default on a minimal Ubuntu image. Installed here so the role is
-# self-sufficient rather than depending on caller ordering.
+# deb822_repository is implemented on top of python3-debian, which is not installed by default on a minimal Ubuntu image. Installed here so the role is self-sufficient rather than depending on caller ordering.
 - name: Apt Repo | Install the deb822 dependency
   ansible.builtin.apt:
     name: python3-debian
@@ -19,10 +17,7 @@
     cache_valid_time: 3600
   become: true
 
-# A HEAD against the suite's Release file, rather than a hardcoded codename map.
-# A map is a permanent lie the moment the vendor catches up and someone has to
-# notice and delete it; the probe self-heals on the next run. 403 and 404 both
-# mean "not published here" for the CDNs in use.
+# A HEAD against the suite's Release file, rather than a hardcoded codename map. A map is a permanent lie the moment the vendor catches up and someone has to notice and delete it; the probe self-heals on the next run. 403 and 404 both mean "not published here" for the CDNs in use.
 - name: "Apt Repo | Probe the requested suite: {{ apt_repo_name ~ ' ' ~ apt_repo_suite }}"
   ansible.builtin.uri:
     url: "{{ apt_repo_uri }}/dists/{{ apt_repo_suite }}/Release"
@@ -50,8 +45,7 @@
 - name: "Apt Repo | Report the suite fallback: {{ apt_repo_name }}"
   ansible.builtin.debug:
     msg: >-
-      {{ apt_repo_name }} does not publish a suite for
-      {{ apt_repo_suite }} yet; falling back to {{ apt_repo_effective_suite }}.
+      {{ apt_repo_name }} does not publish a suite for {{ apt_repo_suite }} yet; falling back to {{ apt_repo_effective_suite }}.
   when: apt_repo_effective_suite != apt_repo_suite
 
 - name: "Apt Repo | Configure the repository: {{ apt_repo_name }}"

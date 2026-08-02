@@ -1,0 +1,30 @@
+---
+- name: GitHub | Query the installed version
+  ansible.builtin.command: "{{ github_binary }} --version"
+  register: github_version_check
+  changed_when: false
+  failed_when: false
+
+- name: GitHub | Assert gh is usable
+  ansible.builtin.assert:
+    that:
+      - github_version_check.rc == 0
+    fail_msg: "gh did not install correctly: {{ github_version_check.stderr | default('no output') }}"
+    success_msg: "{{ github_version_check.stdout_lines | first | trim }}"
+    quiet: true
+
+- name: GitHub | Read back the git protocol
+  ansible.builtin.command: "{{ github_binary }} config get git_protocol"
+  environment: "{{ github_environment }}"
+  register: github_protocol_check
+  changed_when: false
+  failed_when: false
+
+- name: GitHub | Assert the configuration was written
+  ansible.builtin.assert:
+    that:
+      - github_protocol_check.stdout | trim == github_config.git_protocol
+    fail_msg: >-
+      gh reports git_protocol '{{ github_protocol_check.stdout | trim }}', expected '{{ github_config.git_protocol }}'.
+    success_msg: "gh git_protocol {{ github_config.git_protocol }}"
+    quiet: true

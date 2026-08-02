@@ -1,0 +1,38 @@
+---
+name: Repo - Labels
+run-name: Repository labels sync triggered by ${{ github.actor }}
+
+on: # yamllint disable-line rule:truthy
+  push:
+    paths:
+      - .github/labels.yml
+      - .github/workflows/labels.yml
+    schedule:
+      - cron: '0 3 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+
+  labels:
+    name: Labels
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+
+      - name: Sync labels
+        uses: crazy-max/ghaction-github-labeler@548a7c3603594ec17c819e1239f281a3b801ab4d # v6.0.0
+        with:
+          yaml-file: .github/labels.yml
+          skip-delete: false
+          dry-run: false

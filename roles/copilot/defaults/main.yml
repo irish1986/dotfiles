@@ -1,0 +1,22 @@
+---
+# The upstream installer ships a self-contained binary, so there is no Node runtime to provide. The npm package (@github/copilot) needs Node 22+, which no role in this repo installs -- nvm deliberately stops at nvm itself.
+copilot_install_script_url: https://gh.io/copilot-install
+copilot_releases_api: https://api.github.com/repos/github/copilot-cli/releases/latest
+
+copilot_version: "" # empty resolves the latest release
+
+# Passed to the installer as PREFIX; the binary lands in <prefix>/bin. Kept under the user's home because .zshrc already puts ~/.local/bin on PATH, and because a user-owned install needs no become.
+copilot_install_prefix: "{{ dotfiles_home }}/.local"
+
+copilot_dependencies:
+  - ca-certificates
+  - curl
+  - tar
+
+copilot_config_dir: "{{ dotfiles_home }}/.copilot"
+
+# Seeded into ~/.copilot/settings.json only when that file does not exist. Left empty on purpose: GitHub publishes no reference for this file, and the only keys confirmed by the docs are `model` and `hooks`. Anything else would be a guess the CLI silently ignores.
+copilot_settings: {}
+
+# The managed block in ~/.copilot/copilot-instructions.md. Anything outside the markers is left alone.
+copilot_manage_instructions: true

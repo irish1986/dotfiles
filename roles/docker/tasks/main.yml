@@ -1,7 +1,5 @@
 ---
-# Orchestrator only: no module calls other than include_vars / include_tasks.
-# That is what keeps the generic/OS-specific split legible, and stops generic
-# tasks accreting onto the end of a dispatcher.
+# Orchestrator only: no module calls other than include_vars / include_tasks. That is what keeps the generic/OS-specific split legible, and stops generic tasks accreting onto the end of a dispatcher.
 
 - name: Docker | Load release specific variables
   ansible.builtin.include_vars: "{{ docker_vars_file }}"
@@ -21,10 +19,7 @@
     - docker
     - containers
 
-# Note the asymmetry with the vars lookup above: that one is optional
-# (skip: true), this one is not. An unsupported distribution -- or a typo like
-# the old cloudinit/tasks/Ubunu.yml -- now fails the play instead of silently
-# doing nothing.
+# Note the asymmetry with the vars lookup above: that one is optional (skip: true), this one is not. An unsupported distribution -- or a typo like the old cloudinit/tasks/Ubunu.yml -- now fails the play instead of silently doing nothing.
 - name: Docker | Install
   ansible.builtin.include_tasks: "{{ docker_install_tasks }}"
   vars:

@@ -9,9 +9,41 @@ ssh_public_key: id_ed25519.pub
 ssh_import_github_keys: true
 ssh_github_user: "{{ git_user_login | default('') }}"
 
-# Seed the WSL keypair from the Windows one. Off by default: a WSL-native key
-# is independently revocable and needs no Windows-side change. When enabled the
-# copy is force: false, so it seeds an empty ~/.ssh but can never overwrite a
-# key generated locally -- the previous version clobbered it on every run,
-# leaving scripts/setup and this role fighting over the same file.
+# Seed the WSL keypair from the Windows one. Off by default: a WSL-native key is independently revocable and needs no Windows-side change. When enabled the copy is force: false, so it seeds an empty ~/.ssh but can never overwrite a key generated locally -- the previous version clobbered it on every run, leaving scripts/setup and this role fighting over the same file.
 ssh_import_from_windows: false
+
+# Write the hardened `Host *` defaults into ~/.ssh/config. The block is appended, and it is the last thing in the file on purpose: ssh_config takes the FIRST value it obtains for each keyword, so a `Host *` block placed above a host-specific one would shadow it.
+ssh_manage_config: true
+
+# Rendered verbatim under `Host *`. Every value is quoted because unquoted yes/no is a YAML boolean, and ssh rejects `ForwardAgent True`.
+#
+# The algorithm lists are allowlists rather than the `-weak-thing` removal form: naming what is acceptable fails closed when a future OpenSSH adds something questionable. The cost is that a server offering nothing on these lists becomes unreachable -- see docs/roles/ssh.md for the escape hatch.
+ssh_config_options:
+  # Crypto. Everything here is available from OpenSSH 8.9, the oldest this repo targets (jammy).
+  KexAlgorithms: curve25519-sha256@libssh.org,curve25519-sha256,diffie-hellman-group-exchange-sha256
+  Ciphers: chacha20-poly1305@openssh.com,aes256-gcm@openssh.com,aes128-gcm@openssh.com,aes256-ctr
+  MACs: hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com,umac-128-etm@openssh.com
+  HostKeyAlgorithms: ssh-ed25519,ssh-ed25519-cert-v01@openssh.com,rsa-sha2-512,rsa-sha2-256
+  # Host identity.
+  StrictHostKeyChecking: "ask"
+  HashKnownHosts: "yes"
+  VerifyHostKeyDNS: "ask"
+  # Learn a server's new keys once it has already authenticated with a known one, so rotation does not train the user to type "yes" at a changed-key warning.
+  UpdateHostKeys: "yes"
+  # Authentication. IdentitiesOnly stops ssh from walking every key in the agent and offering it to the server, which both leaks which keys exist and trips MaxAuthTries.
+  PubkeyAuthentication: "yes"
+  IdentitiesOnly: "yes"
+  PasswordAuthentication: "no"
+  KbdInteractiveAuthentication: "no"
+  AddKeysToAgent: "yes"
+  # A compromised or merely careless remote host can use an agent socket or an X11 channel to reach back. Neither is on unless a specific host needs it.
+  ForwardAgent: "no"
+  ForwardX11: "no"
+  ForwardX11Trusted: "no"
+  PermitLocalCommand: "no"
+  # Connection hygiene.
+  ServerAliveInterval: "60"
+  ServerAliveCountMax: "3"
+  Compression: "no"
+  ControlMaster: "auto"
+  ControlPersist: "10m"

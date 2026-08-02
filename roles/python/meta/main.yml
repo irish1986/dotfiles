@@ -3,7 +3,7 @@ galaxy_info:
   role_name: python
   namespace: dotfiles
   author: irish1986
-  description: Python toolchain and uv.
+  description: The distro Python toolchain.
   license: MIT
   min_ansible_version: "2.16"
   platforms:
@@ -11,6 +11,5 @@ galaxy_info:
       versions:
         - jammy
         - noble
-# Always empty. Role dependencies bypass dotfiles_roles selection and execute
-# silently; ordering is expressed once, in that list.
+# Always empty. Role dependencies bypass dotfiles_roles selection and execute silently; ordering is expressed once, in that list.
 dependencies: []

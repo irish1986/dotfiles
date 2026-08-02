@@ -4,7 +4,5 @@ vscode_legacy_artifacts:
   - /usr/share/keyrings/packages.microsoft.gpg
   - /etc/apt/sources.list.d/vscode.list
 
-# On WSL, VS Code runs on the Windows side and attaches through the Remote-WSL
-# extension; a Linux build inside the distro is redundant and pulls in a large
-# GUI dependency tree.
+# On WSL, VS Code runs on the Windows side and attaches through the Remote-WSL extension; a Linux build inside the distro is redundant and pulls in a large GUI dependency tree.
 vscode_supported: "{{ not (dotfiles_is_wsl | bool) }}"

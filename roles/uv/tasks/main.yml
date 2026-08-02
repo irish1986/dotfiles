@@ -1,0 +1,44 @@
+---
+# Orchestrator only: no module calls other than include_vars / include_tasks.
+
+- name: UV | Load release specific variables
+  ansible.builtin.include_vars: "{{ uv_vars_file }}"
+  loop: "{{ query('ansible.builtin.first_found', uv_vars_lookup) }}"
+  loop_control:
+    loop_var: uv_vars_file
+  vars:
+    uv_vars_lookup:
+      files:
+        - "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
+        - "{{ ansible_distribution }}.yml"
+        - "{{ ansible_os_family }}.yml"
+      paths:
+        - "{{ role_path }}/vars"
+      skip: true
+  tags:
+    - uv
+    - dev
+
+- name: UV | Install
+  ansible.builtin.include_tasks: "{{ uv_install_tasks }}"
+  vars:
+    uv_install_tasks: "{{ lookup('ansible.builtin.first_found', uv_install_lookup) }}"
+    uv_install_lookup:
+      files:
+        - "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
+        - "{{ ansible_distribution }}.yml"
+        - "{{ ansible_os_family }}.yml"
+      paths:
+        - "{{ role_path }}/tasks/install"
+  tags:
+    - uv
+    - dev
+    - install
+
+- name: UV | Verify
+  ansible.builtin.include_tasks: "{{ role_path }}/tasks/verify.yml"
+  when: not ansible_check_mode
+  tags:
+    - uv
+    - dev
+    - verify

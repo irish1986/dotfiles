@@ -1,0 +1,14 @@
+---
+- name: Snyk | Query the installed version
+  ansible.builtin.command: "{{ snyk_binary }} --version"
+  register: snyk_version_check
+  changed_when: false
+  failed_when: false
+
+- name: Snyk | Assert snyk is usable
+  ansible.builtin.assert:
+    that:
+      - snyk_version_check.rc == 0
+    fail_msg: "snyk did not install correctly: {{ snyk_version_check.stderr | default('no output') }}"
+    success_msg: "snyk {{ snyk_version_check.stdout | trim }}"
+    quiet: true

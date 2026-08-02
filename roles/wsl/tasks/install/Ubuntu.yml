@@ -20,8 +20,7 @@
         group: "{{ dotfiles_user }}"
         mode: "0755"
 
-    # A Windows .exe stored on ext4 executes fine through the WSLInterop binfmt
-    # handler, so there is no need to place it on /mnt/c.
+    # A Windows .exe stored on ext4 executes fine through the WSLInterop binfmt handler, so there is no need to place it on /mnt/c.
     - name: WSL | Install win32yank
       ansible.builtin.unarchive:
         src: "{{ wsl_win32yank_url }}"

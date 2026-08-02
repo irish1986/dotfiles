@@ -1,8 +1,5 @@
 ---
-# Installed from the official release tarball rather than the baltocdn apt
-# repository: baltocdn.com does not serve its Let's Encrypt intermediate, so no
-# client can build the certificate chain and the key fetch fails outright.
-# get.helm.sh is Helm's own distribution host and verifies cleanly.
+# Installed from the official release tarball rather than the baltocdn apt repository: baltocdn.com does not serve its Let's Encrypt intermediate, so no client can build the certificate chain and the key fetch fails outright. get.helm.sh is Helm's own distribution host and verifies cleanly.
 helm_version: "" # empty resolves the latest release
 helm_release_api: https://api.github.com/repos/helm/helm/releases/latest
 helm_download_url: >-

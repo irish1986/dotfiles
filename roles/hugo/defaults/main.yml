@@ -1,7 +1,5 @@
 ---
-# Ubuntu's archive lags badly (noble ships 0.123 against upstream 0.157+), and
-# the extended edition with SCSS support is not packaged there at all. Install
-# the upstream .deb instead. Pinned so a run is reproducible; bump deliberately.
+# Ubuntu's archive lags badly (noble ships 0.123 against upstream 0.157+), and the extended edition with SCSS support is not packaged there at all. Install the upstream .deb instead. Pinned so a run is reproducible; bump deliberately.
 hugo_version: 0.157.0
 hugo_edition: extended
 hugo_release_url: >-

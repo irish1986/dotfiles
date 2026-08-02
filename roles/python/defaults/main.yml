@@ -1,19 +1,7 @@
 ---
-# pipx is deliberately absent: uv is the single Python tool manager for this
-# repo. It sidesteps PEP 668 the same way, works identically on 22.04/24.04/
-# 26.04, and one tool means one place for tools to end up.
+# The distro interpreter and its build headers, nothing more. uv, the interpreters uv manages and every Python tool this repo installs belong to the uv role; pipx is deliberately absent from both.
 python_packages:
   - libssl-dev
   - python3
   - python3-pip
   - python3-venv
-
-python_dependencies:
-  - ca-certificates
-  - curl
-
-python_uv_enabled: true
-python_uv_install_url: https://astral.sh/uv/install.sh
-
-# Interpreter uv installs and marks default.
-python_version: "3.14"

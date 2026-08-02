@@ -33,8 +33,7 @@
     success_msg: "{{ zsh_dotfiles | length }} shell dotfiles deployed"
     quiet: true
 
-# .zshrc sources ~/.p10k.zsh; the theme it selects renders as mojibake without
-# a Nerd Font, so this catches an ordering mistake in dotfiles_roles.
+# .zshrc sources ~/.p10k.zsh; the theme it selects renders as mojibake without a Nerd Font, so this catches an ordering mistake in dotfiles_roles.
 - name: ZSH | Assert the powerlevel10k theme is present
   ansible.builtin.assert:
     that:

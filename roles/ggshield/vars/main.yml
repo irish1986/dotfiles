@@ -1,0 +1,5 @@
+---
+ggshield_binary: ggshield
+ggshield_package_name: ggshield
+ggshield_release_url: >-
+  {{ ggshield_download_base }}/v{{ ggshield_resolved_version }}/ggshield_{{ ggshield_resolved_version }}-{{ ggshield_deb_revision }}_{{ dotfiles_dpkg_architecture }}.deb

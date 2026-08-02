@@ -1,0 +1,85 @@
+---
+- name: Rust | Query the installed cargo version
+  ansible.builtin.command: "{{ rust_cargo_binary }} --version"
+  environment: "{{ rust_environment }}"
+  register: rust_cargo_check
+  changed_when: false
+  failed_when: false
+
+- name: Rust | Assert cargo is usable
+  ansible.builtin.assert:
+    that:
+      - rust_cargo_check.rc == 0
+      - "'cargo' in rust_cargo_check.stdout"
+    fail_msg: "cargo did not install correctly: {{ rust_cargo_check.stderr | default('no output') }}"
+    success_msg: "{{ rust_cargo_check.stdout | trim }}"
+    quiet: true
+
+# cargo alone is not a working toolchain: it shells out to rustc, and a profile or component mishap can leave one present without the other.
+- name: Rust | Query the installed rustc version
+  ansible.builtin.command: "{{ rust_rustc_binary }} --version"
+  environment: "{{ rust_environment }}"
+  register: rust_rustc_check
+  changed_when: false
+  failed_when: false
+
+- name: Rust | Assert rustc is usable
+  ansible.builtin.assert:
+    that:
+      - rust_rustc_check.rc == 0
+      - "'rustc' in rust_rustc_check.stdout"
+    fail_msg: "rustc did not install correctly: {{ rust_rustc_check.stderr | default('no output') }}"
+    success_msg: "{{ rust_rustc_check.stdout | trim }}"
+    quiet: true
+
+- name: Rust | Read back the default toolchain
+  ansible.builtin.command: "{{ rust_rustup_binary }} default"
+  environment: "{{ rust_environment }}"
+  register: rust_default_verify
+  changed_when: false
+  failed_when: false
+
+- name: Rust | Assert the requested toolchain is the default
+  ansible.builtin.assert:
+    that:
+      - rust_default_verify.stdout is match(rust_toolchain | regex_escape)
+    fail_msg: >-
+      rustup reports the default toolchain as {{ rust_default_verify.stdout | default('nothing') | trim }}, not {{ rust_toolchain }}.
+    success_msg: "rustup default {{ rust_default_verify.stdout | trim }}"
+    quiet: true
+
+# The zsh role's guarded source is a no-op if this file is missing, so cargo would install and simply never appear on PATH -- green playbook, no cargo in a new shell.
+- name: Rust | Confirm the shell env script exists
+  ansible.builtin.stat:
+    path: "{{ rust_env_script }}"
+  register: rust_env_check
+
+- name: Rust | Assert the shell env script is present
+  ansible.builtin.assert:
+    that:
+      - rust_env_check.stat.exists
+    fail_msg: >-
+      {{ rust_env_script }} is missing, so the zsh role cannot put {{ rust_bin_dir }} on PATH.
+    success_msg: "{{ rust_env_script }}"
+    quiet: true
+
+- name: Rust | Assert the requested components are installed
+  when: rust_components | length > 0
+  block:
+    - name: Rust | Read back the installed components
+      ansible.builtin.command: "{{ rust_rustup_binary }} component list --installed"
+      environment: "{{ rust_environment }}"
+      register: rust_component_verify
+      changed_when: false
+      failed_when: false
+
+    - name: Rust | Assert every requested component landed
+      ansible.builtin.assert:
+        that:
+          - rust_component_verify.stdout is search('^' ~ (rust_component | regex_escape), multiline=True)
+        fail_msg: "rustup did not install the {{ rust_component }} component."
+        success_msg: "rustup component {{ rust_component }}"
+        quiet: true
+      loop: "{{ rust_components }}"
+      loop_control:
+        loop_var: rust_component

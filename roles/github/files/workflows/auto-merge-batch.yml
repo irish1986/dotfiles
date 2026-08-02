@@ -1,0 +1,50 @@
+---
+name: CI - Auto-Merge Queue
+run-name: Continuous Integration auto-merge queue triggered by ${{ github.actor }}
+
+on: # yamllint disable-line rule:truthy
+  schedule:
+    - cron: '0 9 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+
+  batch-merge:
+    name: Batch Merge
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: PRs Merge Queue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          PR_URLS=$(gh pr list --label "auto-merge-ready" --state open --json url --jq '.[].url')
+
+          if [[ -z "${PR_URLS}" ]]; then
+            echo "No PRs labelled auto-merge-ready. Nothing to do."
+            exit 0
+          fi
+
+          while IFS= read -r PR_URL; do
+            [[ -z "${PR_URL}" ]] && continue
+            echo "::group::${PR_URL}"
+            if gh pr merge --squash --delete-branch "${PR_URL}"; then
+              echo "Merged ${PR_URL}."
+            else
+              echo "::warning::Could not merge ${PR_URL} (conflict or failing checks). Skipping."
+            fi
+            echo "::endgroup::"
+          done <<< "${PR_URLS}"
+        shell: bash

@@ -30,9 +30,6 @@ alias treed='tree -CAFd'
 # alias - history rewriting (git-filter-repo supersedes bfg, which needed a JRE)
 alias bfg='git filter-repo'
 
-# alias - trufflehog
-alias trufflehog='trufflehog --no-update'
-
 # alias - pre-commit|prek
 alias pre-commit='prek'
 
@@ -50,94 +47,17 @@ alias ungz='tar -xvzf'
 # alias - logs
 alias logs="sudo find /var/log -type f -exec file {} \; | grep 'text' | cut -d' ' -f1 | sed -e's/:$//g' | grep -v '[0-9]$' | xargs tail -f"
 
-# alias - ensure pin
-alias pin-github-action='docker run --rm -v $(pwd):/workflows -e GITHUB_TOKEN mheap/pin-github-action'
-
-# function - clone repo, enter it, and install pre-commit hooks
-unalias gcl 2>/dev/null
-
-gcl() {
-	local repo_arg=""
-	local target_dir=""
-	local arg=""
-	local parsing_options=1
-	local skip_next=0
-
-	for arg in "$@"; do
-		if (( skip_next )); then
-			skip_next=0
-			continue
-		fi
-
-		if (( parsing_options )); then
-			case "$arg" in
-			--)
-				parsing_options=0
-				continue
-				;;
-			-b|--branch|-c|--config|--depth|--filter|-j|--jobs|-o|--origin|--reference|--reference-if-able|--separate-git-dir|--server-option|--shallow-exclude|--shallow-since|--template|-u|--upload-pack)
-				skip_next=1
-				continue
-				;;
-			--branch=*|--config=*|--depth=*|--filter=*|--jobs=*|--origin=*|--reference=*|--reference-if-able=*|--separate-git-dir=*|--server-option=*|--shallow-exclude=*|--shallow-since=*|--template=*|--upload-pack=*)
-				continue
-				;;
-			-*)
-				continue
-				;;
-			esac
-		fi
-
-		if [[ -z "$repo_arg" ]]; then
-			repo_arg="$arg"
-			continue
-		fi
-
-		if [[ -z "$target_dir" ]]; then
-			target_dir="$arg"
-			break
-		fi
-	done
-
-	if ! git clone "$@"; then
-		return $?
-	fi
-
-	local clone_dir="$target_dir"
-
-	if [[ -z "$clone_dir" && -n "$repo_arg" ]]; then
-		clone_dir="${repo_arg:t}"
-		clone_dir="${clone_dir%.git}"
-	fi
-
-	if [[ -z "$clone_dir" ]]; then
-		printf 'gcl: cloned repo, but could not determine the destination directory\n' >&2
-		return 0
-	fi
-
-	if ! builtin cd "$clone_dir"; then
-		printf 'gcl: cloned repo, but could not enter %s\n' "$clone_dir" >&2
-		return 1
-	fi
-
-	if ! command -v pre-commit >/dev/null 2>&1; then
-		printf 'gcl: entered %s, but pre-commit is not installed\n' "$PWD" >&2
-		return 0
-	fi
-
-	command pre-commit install --allow-missing-config
-}
-
 # --- WSL interop ----------------------------------------------------------
 if [[ -n "$WSL_DISTRO_NAME" ]]; then
-  # win32yank is the only clean paste path. `powershell Get-Clipboard` appends
-  # CRLF even with -Raw, because PowerShell's pipeline adds its own newline.
+  # win32yank is the only clean paste path. `powershell Get-Clipboard` appends CRLF even with -Raw, because PowerShell's pipeline adds its own newline.
   if (( $+commands[win32yank.exe] )); then
     alias pbcopy='win32yank.exe -i --crlf'
     alias pbpaste='win32yank.exe -o --lf'
   else
     alias pbcopy='clip.exe'
-    pbpaste() {
+    # Quoted so re-sourcing this file doesn't expand the `pbpaste` alias that
+    # the other branch defines -- zsh parses the whole if/fi block up front.
+    'pbpaste'() {
       powershell.exe -NoProfile -NonInteractive \
         -Command '[Console]::Out.Write((Get-Clipboard -Raw))' | tr -d '\r'
     }
@@ -147,8 +67,7 @@ if [[ -n "$WSL_DISTRO_NAME" ]]; then
   alias cdw='cd /mnt/c'
   winhome() { cd "$(wslpath -u "$(cd /mnt/c && cmd.exe /c 'echo %USERPROFILE%' 2>/dev/null | tr -d '\r\n')")" }
 
-  # explorer.exe exits 1 even on success, which trips `set -e` and zsh's ERR
-  # trap, so the exit status is swallowed deliberately.
+  # explorer.exe exits 1 even on success, which trips `set -e` and zsh's ERR trap, so the exit status is swallowed deliberately.
   open() { explorer.exe "$(wslpath -w "${1:-.}")" >/dev/null 2>&1; return 0 }
   alias e.='open .'
 fi

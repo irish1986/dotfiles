@@ -16,10 +16,7 @@
       changed_when: false
       check_mode: false
 
-    # stable.txt returns a patch version (v1.36.3) but the repository is keyed
-    # on the minor channel (v1.36). The previous implementation interpolated the
-    # whole uri result *dict* into both the key URL and the repository line, so
-    # neither was ever a valid URL.
+    # stable.txt returns a patch version (v1.36.3) but the repository is keyed on the minor channel (v1.36). The previous implementation interpolated the whole uri result *dict* into both the key URL and the repository line, so neither was ever a valid URL.
     - name: Kubectl | Derive the minor channel
       ansible.builtin.set_fact:
         kubectl_channel: "{{ kubectl_stable.content | trim | regex_replace('^(v[0-9]+\\.[0-9]+).*$', '\\1') }}"

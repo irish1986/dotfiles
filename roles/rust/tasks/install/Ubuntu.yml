@@ -1,0 +1,80 @@
+---
+- name: Rust | Install dependencies
+  ansible.builtin.apt:
+    name: "{{ rust_dependencies }}"
+    state: present
+  become: true
+
+- name: Rust | Detect an existing rustup
+  ansible.builtin.stat:
+    path: "{{ rust_rustup_binary }}"
+  register: rust_existing
+
+- name: Rust | Install the toolchain from the upstream installer
+  when: not rust_existing.stat.exists
+  block:
+    - name: Rust | Create a staging file
+      ansible.builtin.tempfile:
+        state: file
+        suffix: rustup-init.sh
+      register: rust_script
+      changed_when: false
+
+    - name: Rust | Download the installer
+      ansible.builtin.get_url:
+        url: "{{ rust_install_url }}"
+        dest: "{{ rust_script.path }}"
+        mode: "0755"
+        force: true
+      changed_when: false
+
+    # --no-modify-path: rustup otherwise appends its own PATH line to .profile, .bashrc and .zshenv. The zsh role owns PATH here and sources ~/.cargo/env behind a guard, so letting rustup edit those files would put the same directory on PATH two or three times.
+    - name: Rust | Run the installer
+      ansible.builtin.command:
+        cmd: >-
+          {{ rust_script.path }} -y --no-modify-path --profile {{ rust_profile }} --default-toolchain {{ rust_toolchain }}
+      environment: "{{ rust_environment }}"
+      changed_when: true
+  always:
+    - name: Rust | Remove the staging file
+      ansible.builtin.file:
+        path: "{{ rust_script.path | default('') }}"
+        state: absent
+      when: rust_script.path is defined
+      changed_when: false
+
+# Reruns matter here in a way they do not for the installer: changing rust_toolchain in group_vars has to take effect on an already-installed box, and the installer above is skipped once rustup exists.
+- name: Rust | Query the default toolchain
+  ansible.builtin.command: "{{ rust_rustup_binary }} default"
+  environment: "{{ rust_environment }}"
+  register: rust_default_check
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: "Rust | Set the default toolchain to {{ rust_toolchain }}"
+  ansible.builtin.command: "{{ rust_rustup_binary }} default {{ rust_toolchain }}"
+  environment: "{{ rust_environment }}"
+  when: rust_default_check.stdout is not match(rust_toolchain | regex_escape)
+  changed_when: true
+
+- name: Rust | Install the requested components
+  when: rust_components | length > 0
+  block:
+    - name: Rust | Query the installed components
+      ansible.builtin.command: "{{ rust_rustup_binary }} component list --installed"
+      environment: "{{ rust_environment }}"
+      register: rust_component_check
+      changed_when: false
+      failed_when: false
+      check_mode: false
+
+    # component add is idempotent on its own, but it reports "changed" every run, so the guard is what keeps a converged box green.
+    - name: "Rust | Add component {{ rust_component }}"
+      ansible.builtin.command: "{{ rust_rustup_binary }} component add {{ rust_component }}"
+      environment: "{{ rust_environment }}"
+      loop: "{{ rust_components }}"
+      loop_control:
+        loop_var: rust_component
+      when: rust_component_check.stdout is not search('^' ~ (rust_component | regex_escape), multiline=True)
+      changed_when: true

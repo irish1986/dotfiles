@@ -23,8 +23,7 @@
     loop_var: zsh_dotfile
     label: "{{ zsh_dotfile.dest }}"
 
-# Absorbed from the deleted env role. no_log because the rendered block holds
-# live tokens; ansible.cfg's log_path would otherwise write them to disk.
+# Absorbed from the deleted env role. no_log because the rendered block holds live tokens; ansible.cfg's log_path would otherwise write them to disk.
 - name: ZSH | Write the secret environment
   ansible.builtin.blockinfile:
     path: "{{ zsh_env_file }}"

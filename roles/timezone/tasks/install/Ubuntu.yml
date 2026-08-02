@@ -26,8 +26,7 @@
 - name: Timezone | Report that time sync is host managed
   ansible.builtin.debug:
     msg: >-
-      Time synchronisation is managed by the Windows host; only the timezone
-      ({{ timezone_name }}) is set inside the distro.
+      Time synchronisation is managed by the Windows host; only the timezone ({{ timezone_name }}) is set inside the distro.
   when:
     - timezone_manage_timesync | bool
     - not (timezone_timesync_supported | bool)

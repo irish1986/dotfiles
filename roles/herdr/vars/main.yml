@@ -1,0 +1,9 @@
+---
+herdr_binary: herdr
+herdr_binary_path: "{{ herdr_install_dir }}/herdr"
+
+# Asset names carry the raw uname values -- herdr-linux-x86_64, herdr-linux-aarch64 -- which is exactly what ansible_architecture reports. No dpkg architecture translation, and no amd64/arm64 spelling.
+herdr_target: "linux-{{ ansible_architecture }}"
+# Built from herdr_version rather than from herdr_resolved_version: both facts are set in one task, and a set_fact key cannot see a sibling set in the same task.
+herdr_pinned_url: >-
+  {{ herdr_download_base }}/v{{ herdr_version | regex_replace('^v', '') }}/herdr-{{ herdr_target }}

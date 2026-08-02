@@ -1,0 +1,8 @@
+---
+# GitGuardian publishes a .deb per architecture on every release, so this is an upstream package rather than a loose binary -- same arrangement as the hugo role. ggshield is also on PyPI, but installing it with uv would put a second copy on PATH ahead of the packaged one.
+ggshield_version: "" # empty resolves the latest release
+ggshield_releases_api: https://api.github.com/repos/GitGuardian/ggshield/releases/latest
+ggshield_download_base: https://github.com/GitGuardian/ggshield/releases/download
+
+# Debian revision in the asset name: ggshield_<version>-<revision>_<arch>.deb. Upstream has never shipped anything but 1, but it is part of the filename and of the version dpkg records.
+ggshield_deb_revision: "1"

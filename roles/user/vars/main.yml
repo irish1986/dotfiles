@@ -1,0 +1,5 @@
+---
+# The sudoers drop-in body, kept out of the task so the task reads as one copy: the content is the thing being reviewed, not the module call.
+user_sudoers_content: | # pragma: allowlist secret
+  # Managed by the dotfiles playbook (roles/user). Do not edit.
+  {{ dotfiles_user }} ALL=(ALL) NOPASSWD: ALL

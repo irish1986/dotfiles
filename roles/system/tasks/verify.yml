@@ -18,22 +18,3 @@
          | map(attribute='system_package') | join(', ') }}
     success_msg: "{{ system_packages | length }} base packages installed"
     quiet: true
-
-# A malformed sudoers drop-in locks the machine out of sudo, so it is worth
-# asserting rather than assuming the earlier validate: held.
-- name: System | Validate the sudoers drop-in
-  ansible.builtin.command: /usr/sbin/visudo -c -f {{ system_sudoers_file }}
-  register: system_sudoers_check
-  changed_when: false
-  failed_when: false
-  become: true
-  when: system_manage_sudoers | bool
-
-- name: System | Assert the sudoers drop-in parses
-  ansible.builtin.assert:
-    that:
-      - system_sudoers_check.rc == 0
-    fail_msg: "{{ system_sudoers_file }} is invalid: {{ system_sudoers_check.stderr | default('') }}"
-    success_msg: "{{ system_sudoers_file }} parses"
-    quiet: true
-  when: system_manage_sudoers | bool

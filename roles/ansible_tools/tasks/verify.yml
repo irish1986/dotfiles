@@ -26,8 +26,7 @@
     that:
       - ansible_tools_sdk_check.rc == 0
     fail_msg: >-
-      bitwarden_sdk is not importable by the ansible-core interpreter, so
-      bitwarden.secrets.lookup will fail at runtime.
+      bitwarden_sdk is not importable by the ansible-core interpreter, so bitwarden.secrets.lookup will fail at runtime.
     success_msg: bitwarden_sdk importable by ansible-core
     quiet: true
   when: "'bitwarden-sdk' in ansible_tools_core_extras"

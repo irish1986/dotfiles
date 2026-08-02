@@ -1,0 +1,52 @@
+---
+name: CI - Mark Auto-Merge Ready
+run-name: Continuous Integration mark auto-merge ready triggered by ${{ github.actor }}
+
+on: # yamllint disable-line rule:truthy
+  workflow_run:
+    workflows:
+      - "CI - Pull Request"
+    types:
+      - completed
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.workflow_run.head_branch }}
+  cancel-in-progress: false
+
+permissions:
+  pull-requests: write
+
+jobs:
+
+  mark-ready:
+    name: Mark Auto-Merge Ready
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.actor.login == 'dependabot[bot]'
+
+    steps:
+      - name: Mark Dependabot PRs ready for daily batch merge
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          BRANCH: ${{ github.event.workflow_run.head_branch }}
+        run: |
+          set -euo pipefail
+
+          if [[ "${BRANCH}" != *-minor-patch-* ]]; then
+            echo "Branch '${BRANCH}' is not a minor/patch group. Skipping."
+            exit 0
+          fi
+
+          PR_URL=$(gh pr list --head "${BRANCH}" --state open --json url --jq '.[0].url // empty')
+          if [[ -z "${PR_URL}" ]]; then
+            echo "No open PR found for branch '${BRANCH}'. Skipping."
+            exit 0
+          fi
+
+          echo "Labelling ${PR_URL} auto-merge-ready (CI passed on '${BRANCH}')."
+          gh pr edit "${PR_URL}" --add-label "auto-merge-ready"
+        shell: bash

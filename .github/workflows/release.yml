@@ -15,19 +15,11 @@ concurrency:
 permissions: {}
 
 jobs:
-  # release-please maintains a standing "chore(main): release X.Y.Z" pull request
-  # and creates the tag and GitHub Release when it merges.
+  # release-please maintains a standing "chore(main): release X.Y.Z" pull request and creates the tag and GitHub Release when it merges.
   #
-  # It is used rather than `cz bump` or semantic-release because both push a bump
-  # commit straight to main, and ruleset 6028081 enforces required_signatures on
-  # the default branch with an empty bypass list -- an unsigned bot push is
-  # rejected outright. release-please only writes to
-  # release-please--branches--main, and the tag is created through the API.
+  # It is used rather than `cz bump` or semantic-release because both push a bump commit straight to main, and ruleset 6028081 enforces required_signatures on the default branch with an empty bypass list -- an unsigned bot push is rejected outright. release-please only writes to release-please--branches--main, and the tag is created through the API.
   #
-  # RELEASE_TOKEN must be a PAT (or App token), not GITHUB_TOKEN: pull requests
-  # opened by GITHUB_TOKEN do not trigger `pull_request` workflows, so the
-  # release PR would get no checks at all and could never satisfy the required
-  # CI OK context.
+  # RELEASE_TOKEN must be a PAT (or App token), not GITHUB_TOKEN: pull requests opened by GITHUB_TOKEN do not trigger `pull_request` workflows, so the release PR would get no checks at all and could never satisfy the required CI OK context.
   release-please:
     name: Release Please
     runs-on: ubuntu-24.04

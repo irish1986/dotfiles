@@ -1,0 +1,17 @@
+---
+# rustup rather than the distro `cargo` package: apt pins the toolchain to whatever the release shipped (1.75 on 24.04), and crates increasingly declare a newer rust-version, so a distro cargo fails to build them with no way forward short of a PPA.
+rust_install_url: https://sh.rustup.rs
+
+rust_dependencies:
+  - build-essential # cc, used as the default linker; cargo cannot link without it
+  - ca-certificates
+  - curl
+
+# Toolchain rustup installs and marks default. "stable" tracks releases; pin an exact version ("1.90.0") to freeze it.
+rust_toolchain: stable
+
+# minimal, default, or complete. "default" is cargo, rustc, rust-std, rust-docs, rustfmt and clippy.
+rust_profile: default
+
+# Components beyond the profile. Left empty because rust_profile: default already covers rustfmt and clippy.
+rust_components: []

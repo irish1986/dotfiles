@@ -1,2 +1,3 @@
 ---
-python_uv_binary: "{{ dotfiles_home }}/.local/bin/uv"
+# Deliberately absolute: a bare `python3` resolves to whatever uv marked default on PATH, which is the opposite of what this role installs and verifies.
+python_binary: /usr/bin/python3

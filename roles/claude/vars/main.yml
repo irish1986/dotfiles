@@ -1,0 +1,4 @@
+---
+claude_binary: claude
+claude_settings_file: "{{ claude_config_dir }}/settings.json"
+claude_instructions_file: "{{ claude_config_dir }}/CLAUDE.md"

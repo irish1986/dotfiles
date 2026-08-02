@@ -1,0 +1,5 @@
+---
+copilot_binary: copilot
+copilot_binary_path: "{{ copilot_install_prefix }}/bin/copilot"
+copilot_settings_file: "{{ copilot_config_dir }}/settings.json"
+copilot_instructions_file: "{{ copilot_config_dir }}/copilot-instructions.md"

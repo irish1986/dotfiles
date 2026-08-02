@@ -2,8 +2,7 @@
 - name: VSCode | Report that the Windows install is used
   ansible.builtin.debug:
     msg: >-
-      Skipping the Linux VS Code build: on WSL, VS Code runs on Windows and
-      attaches to this distro through the Remote-WSL extension.
+      Skipping the Linux VS Code build: on WSL, VS Code runs on Windows and attaches to this distro through the Remote-WSL extension.
   when: not (vscode_supported | bool)
 
 - name: VSCode | Install

@@ -1,0 +1,33 @@
+---
+- name: UV | Query the installed version
+  ansible.builtin.command: "{{ uv_binary_path }} --version"
+  register: uv_version_check
+  changed_when: false
+  failed_when: false
+
+- name: UV | Assert uv is usable
+  ansible.builtin.assert:
+    that:
+      - uv_version_check.rc == 0
+    fail_msg: "uv did not install correctly: {{ uv_version_check.stderr | default('no output') }}"
+    success_msg: "{{ uv_version_check.stdout | trim }}"
+    quiet: true
+
+- name: UV | Read back the managed interpreters
+  ansible.builtin.command: "{{ uv_binary_path }} python list --only-installed"
+  environment:
+    NO_COLOR: "1"
+  register: uv_python_check
+  changed_when: false
+  failed_when: false
+  when: uv_manage_python | bool
+
+- name: UV | Assert the default interpreter is installed
+  ansible.builtin.assert:
+    that:
+      - uv_python_check.stdout is search(uv_python_version | regex_escape)
+    fail_msg: >-
+      uv did not install python {{ uv_python_version }}; `uv python list --only-installed` reports {{ uv_python_check.stdout | default('nothing') | trim }}.
+    success_msg: "uv python {{ uv_python_version }}"
+    quiet: true
+  when: uv_manage_python | bool

@@ -1,0 +1,5 @@
+---
+github_binary: gh
+# gh resolves its own config directory from XDG_CONFIG_HOME, which need not agree with github_config_dir. Setting it explicitly on every gh invocation makes the role write where it says it writes.
+github_environment:
+  GH_CONFIG_DIR: "{{ github_config_dir }}"

@@ -1,0 +1,92 @@
+---
+# A malformed sudoers drop-in locks the machine out of sudo, so it is worth asserting rather than assuming the earlier validate: held.
+- name: User | Validate the sudoers drop-in
+  ansible.builtin.command: /usr/sbin/visudo -c -f {{ user_sudoers_file }}
+  register: user_sudoers_check
+  changed_when: false
+  failed_when: false
+  become: true
+  when: user_manage_sudoers | bool
+
+- name: User | Assert the sudoers drop-in parses
+  ansible.builtin.assert:
+    that:
+      - user_sudoers_check.rc == 0
+    fail_msg: "{{ user_sudoers_file }} is invalid: {{ user_sudoers_check.stderr | default('') }}"
+    success_msg: "{{ user_sudoers_file }} parses"
+    quiet: true
+  when: user_manage_sudoers | bool
+
+- name: User | Verify the login shell
+  when: user_manage_shell | bool
+  block:
+    # Re-stat rather than reuse the install phase's result, so `--tags user,verify` stands on its own.
+    - name: User | Detect the login shell
+      ansible.builtin.stat:
+        path: "{{ user_shell }}"
+      register: user_shell_present
+
+    # Reading it back is the point: the zsh role set the shell and never checked, so a failed change was indistinguishable from a successful one.
+    - name: User | Read the passwd entry
+      ansible.builtin.command: getent passwd {{ dotfiles_user }}
+      register: user_passwd_entry
+      changed_when: false
+      failed_when: false
+
+    - name: User | Assert the login shell is set
+      ansible.builtin.assert:
+        that:
+          - user_passwd_entry.rc == 0
+          - user_passwd_entry.stdout.split(':') | last == user_shell
+        fail_msg: >-
+          {{ dotfiles_user }} has login shell '{{ user_passwd_entry.stdout.split(':') | last | default('unknown') }}', expected '{{ user_shell }}'.
+        success_msg: "login shell {{ user_shell }}"
+        quiet: true
+      when: user_shell_present.stat.exists
+
+- name: User | Verify the group membership
+  when: user_manage_groups | bool
+  block:
+    - name: User | Read the group membership
+      ansible.builtin.command: id -nG {{ dotfiles_user }}
+      register: user_groups_check
+      changed_when: false
+      failed_when: false
+
+    # The membership is real in the group database immediately, but not in any shell that was already open. That is a login-session limitation, not a failure of this assertion.
+    - name: User | Assert the login user is in every managed group
+      ansible.builtin.assert:
+        that:
+          - user_groups_check.rc == 0
+          - user_groups | difference(user_groups_check.stdout.split()) | length == 0
+        fail_msg: >-
+          {{ dotfiles_user }} is missing from {{ user_groups | difference(user_groups_check.stdout.split() | default([])) | join(', ') }}.
+        success_msg: "member of {{ user_groups | join(', ') }}"
+        quiet: true
+
+- name: User | Verify the home directories
+  when: user_manage_directories | bool
+  block:
+    - name: User | Check the home directories
+      ansible.builtin.stat:
+        path: "{{ dotfiles_home }}/{{ user_directory.path }}"
+      register: user_directories_check
+      loop: "{{ user_directories }}"
+      loop_control:
+        loop_var: user_directory
+        label: "{{ user_directory.path }}"
+
+    - name: User | Assert every home directory exists with the declared mode
+      ansible.builtin.assert:
+        that:
+          - user_directory_check.stat.exists
+          - user_directory_check.stat.isdir
+          - user_directory_check.stat.mode == user_directory_check.user_directory.mode
+        fail_msg: >-
+          {{ dotfiles_home }}/{{ user_directory_check.user_directory.path }} is {{ user_directory_check.stat.mode | default('missing') }}, expected {{ user_directory_check.user_directory.mode }}.
+        success_msg: "{{ user_directory_check.user_directory.path }} is {{ user_directory_check.user_directory.mode }}"
+        quiet: true
+      loop: "{{ user_directories_check.results }}"
+      loop_control:
+        loop_var: user_directory_check
+        label: "{{ user_directory_check.user_directory.path }}"

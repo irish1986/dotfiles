@@ -1,0 +1,7 @@
+---
+# Snyk publishes a standalone binary per platform rather than a package, so there is no apt repository to point at. Every release ships a matching .sha256, which is what makes an unpackaged download acceptable here.
+snyk_version: "" # empty resolves the latest release
+snyk_releases_api: https://api.github.com/repos/snyk/cli/releases/latest
+snyk_download_base: https://github.com/snyk/cli/releases/download
+
+snyk_install_dir: /usr/local/bin

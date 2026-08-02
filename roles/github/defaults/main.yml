@@ -1,0 +1,27 @@
+---
+# gh comes from GitHub's own repository, not the archive: jammy has no gh package at all (it first appeared in 23.04), and noble's is pinned at 2.45 while upstream is far ahead.
+github_packages:
+  - gh
+github_apt_uri: https://cli.github.com/packages
+github_apt_key_url: https://cli.github.com/packages/githubcli-archive-keyring.gpg
+github_apt_suite: stable
+github_apt_components:
+  - main
+
+github_dependencies:
+  - ca-certificates
+  - curl
+
+github_config_dir: "{{ dotfiles_home }}/.config/gh"
+
+# Written through `gh config set`, the same way git_config is written through git_config. gh rewrites config.yml itself -- it maintains a `version` key of its own -- so a template would fight it on every run.
+github_config:
+  git_protocol: ssh
+  # Matches core.editor in the git role.
+  editor: code --wait
+  prompt: enabled
+
+github_aliases:
+  co: pr checkout
+  pv: pr view
+  st: status

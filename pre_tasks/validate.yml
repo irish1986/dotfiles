@@ -9,8 +9,7 @@
       - dotfiles_roles is not string
       - dotfiles_roles | length > 0
     fail_msg: >-
-      dotfiles_roles must be a non-empty list. Define it in
-      inventory/group_vars/all.yml -- see docs/examples/group_vars-all.yml.
+      dotfiles_roles must be a non-empty list. Define it in inventory/group_vars/all.yml -- see docs/examples/group_vars-all.yml.
     quiet: true
 
 - name: Validate | Assert every selected role exists
@@ -18,8 +17,7 @@
     that:
       - (playbook_dir ~ '/roles/' ~ dotfiles_role ~ '/tasks/main.yml') is file
     fail_msg: >-
-      dotfiles_roles contains '{{ dotfiles_role }}', which is not a role in
-      {{ playbook_dir }}/roles.
+      dotfiles_roles contains '{{ dotfiles_role }}', which is not a role in {{ playbook_dir }}/roles.
     quiet: true
   loop: "{{ dotfiles_roles }}"
   loop_control:
@@ -31,6 +29,5 @@
     that:
       - dotfiles_roles | length == dotfiles_roles | unique | length
     fail_msg: >-
-      dotfiles_roles contains duplicates:
-      {{ dotfiles_roles | difference(dotfiles_roles | unique) | unique | join(', ') }}
+      dotfiles_roles contains duplicates: {{ dotfiles_roles | difference(dotfiles_roles | unique) | unique | join(', ') }}
     quiet: true

@@ -5,19 +5,6 @@ git_packages:
   # Replaces the deleted bfg role: same job, no JRE, and packaged from 24.04.
   - git-filter-repo
 
-# gh comes from GitHub's own repository, not the archive: jammy has no gh
-# package at all (it first appeared in 23.04), and noble's is pinned at 2.45
-# while upstream is far ahead. The previous role simply asked apt for `gh`,
-# which fails outright on 22.04.
-git_install_gh: true
-git_gh_packages:
-  - gh
-git_gh_apt_uri: https://cli.github.com/packages
-git_gh_apt_key_url: https://cli.github.com/packages/githubcli-archive-keyring.gpg
-git_gh_apt_suite: stable
-git_gh_apt_components:
-  - main
-
 # Identity. No defaults worth guessing -- verify.yml asserts these are set.
 git_user_email: ""
 git_user_name: ""

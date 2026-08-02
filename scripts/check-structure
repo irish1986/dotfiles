@@ -1,10 +1,7 @@
 #!/usr/bin/env python3
 """Structural checks for the role tree.
 
-Catches the class of mistake that ansible-lint cannot: a role whose install
-tasks are named after a different role, a dispatcher that has grown module
-calls, a deprecated module creeping back in, or a role listed in dotfiles_roles
-that does not exist. Every one of these has actually occurred in this repo.
+Catches the class of mistake that ansible-lint cannot: a role whose install tasks are named after a different role, a dispatcher that has grown module calls, a deprecated module creeping back in, or a role listed in dotfiles_roles that does not exist. Every one of these has actually occurred in this repo.
 
 Exit status is 1 when any check fails, 0 otherwise.
 """
@@ -23,8 +20,7 @@ ROLES = ROOT / "roles"
 # Roles that are internal helpers rather than user-selectable entries.
 HELPER_ROLES = {"apt_repo"}
 
-# Modules that must not come back. apt-key is gone in Ubuntu 24.04+; the pip
-# ones break under PEP 668 on 24.04+.
+# Modules that must not come back. apt-key is gone in Ubuntu 24.04+; the pip ones break under PEP 668 on 24.04+.
 BANNED = {
     "ansible.builtin.apt_key": "removed in Ubuntu 24.04+; use the apt_repo role",
     "apt_key": "removed in Ubuntu 24.04+; use the apt_repo role",
@@ -90,16 +86,14 @@ def check_role(role: Path) -> None:
     if install_dir.is_dir() and not list(install_dir.glob("*.yml")):
         fail(f"{rel}: tasks/install/ exists but is empty")
 
-    # 3. verify.yml is mandatory for anything that installs software. This is
-    #    what stops a role silently downloading and never installing.
+    # 3. verify.yml is mandatory for anything that installs software. This is what stops a role silently downloading and never installing.
     main = role / "tasks" / "main.yml"
     if main.is_file():
         body = main.read_text()
         if "tasks/verify.yml" not in body and role.name not in HELPER_ROLES:
             fail(f"{rel}: tasks/main.yml does not include tasks/verify.yml")
 
-        # 4. The orchestrator holds no module calls beyond includes. Helper
-        #    roles are invoked with include_role and have no phase split.
+        # 4. The orchestrator holds no module calls beyond includes. Helper roles are invoked with include_role and have no phase split.
         used: list[str] = []
         if role.name not in HELPER_ROLES:
             modules_used(load(main), used)
@@ -107,8 +101,7 @@ def check_role(role: Path) -> None:
             if module not in ORCHESTRATOR_ALLOWED:
                 fail(f"{rel}: tasks/main.yml calls {module}; move it into a phase file")
 
-    # 5. Every task name carries the role's own prefix. `kind` shipped a block
-    #    named "Fastfetch | Install" and `prek` one named "NVM | Install".
+    # 5. Every task name carries the role's own prefix. `kind` shipped a block named "Fastfetch | Install" and `prek` one named "NVM | Install".
     prefixes: set[str] = set()
     for path in sorted((role / "tasks").rglob("*.yml")):
         names: list[str] = []

@@ -1,0 +1,28 @@
+---
+- name: Claude | Query the installed version
+  ansible.builtin.command: "{{ claude_binary }} --version"
+  register: claude_version_check
+  changed_when: false
+  failed_when: false
+
+- name: Claude | Assert claude is usable
+  ansible.builtin.assert:
+    that:
+      - claude_version_check.rc == 0
+    fail_msg: "claude did not install correctly: {{ claude_version_check.stderr | default('no output') }}"
+    success_msg: "{{ claude_version_check.stdout | trim }}"
+    quiet: true
+
+- name: Claude | Read back the settings file
+  ansible.builtin.slurp:
+    src: "{{ claude_settings_file }}"
+  register: claude_settings_raw
+
+# Claude Code ignores a settings file it cannot parse, and says so only in `claude doctor`. Parsing it here turns that into a converge failure.
+- name: Claude | Assert the settings file is valid JSON
+  ansible.builtin.assert:
+    that:
+      - (claude_settings_raw.content | b64decode | from_json) is mapping
+    fail_msg: "{{ claude_settings_file }} is not valid JSON; claude would ignore it silently."
+    success_msg: "{{ claude_settings_file }} parses"
+    quiet: true

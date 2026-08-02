@@ -3,8 +3,7 @@
 #
 #   cp docs/examples/group_vars-all.yml inventory/group_vars/all.yml
 #
-# all.yml is gitignored because it holds machine identity. scripts/setup seeds
-# it from this file on a fresh clone.
+# all.yml is gitignored because it holds machine identity. scripts/setup seeds it from this file on a fresh clone.
 
 # ── Identity ──────────────────────────────────────────────────────────────
 dotfiles_user: username
@@ -20,9 +19,12 @@ dotfiles_supported_versions:
   - "26.04"
 dotfiles_min_ansible_version: "2.16"
 
+# ── Prompts ───────────────────────────────────────────────────────────────
+# Print the role selection and wait for approval before converging anything. Set false for unattended runs; `scripts/setup --yes` and `-e dotfiles_confirm=false` override it for a single run, and --check never prompts.
+dotfiles_confirm: true
+
 # ── Role selection (ordered) ──────────────────────────────────────────────
-# This list is the decision about what this machine gets. --tags filters it for
-# a single run; it is not an alternative to it.
+# This list is the decision about what this machine gets. --tags filters it for a single run; it is not an alternative to it.
 #
 #   ansible-playbook main.yml                  # everything below, in order
 #   ansible-playbook main.yml --tags docker    # just docker
@@ -30,38 +32,42 @@ dotfiles_min_ansible_version: "2.16"
 #   ansible-playbook main.yml --skip-tags update
 dotfiles_roles:
   - update # apt upgrade first, so everything below installs current
-  - system # sudoers, base packages
+  - system # hostname, base packages
   - fonts # before wsl: the Windows font install stages from ~/.local/share/fonts
   - wsl # before zsh: .p10k.zsh renders as mojibake without a Nerd Font
   - zsh
+  - user # after zsh: the login shell must exist before it is set
   - git
+  - github # gh; used to be part of the git role
   - ssh
-  - python # provides uv, which ansible_tools and prek depend on
+  - python # the distro interpreter only
+  - uv # provides uv, which ansible_tools and prek depend on
   - nvm
   - docker
   - tmux
   - btop
   - fastfetch
-  - neovim
 
   # Opt-in. Uncomment to enable on this machine.
   # - ansible_tools
   # - bw
+  # - claude
+  # - copilot
   # - fluxcd
+  # - ggshield
   # - helm
+  # - herdr # a tmux alternative; both can be enabled at once
   # - hugo
   # - kubectl
   # - prek
+  # - rust # cargo, rustc and rustup, via the upstream rustup installer
+  # - snyk
   # - tailscale
-  # - terraform
   # - timezone
-  # - trufflehog
   # - vscode
 
 # ── Role variables ────────────────────────────────────────────────────────
-# Flat <role>_<thing> rather than nested dicts: a nested dict cannot be
-# partially overridden, so setting git: {email: ...} in host_vars silently
-# wipes git.name, git.user and git.signing_key.
+# Flat <role>_<thing> rather than nested dicts: a nested dict cannot be partially overridden, so setting git: {email: ...} in host_vars silently wipes git.name, git.user and git.signing_key.
 
 git_user_email: email@example.com
 git_user_name: John Doe
@@ -71,8 +77,9 @@ git_signing_key: id_ed25519.pub
 ssh_private_key: id_ed25519
 ssh_public_key: id_ed25519.pub
 
-python_version: "3.14"
-python_uv_enabled: true
+uv_python_version: "3.14"
+
+rust_toolchain: stable
 
 docker_address_pool_base: 172.10.0.0/16
 

@@ -1,0 +1,24 @@
+---
+- name: GitHub | Install dependencies
+  ansible.builtin.apt:
+    name: "{{ github_dependencies }}"
+    state: present
+  become: true
+
+# Deliberately still named github-cli: the git role configured this repository under that name, so machines it already provisioned reuse /etc/apt/sources.list.d/github-cli.sources in place instead of collecting a second copy under a new name.
+- name: GitHub | Configure the upstream apt repository
+  ansible.builtin.include_role:
+    name: apt_repo
+  vars:
+    apt_repo_name: github-cli
+    apt_repo_uri: "{{ github_apt_uri }}"
+    apt_repo_key_url: "{{ github_apt_key_url }}"
+    apt_repo_suite: "{{ github_apt_suite }}"
+    apt_repo_components: "{{ github_apt_components }}"
+    apt_repo_probe: false
+
+- name: GitHub | Install packages
+  ansible.builtin.apt:
+    name: "{{ github_packages }}"
+    state: present
+  become: true

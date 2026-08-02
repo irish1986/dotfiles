@@ -1,5 +1,4 @@
 ---
-system_config_dir: "{{ dotfiles_home }}/.config"
 system_is_vm_guest: >-
   {{ (ansible_virtualization_role | default('') == 'guest')
      and not (dotfiles_is_wsl | bool) }}

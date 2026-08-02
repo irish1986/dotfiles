@@ -1,8 +1,5 @@
 ---
-# The clients repo publishes desktop, browser and CLI releases together, so
-# releases/latest is not reliably the CLI. Filter for the cli-v prefix instead.
-# The previous role computed a tag and then ignored it, hardcoding
-# cli-v2025.1.3 -- eighteen months stale by the time it was noticed.
+# The clients repo publishes desktop, browser and CLI releases together, so releases/latest is not reliably the CLI. Filter for the cli-v prefix instead. The previous role computed a tag and then ignored it, hardcoding cli-v2025.1.3 -- eighteen months stale by the time it was noticed.
 bw_version: "" # empty resolves the latest cli-v release
 bw_releases_api: https://api.github.com/repos/bitwarden/clients/releases?per_page=100
 bw_install_dir: /usr/local/bin
