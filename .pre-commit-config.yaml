@@ -19,7 +19,7 @@ repos:
       - id: identity
         name: "meta | pre-commit hooks"
   - repo: https://github.com/commitizen-tools/commitizen
-    rev: v4.17.0
+    rev: v4.17.1
     hooks:
       - id: commitizen
         fail_fast: true
@@ -108,7 +108,7 @@ repos:
           - -c
           - .config/.yaml-lint.yml
   - repo: https://github.com/ansible-community/ansible-lint
-    rev: v26.6.0
+    rev: v26.8.0
     hooks:
       # No --fix: it rewrites YAML in place mid-commit, which is opaque, and its transformer crashes resolving relative include_tasks paths (it looks for roles/<r>/tasks/configure.yml at the repo root). Run it deliberately instead: ansible-lint -c .config/.ansible-lint.yml --fix No files: either -- exclude_paths in the config is the single source of scope, rather than two overlapping filters.
       - id: ansible-lint
