@@ -19,7 +19,7 @@ repos:
       - id: identity
         name: "meta | pre-commit hooks"
   - repo: https://github.com/commitizen-tools/commitizen
-    rev: v4.18.0
+    rev: v4.18.1
     hooks:
       - id: commitizen
         fail_fast: true
@@ -78,7 +78,7 @@ repos:
           - --severity=style
           - --external-sources
   - repo: https://github.com/scop/pre-commit-shfmt
-    rev: v3.13.1-1
+    rev: v3.14.1-1
     hooks:
       - id: shfmt
         name: "sh | format: run shfmt"
