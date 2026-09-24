@@ -1,6 +1,7 @@
 ---
 # herdr publishes a standalone binary per platform and no Linux package, so there is no apt repository to point at -- the same arrangement as the snyk role. The upstream one-liner (`curl -fsSL https://herdr.dev/install.sh | sh`) is not used: it only ever installs the latest release, so a pin would be impossible and every run would be unguarded.
 # Pinned, because herdr is not an ordinary tool here: native agent-session restore carries a per-agent minimum herdr version, so a floating multiplexer can change restore behaviour under a session that is already open. Set to "" to resolve the latest release instead.
+# renovate: datasource=github-releases depName=herdrdev/herdr
 herdr_version: "0.8.2"
 # The same manifest `herdr update` reads, so an install and an in-place update agree on what "latest" is. It is also what makes the GitHub API unnecessary here: no rate limit, no token.
 herdr_manifest_url: https://herdr.dev/latest.json
