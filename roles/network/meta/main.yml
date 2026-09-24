@@ -1,0 +1,14 @@
+---
+galaxy_info:
+  role_name: network
+  namespace: dotfiles
+  author: irish1986
+  description: Corporate proxy and CA certificates for the shell, apt, docker and git.
+  license: MIT
+  min_ansible_version: "2.16"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - noble
+# Always empty. Role dependencies bypass dotfiles_roles selection and execute silently; ordering is expressed once, in main.yml.
+dependencies: []

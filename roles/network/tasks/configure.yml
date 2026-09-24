@@ -1,0 +1,132 @@
+---
+# ── CA certificates ───────────────────────────────────────────────────────
+# First, because a TLS-intercepting proxy breaks every download after this point until its root CA is trusted.
+- name: Network | Ensure the certificate directory exists
+  ansible.builtin.file:
+    path: "{{ network_ca_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  become: true
+
+- name: Network | Install the CA certificates
+  ansible.builtin.copy:
+    src: "{{ network_ca_certificate }}"
+    dest: "{{ network_ca_dir }}/{{ network_ca_certificate | basename | regex_replace('\\.(pem|crt|cer)$', '') }}.crt"
+    remote_src: true
+    owner: root
+    group: root
+    mode: "0644"
+  become: true
+  loop: "{{ network_ca_certificates }}"
+  loop_control:
+    loop_var: network_ca_certificate
+  register: network_ca_installed
+
+# The directory belongs to this role, so a certificate dropped from the list is removed from the trust store too.
+- name: Network | Find the installed certificates
+  ansible.builtin.find:
+    paths: "{{ network_ca_dir }}"
+    patterns: "*.crt"
+  register: network_ca_present
+
+- name: Network | Remove certificates no longer listed
+  ansible.builtin.file:
+    path: "{{ network_ca_stale }}"
+    state: absent
+  become: true
+  loop: "{{ network_ca_present.files | map(attribute='path') | difference(network_ca_expected) }}"
+  loop_control:
+    loop_var: network_ca_stale
+  vars:
+    network_ca_expected: >-
+      {{ network_ca_certificates | map('basename') | map('regex_replace', '\.(pem|crt|cer)$', '')
+         | map('regex_replace', '^(.*)$', network_ca_dir ~ '/\1.crt') | list }}
+  register: network_ca_removed
+
+# A task, not a handler: later roles download through the proxy in this same run, so the store has to be current now, not at the end of the play.
+- name: Network | Rebuild the system trust store
+  ansible.builtin.command: update-ca-certificates --fresh
+  become: true
+  changed_when: true
+  when: network_ca_installed is changed or network_ca_removed is changed
+
+# ── Proxy ─────────────────────────────────────────────────────────────────
+# At the top of ~/.zshenv rather than appended: the herdr block there execs into herdr, and anything after it never runs in a login shell. The CA variables point tools that ship their own bundle (node, requests, uv) at the system store.
+- name: Network | Manage the shell environment
+  ansible.builtin.blockinfile:
+    path: "{{ network_zshenv }}"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK network"
+    insertbefore: BOF
+    state: "{{ 'present' if (network_proxy_set | bool or network_ca_set | bool) else 'absent' }}"
+    create: true
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0600"
+    block: |
+      {% if network_proxy_set | bool %}
+      export http_proxy="{{ network_proxy }}" https_proxy="{{ network_proxy }}" no_proxy="{{ network_no_proxy }}"
+      export HTTP_PROXY="$http_proxy" HTTPS_PROXY="$https_proxy" NO_PROXY="$no_proxy"
+      {% endif %}
+      {% if network_ca_set | bool %}
+      export SSL_CERT_FILE="{{ network_ca_bundle }}" REQUESTS_CA_BUNDLE="{{ network_ca_bundle }}" NODE_EXTRA_CA_CERTS="{{ network_ca_bundle }}"
+      {% endif %}
+
+- name: Network | Manage the apt proxy
+  ansible.builtin.template:
+    src: apt-proxy.j2
+    dest: "{{ network_apt_conf }}"
+    owner: root
+    group: root
+    mode: "0644"
+  become: true
+  when: network_proxy_set | bool
+
+- name: Network | Remove the apt proxy
+  ansible.builtin.file:
+    path: "{{ network_apt_conf }}"
+    state: absent
+  become: true
+  when: not (network_proxy_set | bool)
+
+- name: Network | Manage the docker daemon proxy
+  when: dotfiles_has_systemd | bool
+  block:
+    - name: Network | Ensure the docker drop-in directory exists
+      ansible.builtin.file:
+        path: "{{ network_docker_dropin | dirname }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+      become: true
+      when: network_proxy_set | bool
+
+    - name: Network | Deploy the docker drop-in
+      ansible.builtin.template:
+        src: docker-proxy.conf.j2
+        dest: "{{ network_docker_dropin }}"
+        owner: root
+        group: root
+        mode: "0644"
+      become: true
+      when: network_proxy_set | bool
+      notify: Network | Restart docker
+
+    - name: Network | Remove the docker drop-in
+      ansible.builtin.file:
+        path: "{{ network_docker_dropin }}"
+        state: absent
+      become: true
+      when: not (network_proxy_set | bool)
+      notify: Network | Restart docker
+
+# git reads https_proxy from the environment too; this covers git started without the login environment, such as from an editor.
+- name: Network | Manage the git proxy
+  community.general.git_config:
+    name: http.proxy
+    value: "{{ network_proxy if network_proxy_set | bool else omit }}"
+    state: "{{ 'present' if network_proxy_set | bool else 'absent' }}"
+    scope: file
+    file: "{{ network_gitconfig }}"

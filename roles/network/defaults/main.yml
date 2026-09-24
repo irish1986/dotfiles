@@ -1,0 +1,9 @@
+---
+# Corporate network settings for the work profile. The values belong in the local file, never in a profile (ADR 0002): this repository is public. With everything empty the role removes what it manages and does nothing else, so enabling it costs nothing on a machine that needs none of it.
+
+# One proxy for http and https, e.g. http://proxy.example.com:8080. Applied to the shell (~/.zshenv), apt, the docker daemon, git, and every task in the playbook run itself.
+network_proxy: ""
+network_no_proxy: localhost,127.0.0.1,::1
+
+# PEM certificates to add to the system trust store, as paths on this machine -- typically the corporate root CA, exported from Windows (certmgr, Base-64 X.509) into the Windows home. Each is installed as /usr/local/share/ca-certificates/dotfiles/<basename>.crt; anything else in that directory is removed.
+network_ca_certificates: []

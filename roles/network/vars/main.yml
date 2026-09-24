@@ -1,0 +1,10 @@
+---
+network_ca_dir: /usr/local/share/ca-certificates/dotfiles
+network_ca_bundle: /etc/ssl/certs/ca-certificates.crt
+network_apt_conf: /etc/apt/apt.conf.d/95dotfiles-proxy
+network_docker_dropin: /etc/systemd/system/docker.service.d/dotfiles-proxy.conf
+network_zshenv: "{{ dotfiles_home }}/.zshenv"
+network_gitconfig: "{{ dotfiles_home }}/.gitconfig"
+
+network_proxy_set: "{{ network_proxy | length > 0 }}"
+network_ca_set: "{{ network_ca_certificates | length > 0 }}"
