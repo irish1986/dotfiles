@@ -11,6 +11,7 @@ exclude_paths:
   - .venv/
   - docs/
   - scripts/
+  - tests/
 
 warn_list:
   - yaml[line-length]

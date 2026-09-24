@@ -14,7 +14,7 @@ git_signing_key: id_ed25519.pub
 # Directory created for checkouts, under ~/git/<login>.
 git_manage_project_dir: true
 
-# Written verbatim into ~/.gitconfig. Override or extend in group_vars.
+# Written verbatim into ~/.gitconfig. A layer (profile or local file) overrides or extends it key by key.
 git_config:
   advice.diverging: false
   branch.sort: -committerdate

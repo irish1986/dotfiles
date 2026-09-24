@@ -2,13 +2,14 @@
 name: CI
 run-name: Continuous integration triggered by ${{ github.actor }}
 
+# Self-contained on purpose (ADR 0008): every job is defined here, so nothing outside this repository can change or weaken what is checked.
 on: # yamllint disable-line rule:truthy
   push:
     branches:
       - main
   # Any base branch, not only main: stacked pull requests target the branch below them and would otherwise get no checks at all.
   pull_request:
-  # Weekly rather than daily. The value of a scheduled run is catching upstream rot -- a new ansible-lint release, a yanked collection, a moved apt suite -- not re-linting unchanged code.
+  # Weekly. The value of a scheduled run is catching upstream rot -- a moved apt suite, a renamed release asset, a new linter release -- not re-checking unchanged code.
   schedule:
     - cron: "32 6 * * 1"
   workflow_dispatch:
@@ -21,45 +22,54 @@ concurrency:
 permissions: {}
 
 jobs:
-  secret:
-    name: Secret Scanning
-    uses: irishlab-io/.github/.github/workflows/reusable-secret.yml@main
+  # Every hook in .pre-commit-config.yaml -- yamllint, markdownlint, shellcheck, shfmt, ansible-lint and the rest -- and a failure fails the build. ggshield is skipped here only because the secrets job below runs it with the API key.
+  lint:
+    name: Lint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     permissions:
       contents: read
-    secrets:
-      GITGUARDIAN_API_KEY: ${{ secrets.GITGUARDIAN_API_KEY }}
 
-  # Warn-only upstream: the reusable workflow marks the prek step continue-on-error and only emits an annotation. Kept for visibility; the hooks are enforced locally by the commit-msg and pre-commit hooks.
-  prek:
-    name: Prek
-    uses: irishlab-io/.github/.github/workflows/reusable-prek.yml@main
-    permissions:
-      contents: read
-    with:
-      skips: ggshield,ansible-lint
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-  ansible-lint:
-    name: Ansible Lint
-    uses: irishlab-io/.github/.github/workflows/reusable-ansible-lint.yml@main
+      - name: Run prek
+        uses: j178/prek-action@cbc2f23eb5539cf20d82d1aabd0d0ecbcc56f4e3 # v2.0.2
+        env:
+          SKIP: ggshield
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+
+      # What ansible-lint cannot see: role layout, task-name prefixes, and every profile's roles existing and having a slot in dotfiles_role_order.
+      - name: Check the role structure
+        run: uv run --with pyyaml python scripts/check-structure
+
+  secrets:
+    name: Secrets
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
     permissions:
       contents: read
-    with:
-      configuration_file: "-c ./.config/.ansible-lint.yml"
-      requirements_file: "./collections/requirements.yml"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Scan for secrets
+        uses: GitGuardian/ggshield/actions/secret@3ff83341cab96f0ac0dddc1faffcd7ba9d1886ed # v1.49.0
+        env:
+          GITHUB_PUSH_BEFORE_SHA: ${{ github.event.before }}
+          GITHUB_PUSH_BASE_SHA: ${{ github.event.base }}
+          GITHUB_PULL_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          GITHUB_DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          GITGUARDIAN_API_KEY: ${{ secrets.GITGUARDIAN_API_KEY }}
 
   pinned-actions:
     name: Pinned Actions
-    uses: irishlab-io/.github/.github/workflows/reusable-gh-pin-actions.yml@main
-    permissions:
-      contents: read
-    with:
-      # Must be explicit: the reusable workflow defaults this to ${{ github.repository_owner }}/ which is irish1986/ here, and would then flag every irishlab-io reusable call as unpinned. No quotes: the value is passed through to the action verbatim, and a block scalar preserves them as literal characters -- the entry would be `"irishlab-io/"` and match nothing.
-      allowlist: |
-        irishlab-io/
-
-  # Tier 0: structural checks ansible-lint cannot make. Seconds, no network.
-  structure:
-    name: Structure
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
@@ -69,36 +79,26 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+      - name: Ensure every action is pinned by SHA
+        uses: zgosalvez/github-actions-ensure-sha-pinned-actions@ca46236c6ce584ae24bc6283ba8dcf4b3ec8a066 # v5.0.4
 
-      - name: Check role structure
-        run: uv run --with pyyaml python scripts/check-structure
-
-      - name: Lint shell scripts
-        run: |
-          set -euo pipefail
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq shellcheck
-          shellcheck --severity=style --external-sources scripts/setup
-
-  # Tier 1 and 2: syntax check, then a real converge in a clean container of each supported release, run twice. The second run asserting changed=0 is what catches non-idempotent tasks -- blockinfile without a marker, unarchive without creates:, a missing changed_when -- and the verify.yml phase in each role is what catches "downloaded something and never installed it".
+  # A real converge of each profile in a clean container of each supported release, through the bootstrap, run twice. The second run asserting changed=0 is what catches a non-idempotent task; each role's verify phase and each tool entry's verify command are what catch "installed something that does not work".
   converge:
-    name: Converge (${{ matrix.release }})
+    name: Converge (${{ matrix.release }}, ${{ matrix.profile }})
     runs-on: ubuntu-24.04
     timeout-minutes: 45
-    continue-on-error: ${{ matrix.experimental }}
     permissions:
       contents: read
 
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - release: "24.04"
-            experimental: false
-          - release: "26.04"
-            experimental: false
+        release:
+          - "24.04"
+          - "26.04"
+        profile:
+          - home
+          - work
 
     container:
       image: ubuntu:${{ matrix.release }}
@@ -111,8 +111,6 @@ jobs:
 
     env:
       DEBIAN_FRONTEND: noninteractive
-      # Lifts the 60 requests/hour per-IP limit on api.github.com, which several roles query and which CI runners share.
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     steps:
       - name: Prepare the container
@@ -126,51 +124,65 @@ jobs:
           chmod 0440 /etc/sudoers.d/90-tester
           git config --system --add safe.directory '*'
 
+      # The work profile's network role needs a proxy that actually proxies: every download in both runs goes through it, so a proxy setting that fails to apply fails the job.
+      - name: Start a proxy for the work profile
+        if: matrix.profile == 'work'
+        run: |
+          set -euo pipefail
+          apt-get install -y -qq --no-install-recommends tinyproxy
+          tinyproxy -c /etc/tinyproxy/tinyproxy.conf
+          for _ in $(seq 20); do
+            curl -fsS -o /dev/null -x http://127.0.0.1:8888 https://github.com && exit 0
+            sleep 1
+          done
+          echo "::error::tinyproxy did not start."
+          exit 1
+
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           path: dotfiles
 
-      - name: Hand the checkout to the test user
-        run: chown -R tester:tester "${GITHUB_WORKSPACE}/dotfiles"
+      - name: Install the local file
+        env:
+          PROFILE: ${{ matrix.profile }}
+        run: |
+          set -euo pipefail
+          chown -R tester:tester "${GITHUB_WORKSPACE}/dotfiles"
+          install -d -m 0755 /opt/dotfiles-ci
+          install -m 0644 "${GITHUB_WORKSPACE}/dotfiles/tests/fixtures/test-ca.crt" /opt/dotfiles-ci/test-ca.crt
+          install -d -o tester -g tester /home/tester/.config /home/tester/.config/dotfiles
+          install -o tester -g tester -m 0600 \
+            "${GITHUB_WORKSPACE}/dotfiles/tests/fixtures/local-${PROFILE}.yml" \
+            /home/tester/.config/dotfiles/local.yml
 
-      # Exercises the bootstrap script and the playbook together, which is the path a real machine takes. --skip-tags update omits a full apt upgrade: it is slow, and it is not what this job is testing.
+      # --skip-tags update omits a full apt upgrade: it is slow, and it is not what this job is testing.
       - name: Converge
         run: |
           set -euo pipefail
-          sudo -u tester -H env \
-            DOTFILES_DIR="${GITHUB_WORKSPACE}/dotfiles" \
-            GH_TOKEN="${GH_TOKEN}" \
-            NO_COLOR=1 \
-            bash "${GITHUB_WORKSPACE}/dotfiles/scripts/setup" \
-              --yes --no-pull --skip-tags update --profile home
+          sudo -u tester -H env DOTFILES_DIR="${GITHUB_WORKSPACE}/dotfiles" NO_COLOR=1 \
+            bash "${GITHUB_WORKSPACE}/dotfiles/scripts/setup" --yes --no-pull --skip-tags update
 
       - name: Idempotence
         run: |
           set -euo pipefail
-          sudo -u tester -H env \
-            DOTFILES_DIR="${GITHUB_WORKSPACE}/dotfiles" \
-            GH_TOKEN="${GH_TOKEN}" \
-            NO_COLOR=1 \
-            bash "${GITHUB_WORKSPACE}/dotfiles/scripts/setup" \
-              --yes --no-pull --skip-tags update --profile home \
+          sudo -u tester -H env DOTFILES_DIR="${GITHUB_WORKSPACE}/dotfiles" NO_COLOR=1 \
+            bash "${GITHUB_WORKSPACE}/dotfiles/scripts/setup" --yes --no-pull --skip-tags update \
             | tee /tmp/idempotence.log
           if ! grep -qE 'changed=0[[:space:]]+unreachable=0[[:space:]]+failed=0' /tmp/idempotence.log; then
-            echo "::error::Second run was not idempotent."
-            grep -E 'PLAY RECAP' -A2 /tmp/idempotence.log || true
+            echo "::error::The second run was not idempotent."
+            grep -E '^changed:' -B2 /tmp/idempotence.log || true
             exit 1
           fi
 
-  # The single required status check. Reusable-workflow jobs report as two-level names ("Ansible Lint / Run ansible-lint") that change whenever the *called* workflow renames a job, which is outside this repo's control and brittle to pin in a ruleset. One stable context is not.
+  # The single required status check. Matrix jobs report as "Converge (24.04, home)" and so on; one stable context is easier to require than four that change with the matrix.
   ci-ok:
     name: CI OK
     if: always()
     needs:
-      - secret
-      - prek
-      - ansible-lint
+      - lint
+      - secrets
       - pinned-actions
-      - structure
       - converge
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -183,7 +195,7 @@ jobs:
         run: |
           set -euo pipefail
           echo "Upstream results: ${RESULTS}"
-          # skipped is tolerated so path filters or conditional jobs can be added later without deadlocking the gate.
+          # skipped is tolerated so conditional jobs can be added later without deadlocking the gate.
           if [[ "${RESULTS}" == *failure* || "${RESULTS}" == *cancelled* ]]; then
             echo "::error::One or more CI jobs did not succeed."
             exit 1

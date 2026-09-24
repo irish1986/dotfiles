@@ -1,0 +1,6 @@
+---
+# CI's local file for the home profile. Installed as ~/.config/dotfiles/local.yml in the converge job.
+dotfiles_profile: home
+git_user_name: CI
+git_user_email: ci@example.invalid
+git_user_login: ""
