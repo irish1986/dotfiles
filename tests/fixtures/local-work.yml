@@ -1,0 +1,9 @@
+---
+# CI's local file for the work profile. The converge job runs tinyproxy on 127.0.0.1:8888 and copies test-ca.crt (a throwaway self-signed certificate; its key was never kept) to /opt/dotfiles-ci/, so the network role is exercised for real: every download in the run goes through the proxy, and the CA lands in the trust store.
+dotfiles_profile: work
+git_user_name: CI
+git_user_email: ci@example.invalid
+git_user_login: ""
+network_proxy: http://127.0.0.1:8888
+network_ca_certificates:
+  - /opt/dotfiles-ci/test-ca.crt
