@@ -1,5 +1,5 @@
 ---
-# ~/.local/bin matters most here: uv, prek, ansible_tools and copilot all resolve binaries out of it, and before this role existed the only thing that created it was the wsl role, behind a win32yank flag. On a non-WSL host it existed only because two upstream installers happened to mkdir it themselves.
+# ~/.local/bin matters most here: uv, prek, herdr and win32yank all resolve binaries out of it, and before this role existed the only thing that created it was the wsl role, behind a win32yank flag. On a non-WSL host it existed only because two upstream installers happened to mkdir it themselves.
 - name: User | Ensure the home directories exist
   ansible.builtin.file:
     path: "{{ dotfiles_home }}/{{ user_directory.path }}"

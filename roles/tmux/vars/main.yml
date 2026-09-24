@@ -1,3 +1,0 @@
----
-tmux_binary: tmux
-tmux_tpm_dir: "{{ tmux_config_dir }}/plugins/tpm"

@@ -55,13 +55,3 @@ zsh_dotfiles:
     dest: .zshfunc
   - src: .p10k
     dest: .p10k.zsh
-
-# Absorbed from the deleted env role, which owned ~/.zshenv by blockinfile while zsh deployed a literal .zshenv over it -- whichever ran last won. Requires bitwarden-sdk importable by ansible (see the ansible_tools role) and BWS_ACCESS_TOKEN in the environment.
-zsh_manage_secrets: false
-zsh_secrets:
-  - name: GH_TOKEN
-    id: 0c5d5440-c1b4-42db-ae7e-b28f012726e1
-  - name: GITGUARDIAN_API_TOKEN
-    id: e6e22df6-1043-4b67-ba9a-b28f0127f6da
-  - name: TAILSCALE_TOKEN
-    id: 8a276e18-7edc-42ef-8842-b25c002d02b7

@@ -16,7 +16,7 @@
     group: "{{ dotfiles_user }}"
     mode: "0644"
 
-# ~/.zshenv rather than ~/.zshrc, and a marker block rather than a copy: zsh reads .zshenv first and for every shell, so the exec below lands before the p10k instant prompt, oh-my-zsh and compinit -- a shell that is about to be replaced never pays for them. mode matches the 0600 the zsh role sets on the same file for its secrets block, so the two tasks do not fight over it.
+# ~/.zshenv rather than ~/.zshrc, and a marker block rather than a copy: zsh reads .zshenv first and for every shell, so the exec below lands before the p10k instant prompt, oh-my-zsh and compinit -- a shell that is about to be replaced never pays for them. mode 0600 because ~/.zshenv is where hand-managed environment secrets usually live.
 - name: Herdr | Manage the shell autostart
   ansible.builtin.blockinfile:
     path: "{{ herdr_zshenv }}"

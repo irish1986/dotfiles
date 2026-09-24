@@ -27,9 +27,6 @@ readonly MIN_OS_VERSION="22.04"
 readonly ANSIBLE_CORE_SPEC="ansible-core>=2.16,<2.24"
 readonly MIN_ANSIBLE_CORE="2.16"
 
-# Injected into the ansible-core environment rather than installed as separate tools: bitwarden.secrets.lookup runs controller-side and must be importable by the interpreter running ansible-playbook.
-readonly -a ANSIBLE_CORE_EXTRAS=(bitwarden-sdk)
-
 readonly STATE_DIR="${XDG_STATE_HOME:-${HOME}/.local/state}/dotfiles"
 readonly CONFIG_DIR="${XDG_CONFIG_HOME:-${HOME}/.config}/dotfiles"
 readonly ENV_FILE="${CONFIG_DIR}/setup.env"
@@ -299,7 +296,6 @@ Anything after `--` is passed to ansible-playbook unchanged.
 
 Environment:
   DOTFILES_DIR       checkout location (default ~/.dotfiles)
-  BWS_ACCESS_TOKEN   Bitwarden Secrets Manager token, for secret-bearing roles
   NO_COLOR           disable colour output
 
 State:
@@ -597,7 +593,7 @@ ensure_uv() {
 #
 #  * ppa:ansible/ansible ships the batteries-included `ansible` package, whose bundled collections shadow the five pinned in collections/requirements.yml, and the PPA may have no pocket at all for a brand-new LTS.
 #  * jammy's archive ansible-core is 2.12, below the >=2.16 those collections declare, so the distro package cannot satisfy this repo on 22.04.
-#  * PEP 668 blocks `pip install` into the system python on 24.04+, which is how the old bitwarden-sdk step was meant to work and never could.
+#  * PEP 668 blocks `pip install` into the system python on 24.04+.
 ensure_ansible() {
   local uv_ansible="${LOCAL_BIN}/ansible-playbook"
   local installed=""
@@ -612,12 +608,7 @@ ensure_ansible() {
     task_skip "already installed"
   else
     task_begin "Installing ${ANSIBLE_CORE_SPEC}"
-    local -a cmd=("$UV_BIN" tool install --force "$ANSIBLE_CORE_SPEC")
-    local extra
-    for extra in "${ANSIBLE_CORE_EXTRAS[@]}"; do
-      cmd+=(--with "$extra")
-    done
-    if ! run "${cmd[@]}"; then
+    if ! run "$UV_BIN" tool install --force "$ANSIBLE_CORE_SPEC"; then
       task_fail
       return 1
     fi
@@ -848,25 +839,6 @@ install_collections() {
   task_ok
 }
 
-#--- Secrets ------------------------------------------------------------------
-
-check_secrets() {
-  # Only warn when something actually consumes it.
-  if ! grep -rqs 'bitwarden.secrets' "${DOTFILES_DIR}/roles"; then
-    return 0
-  fi
-  if [[ -n ${BWS_ACCESS_TOKEN:-} ]]; then
-    return 0
-  fi
-  # Secret-bearing roles are opt-in, so a missing token is normal.
-  if ! grep -rqs 'zsh_manage_secrets: true' "${DOTFILES_DIR}/inventory"; then
-    return 0
-  fi
-
-  warn "BWS_ACCESS_TOKEN is unset but a secret-bearing role is enabled."
-  warn "Set it in ${ENV_FILE} (mode 0600) or export it before running."
-}
-
 #--- Playbook -----------------------------------------------------------------
 
 build_playbook_args() {
@@ -1026,7 +998,6 @@ main() {
   ensure_group_vars
   ensure_ssh_dir
   install_collections
-  check_secrets
   run_playbook
   switch_remote_to_ssh
   finish
