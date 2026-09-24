@@ -22,19 +22,3 @@
   loop_control:
     loop_var: zsh_dotfile
     label: "{{ zsh_dotfile.dest }}"
-
-# Absorbed from the deleted env role. no_log because the rendered block holds live tokens; ansible.cfg's log_path would otherwise write them to disk.
-- name: ZSH | Write the secret environment
-  ansible.builtin.blockinfile:
-    path: "{{ zsh_env_file }}"
-    marker: "# {mark} ANSIBLE MANAGED BLOCK secrets"
-    create: true
-    owner: "{{ dotfiles_user }}"
-    group: "{{ dotfiles_user }}"
-    mode: "0600"
-    block: |
-      {% for secret in zsh_secrets %}
-      export {{ secret.name }}="{{ lookup('bitwarden.secrets.lookup', secret.id) }}"
-      {% endfor %}
-  no_log: true
-  when: zsh_manage_secrets | bool

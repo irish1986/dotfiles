@@ -1,5 +1,0 @@
----
-kubectl_binary: kubectl
-kubectl_legacy_artifacts:
-  - /etc/apt/keyrings/kubernetes-apt-keyring.gpg
-  - /etc/apt/sources.list.d/kubernetes.list

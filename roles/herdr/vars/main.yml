@@ -8,7 +8,7 @@ herdr_target: "linux-{{ ansible_facts.architecture }}"
 herdr_pinned_url: >-
   {{ herdr_download_base }}/v{{ herdr_version | regex_replace('^v', '') }}/herdr-{{ herdr_target }}
 
-# ~/.zshenv, not ~/.zshrc: zsh reads it first and for every shell, so the exec lands before the p10k instant prompt, oh-my-zsh and compinit -- a shell that is about to be replaced never pays for them. The zsh role already manages a marker block in the same file for secrets, and role order puts zsh before herdr, so those exports are in the environment before the exec runs.
+# ~/.zshenv, not ~/.zshrc: zsh reads it first and for every shell, so the exec lands before the p10k instant prompt, oh-my-zsh and compinit -- a shell that is about to be replaced never pays for them. Anything exported above the managed block is in the environment before the exec runs.
 herdr_zshenv: "{{ dotfiles_home }}/.zshenv"
 
 herdr_service_name: herdr

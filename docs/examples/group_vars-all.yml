@@ -49,22 +49,12 @@ dotfiles_roles:
   - fastfetch
 
   # Opt-in. Uncomment to enable on this machine.
-  # - ansible_tools
-  # - bw
   # - claude
-  # - copilot
-  # - fluxcd
-  # - ggshield
-  # - helm
   # - hugo
-  # - kubectl
   # - prek
   # - rust # cargo, rustc and rustup, via the upstream rustup installer
   # - snyk
   # - tailscale
-  # - timezone
-  # - tmux # a herdr alternative; both can be enabled at once
-  # - vscode
 
 # ── Role variables ────────────────────────────────────────────────────────
 # Flat <role>_<thing> rather than nested dicts: a nested dict cannot be partially overridden, so setting git: {email: ...} in host_vars silently wipes git.name, git.user and git.signing_key.
@@ -85,5 +75,3 @@ docker_address_pool_base: 172.10.0.0/16
 
 fonts_nerd_fonts:
   - Hack
-
-timezone_name: America/Toronto
