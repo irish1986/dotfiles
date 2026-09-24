@@ -80,15 +80,6 @@
   color: "ffec19"
   description: Patch update
 
-# -- Release automation -----------------------------------------------------
-# Applied and cleared by release-please, which cannot label a release without them if deletion is ever enabled.
-- name: "autorelease: pending"
-  color: "ededed"
-  description: Release pending - managed by release-please
-- name: "autorelease: tagged"
-  color: "ededed"
-  description: Release tagged - managed by release-please
-
 # -- Triage -----------------------------------------------------------------
 - name: bug
   color: "d73a4a"
@@ -111,3 +102,21 @@
 - name: stale
   color: "ededed"
   description: No recent activity
+
+# -- Agent triage -------------------------------------------------------------
+# The five roles docs/agents/triage-labels.md maps the agent skills onto.
+- name: needs-triage
+  color: "fbca04"
+  description: Maintainer needs to evaluate this issue
+- name: needs-info
+  color: "d4c5f9"
+  description: Waiting on reporter for more information
+- name: ready-for-agent
+  color: "0e8a16"
+  description: Fully specified, ready for an AFK agent
+- name: ready-for-human
+  color: "1d76db"
+  description: Requires human implementation
+- name: wontfix
+  color: "ffffff"
+  description: Will not be actioned

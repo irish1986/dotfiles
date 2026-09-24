@@ -1,9 +1,26 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Versions pinned in profiles and role defaults, each annotated with a `# renovate: datasource=... depName=...` comment on the line above. Versions are stored without a leading v; URL templates add it where upstream tags carry one.",
+      "extractVersionTemplate": "^v?(?<version>.+)$",
+      "managerFilePatterns": [
+        "/^profiles/.+\\.ya?ml$/",
+        "/^roles/.+/defaults/main\\.ya?ml$/"
+      ],
+      "matchStrings": [
+        "#\\s*renovate:\\s*datasource=(?<datasource>\\S+)\\s+depName=(?<depName>\\S+)\\s*\\n\\s*(?:-\\s+)?[a-z_]*version:\\s*\"?(?<currentValue>[^\"\\s]+)\"?"
+      ]
+    }
+  ],
   "dependencyDashboard": true,
   "dependencyDashboardTitle": "Renovate Dashboard",
   "enabledManagers": [
-    "ansible-galaxy"
+    "ansible-galaxy",
+    "custom.regex",
+    "github-actions",
+    "pre-commit"
   ],
   "extends": [
     "config:recommended",
@@ -12,9 +29,7 @@
     ":timezone(America/Toronto)"
   ],
   "labels": [
-    "dependencies",
-    "ansible",
-    "renovate/ansible"
+    "dependencies"
   ],
   "packageRules": [
     {
@@ -23,14 +38,11 @@
       ],
       "automerge": true,
       "automergeType": "pr",
-      "groupName": "ansible collections",
-      "groupSlug": "ansible-collections",
-      "matchManagers": [
-        "ansible-galaxy"
-      ],
       "matchUpdateTypes": [
         "minor",
-        "patch"
+        "patch",
+        "digest",
+        "pinDigest"
       ],
       "platformAutomerge": true
     },
@@ -39,14 +51,41 @@
         "type/major"
       ],
       "automerge": false,
-      "matchManagers": [
-        "ansible-galaxy"
-      ],
       "matchUpdateTypes": [
         "major"
       ]
+    },
+    {
+      "addLabels": [
+        "github-actions"
+      ],
+      "groupName": "github actions",
+      "matchManagers": [
+        "github-actions"
+      ]
+    },
+    {
+      "addLabels": [
+        "pre-commit"
+      ],
+      "groupName": "pre-commit hooks",
+      "matchManagers": [
+        "pre-commit"
+      ]
+    },
+    {
+      "addLabels": [
+        "ansible"
+      ],
+      "groupName": "ansible collections",
+      "matchManagers": [
+        "ansible-galaxy"
+      ]
     }
   ],
+  "pre-commit": {
+    "enabled": true
+  },
   "schedule": [
     "before 6am on monday"
   ]
