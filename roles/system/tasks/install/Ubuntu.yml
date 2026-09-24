@@ -22,7 +22,7 @@
         path: /etc/hosts
         block: |
           127.0.0.1  localhost
-          {{ dotfiles_loopback_address }}  {{ dotfiles_hostname }}
+          {{ system_loopback_address }}  {{ dotfiles_hostname }}
       become: true
 
 - name: System | Install the guest agent

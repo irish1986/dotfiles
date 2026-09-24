@@ -1,13 +1,4 @@
 ---
-- name: Git | Assert the identity is configured
-  ansible.builtin.assert:
-    that:
-      - git_user_email | length > 0
-      - git_user_name | length > 0
-    fail_msg: >-
-      git_user_email and git_user_name must be set in group_vars; commits would otherwise be attributed to whatever git infers from the hostname.
-    quiet: true
-
 - name: Git | Query the installed version
   ansible.builtin.command: "{{ git_binary }} --version"
   register: git_version_check
@@ -27,6 +18,7 @@
   register: git_email_check
   changed_when: false
   failed_when: false
+  when: git_identity_set | bool
 
 - name: Git | Assert the identity was written
   ansible.builtin.assert:
@@ -36,3 +28,4 @@
       {{ git_config_file }} has user.email '{{ git_email_check.stdout | trim }}', expected '{{ git_user_email }}'.
     success_msg: "git identity {{ git_user_email }}"
     quiet: true
+  when: git_identity_set | bool

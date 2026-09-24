@@ -18,7 +18,15 @@
     - git_manage_project_dir | bool
     - git_user_login | length > 0
 
+# A warning, not a failure: a fresh bootstrap has no identity yet, and failing here would stop the rest of the machine converging over two strings.
+- name: Git | Warn about a missing identity
+  ansible.builtin.debug:
+    msg: >-
+      git_user_name and git_user_email are not set, so ~/.gitconfig gets no user.name, user.email or signing identity. Set them in {{ dotfiles_local_file }}.
+  when: not (git_identity_set | bool)
+
 - name: Git | Configure commit signing
+  when: git_identity_set | bool
   block:
     - name: Git | Detect the signing key
       ansible.builtin.stat:

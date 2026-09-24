@@ -1,0 +1,5 @@
+---
+# Work machines: base.yml plus what is listed here. Identity and corporate network values belong in the local file, never here: this repository is public. See docs/adr/0002-profiles-and-local-file.md.
+
+dotfiles_roles:
+  - snyk

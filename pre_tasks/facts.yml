@@ -11,6 +11,12 @@
       {{ (dotfiles_home | default(lookup('ansible.builtin.env', 'HOME'), true))
          | regex_replace('/+$', '') }}
 
+# Separate from the task above: set_fact cannot read a sibling key it sets in the same task.
+- name: Facts | Resolve the machine names
+  ansible.builtin.set_fact:
+    dotfiles_hostname: "{{ dotfiles_hostname | default(ansible_facts.hostname, true) }}"
+    dotfiles_windows_user: "{{ dotfiles_windows_user | default(dotfiles_user, true) }}"
+
 # Two independent signals, because neither is reliable alone:
 #   * ansible_facts.virtualization_type reports "wsl" on some ansible-core versions but "container" on others (2.16.3 reports "container" on WSL2).
 #   * the kernel string is stable across both WSL1 ("...-Microsoft") and WSL2
@@ -78,6 +84,7 @@
 - name: Facts | Show the resolved environment
   ansible.builtin.debug:
     msg: >-
+      profile={{ dotfiles_profile }}
       {{ dotfiles_user }}@{{ ansible_facts.distribution }} {{ ansible_facts.distribution_version }}
       ({{ ansible_facts.distribution_release }}/{{ dotfiles_dpkg_architecture }})
       home={{ dotfiles_home }}

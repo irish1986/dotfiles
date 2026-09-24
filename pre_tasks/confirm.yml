@@ -6,13 +6,14 @@
 - name: Confirm | Show the run plan
   ansible.builtin.debug:
     msg: >-
-      {{ ['', 'About to apply ' ~ (dotfiles_roles | length) ~ ' role(s) to '
-          ~ dotfiles_user ~ '@' ~ dotfiles_hostname | default(ansible_facts.hostname)
+      {{ ['', 'About to apply ' ~ (dotfiles_run_roles | length) ~ ' role(s) of the ' ~ dotfiles_profile ~ ' profile to '
+          ~ dotfiles_user ~ '@' ~ dotfiles_hostname
           ~ ' (' ~ ansible_facts.distribution ~ ' ' ~ ansible_facts.distribution_version ~ ')', '']
-         + (dotfiles_roles | map('regex_replace', '^', '  ' ~ loop_marker) | list)
+         + (dotfiles_run_roles | map('regex_replace', '^', '  ' ~ loop_marker) | list)
          + ['', tag_line, ''] }}
   vars:
     loop_marker: "- "
+    dotfiles_run_roles: "{{ dotfiles_role_order | select('in', dotfiles_roles) | list }}"
     # ansible_run_tags is ["all"] unless --tags narrowed the run. Surfacing it matters: --tags filters the list above, so what is printed is the selection, not necessarily what will execute.
     tag_line: >-
       tags={{ ansible_run_tags | join(',') }} skip_tags={{ ansible_skip_tags | join(',') if ansible_skip_tags | length > 0 else 'none' }}
@@ -27,5 +28,5 @@
 - name: Confirm | Stop unless approval was given
   ansible.builtin.fail:
     msg: >-
-      Aborted at the confirmation prompt. Re-run with --yes, or set dotfiles_confirm: false in inventory/group_vars/all.yml, to skip it.
+      Aborted at the confirmation prompt. Re-run with --yes, or set dotfiles_confirm: false in the local file, to skip it.
   when: dotfiles_confirm_reply.user_input | default('') | trim | lower not in ['y', 'yes']

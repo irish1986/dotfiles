@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Structural checks for the role tree.
 
-Catches the class of mistake that ansible-lint cannot: a role whose install tasks are named after a different role, a dispatcher that has grown module calls, a deprecated module creeping back in, or a role listed in dotfiles_roles that does not exist. Every one of these has actually occurred in this repo.
+Catches the class of mistake that ansible-lint cannot: a role whose install tasks are named after a different role, a dispatcher that has grown module calls, a deprecated module creeping back in, or a profile selecting a role that does not exist. Every one of these has actually occurred in this repo.
 
 Exit status is 1 when any check fails, 0 otherwise.
 """
@@ -123,14 +123,23 @@ def check_role(role: Path) -> None:
 
 
 def check_role_selection() -> None:
-    example = ROOT / "docs" / "examples" / "group_vars-all.yml"
-    if not example.is_file():
-        fail("docs/examples/group_vars-all.yml is missing")
-        return
-    data = yaml.safe_load(example.read_text()) or {}
-    for name in data.get("dotfiles_roles") or []:
+    """Every role a profile selects must exist and have a slot in main.yml's dotfiles_role_order."""
+    play = (yaml.safe_load((ROOT / "main.yml").read_text()) or [{}])[0]
+    order = (play.get("vars") or {}).get("dotfiles_role_order") or []
+    profiles = sorted((ROOT / "profiles").glob("*.yml"))
+    if not profiles:
+        fail("profiles/ has no profiles")
+    for profile in profiles:
+        rel = profile.relative_to(ROOT)
+        data = yaml.safe_load(profile.read_text()) or {}
+        for name in data.get("dotfiles_roles") or []:
+            if not (ROLES / name / "tasks" / "main.yml").is_file():
+                fail(f"{rel} lists unknown role '{name}'")
+            elif name not in order:
+                fail(f"{rel} lists '{name}', which is missing from dotfiles_role_order in main.yml")
+    for name in order:
         if not (ROLES / name / "tasks" / "main.yml").is_file():
-            fail(f"docs/examples/group_vars-all.yml lists unknown role '{name}'")
+            fail(f"main.yml dotfiles_role_order lists unknown role '{name}'")
 
 
 def main() -> int:

@@ -11,10 +11,10 @@ Ansible playbook that provisions a Windows 11 + WSL2 Ubuntu workstation, and the
 ## Quick start
 
 ```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/irish1986/dotfiles/main/scripts/setup)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/irish1986/dotfiles/main/scripts/setup)" -- --profile home
 ```
 
-That takes a bare Ubuntu install to a working workstation, and is safe to run again afterwards. Note the form — `bash -c "$(curl ...)"` passes the script as an argument, so stdin stays on the terminal and `sudo` can prompt; `curl | bash` would consume stdin and the prompt would hang.
+Use `--profile work` on a work machine. That takes a bare Ubuntu install to a working workstation, and is safe to run again afterwards. Note the form — `bash -c "$(curl ...)"` passes the script as an argument, so stdin stays on the terminal and `sudo` can prompt; `curl | bash` would consume stdin and the prompt would hang.
 
 Re-runs take arguments:
 
@@ -40,13 +40,13 @@ Re-runs take arguments:
 
 ## Configuration
 
-Machine configuration lives in `inventory/group_vars/all.yml`, which is gitignored because it holds identity. `scripts/setup` seeds it from [`docs/examples/group_vars-all.yml`](docs/examples/group_vars-all.yml) on a fresh clone, filling in your user, home directory and hostname. To reset it:
+What a machine gets is layered ([ADR 0002](docs/adr/0002-profiles-and-local-file.md)):
 
-```bash
-cp ~/.dotfiles/docs/examples/group_vars-all.yml ~/.dotfiles/inventory/group_vars/all.yml
-```
+1. [`profiles/base.yml`](profiles/base.yml) — every machine.
+2. [`profiles/home.yml`](profiles/home.yml) or [`profiles/work.yml`](profiles/work.yml) — what that kind of machine adds.
+3. `~/.config/dotfiles/local.yml` — the local file: which profile this machine is, git identity, anything machine-specific. Never committed.
 
-`dotfiles_roles` in that file decides which roles run.
+A later layer overrides scalars and appends to lists. `scripts/setup --profile <name>` seeds the local file from [`docs/examples/local.yml`](docs/examples/local.yml) on first run, and switches the profile on later ones.
 
 ## Local development
 
