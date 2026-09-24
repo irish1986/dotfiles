@@ -1,0 +1,48 @@
+---
+- name: Tools | Ensure the config directories exist
+  ansible.builtin.file:
+    path: "{{ dotfiles_home }}/{{ tools_file.dest | dirname }}"
+    state: directory
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0755"
+  loop: "{{ tools_files }}"
+  loop_control:
+    loop_var: tools_file
+    label: "{{ tools_file.dest | dirname }}"
+
+- name: Tools | Deploy the config files
+  ansible.builtin.copy:
+    src: "{{ tools_file.src }}"
+    dest: "{{ dotfiles_home }}/{{ tools_file.dest }}"
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0644"
+  loop: "{{ tools_files }}"
+  loop_control:
+    loop_var: tools_file
+    label: "{{ tools_file.dest }}"
+
+# The removal list. Home-relative only: an absolute path here is almost certainly a mistake, and this runs without become.
+- name: Tools | Assert the removal paths are relative to $HOME
+  ansible.builtin.assert:
+    that:
+      - tools_remove_paths | select('match', '^/') | list | length == 0
+      - tools_remove_paths | select('search', '(^|/)\.\.(/|$)') | list | length == 0
+    fail_msg: "tools_remove_paths must be relative to $HOME: {{ tools_remove_paths | join(', ') }}"
+    quiet: true
+
+- name: Tools | Remove the listed paths
+  ansible.builtin.file:
+    path: "{{ dotfiles_home }}/{{ tools_remove_path }}"
+    state: absent
+  loop: "{{ tools_remove_paths }}"
+  loop_control:
+    loop_var: tools_remove_path
+
+- name: Tools | Remove the listed apt packages
+  ansible.builtin.apt:
+    name: "{{ tools_remove_apt }}"
+    state: absent
+  become: true
+  when: tools_remove_apt | length > 0

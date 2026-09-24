@@ -1,0 +1,47 @@
+---
+# uv itself comes from an installer script entry (and from scripts/setup), so it exists by the time this runs.
+- name: Tools | Assert uv is available
+  ansible.builtin.assert:
+    that:
+      - tools_uv_binary is file
+    fail_msg: >-
+      {{ tools_uv_binary }} is missing. uv is installed by the uv entry in tools_scripts (profiles/base.yml) and by scripts/setup.
+    quiet: true
+
+- name: Tools | Query the uv interpreters
+  ansible.builtin.command: "{{ tools_uv_binary }} python list --only-installed"
+  environment:
+    NO_COLOR: "1"
+  register: tools_uv_pythons
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  when: tools_uv_python | length > 0
+
+- name: "Tools | Install python {{ tools_uv_python }}"
+  ansible.builtin.command: "{{ tools_uv_binary }} python install {{ tools_uv_python }} --default"
+  when:
+    - tools_uv_python | length > 0
+    - tools_uv_pythons.stdout is not search(tools_uv_python | regex_escape)
+  changed_when: true
+
+# NO_COLOR: uv wraps each entry in ANSI escapes otherwise, and the anchored match below never fires.
+- name: Tools | Query the uv tools
+  ansible.builtin.command: "{{ tools_uv_binary }} tool list"
+  environment:
+    NO_COLOR: "1"
+  register: tools_uv_installed
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+# --force adopts an executable of the same name that uv did not create; without it the install fails on every run.
+- name: Tools | Install the uv tools
+  ansible.builtin.command: "{{ tools_uv_binary }} tool install --force {{ tools_uv_tool.name }}=={{ tools_uv_tool.version }}"
+  loop: "{{ tools_uv_tools }}"
+  loop_control:
+    loop_var: tools_uv_tool
+    label: "{{ tools_uv_tool.name }} {{ tools_uv_tool.version }}"
+  when: >-
+    tools_uv_installed.stdout is not search('^' ~ (tools_uv_tool.name | regex_escape) ~ ' v' ~ (tools_uv_tool.version | regex_escape) ~ '$', multiline=True)
+  changed_when: true

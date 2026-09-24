@@ -1,2 +1,0 @@
----
-nvm_script: "{{ nvm_dir }}/nvm.sh"

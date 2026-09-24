@@ -23,21 +23,11 @@
       - wsl # before zsh: .p10k.zsh renders as mojibake without a Nerd Font
       - zsh
       - user # after zsh: the login shell must exist before it is set
+      - tools # before git: git configures gh, which tools installs
       - git
-      - github
       - ssh
-      - python
-      - uv # provides uv, which prek depends on
-      - prek
-      - nvm
-      - rust
       - docker
-      - tailscale
-      - hugo
-      - snyk
-      - herdr
-      - btop
-      - fastfetch
+      - herdr # last: its autostart execs into the herdr binary
 
   pre_tasks:
     # First: everything after it reads variables the layers set.

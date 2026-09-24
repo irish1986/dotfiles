@@ -1,0 +1,30 @@
+---
+# Orchestrator only: no module calls other than include_vars / include_tasks.
+
+- name: Tools | Install
+  ansible.builtin.include_tasks: "{{ tools_install_tasks }}"
+  vars:
+    tools_install_tasks: "{{ lookup('ansible.builtin.first_found', tools_install_lookup) }}"
+    tools_install_lookup:
+      files:
+        - "{{ ansible_facts.distribution }}-{{ ansible_facts.distribution_major_version }}.yml"
+        - "{{ ansible_facts.distribution }}.yml"
+        - "{{ ansible_facts.os_family }}.yml"
+      paths:
+        - "{{ role_path }}/tasks/install"
+  tags:
+    - tools
+    - install
+
+- name: Tools | Configure
+  ansible.builtin.include_tasks: "{{ role_path }}/tasks/configure.yml"
+  tags:
+    - tools
+    - configure
+
+- name: Tools | Verify
+  ansible.builtin.include_tasks: "{{ role_path }}/tasks/verify.yml"
+  when: not ansible_check_mode
+  tags:
+    - tools
+    - verify

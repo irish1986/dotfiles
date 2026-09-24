@@ -1,5 +1,7 @@
 ---
 # Every machine. The named profile (home.yml or work.yml) and then the local file are layered on top: scalars and dictionaries are overridden key by key, lists are appended to. See docs/adr/0002-profiles-and-local-file.md.
+#
+# Adding a tool is adding an entry below; roles/tools/defaults/main.yml documents each kind (ADR 0003).
 
 # Which roles run. The order here does not matter: main.yml runs roles in a fixed order (dotfiles_role_order), so a profile that appends a role still gets it at the right point.
 dotfiles_roles:
@@ -9,14 +11,82 @@ dotfiles_roles:
   - wsl
   - zsh
   - user
+  - tools
   - git
-  - github
   - ssh
-  - python
-  - uv
-  - prek
-  - nvm
   - docker
   - herdr
+
+tools_apt:
   - btop
-  - fastfetch
+  # The distro interpreter and its build headers. Interpreters for projects come from uv.
+  - libssl-dev
+  - python3
+  - python3-pip
+  - python3-venv
+
+tools_apt_repos:
+  # The archive's gh lags upstream by years. Named github-cli so machines that had the old github role reuse its .sources file.
+  - name: github-cli
+    uri: https://cli.github.com/packages
+    key_url: https://cli.github.com/packages/githubcli-archive-keyring.gpg
+    suite: stable
+    probe: false
+    packages:
+      - gh
+    verify: gh --version
+
+tools_debs:
+  # Not in the 24.04 archive.
+  - name: fastfetch
+    # renovate: datasource=github-releases depName=fastfetch-cli/fastfetch
+    version: "2.68.1"
+    url: https://github.com/fastfetch-cli/fastfetch/releases/download/{version}/fastfetch-linux-{arch}.deb
+
+tools_scripts:
+  # Also installed by scripts/setup before the first run; this entry covers a bare `ansible-playbook main.yml`.
+  - name: uv
+    url: https://astral.sh/uv/install.sh
+    creates: .local/bin/uv
+    env:
+      UV_NO_MODIFY_PATH: "1"
+  - name: nvm
+    # renovate: datasource=github-releases depName=nvm-sh/nvm
+    version: "0.40.8"
+    url: https://raw.githubusercontent.com/nvm-sh/nvm/v{version}/install.sh
+    interpreter: bash
+    creates: .nvm/nvm.sh
+    env:
+      NVM_DIR: "{home}/.nvm"
+      # /dev/null stops the installer appending to ~/.zshrc, which the zsh role owns; .zshrc loads nvm itself.
+      PROFILE: /dev/null
+    verify: . {home}/.nvm/nvm.sh && nvm --version
+  # The native installer, not an apt repository: Claude Code updates itself in place, so it is not pinned (ADR 0004). ~/.claude is yours to manage (ADR 0006).
+  - name: claude
+    url: https://claude.ai/install.sh
+    interpreter: bash
+    creates: .local/bin/claude
+
+tools_uv_python: "3.14"
+
+tools_uv_tools:
+  - name: prek
+    # renovate: datasource=pypi depName=prek
+    version: "0.5.3"
+
+tools_files:
+  - src: btop/btop.conf
+    dest: .config/btop/btop.conf
+  - src: fastfetch/config.jsonc
+    dest: .config/fastfetch/config.jsonc
+
+# Superseded tools, cleaned off machines provisioned before the refactor.
+tools_remove_apt:
+  - htop # btop
+  - neofetch # fastfetch; archived upstream
+  - tmux # herdr (ADR 0005)
+tools_remove_paths:
+  - .config/neofetch
+  - .config/tmux
+  - .tmux
+  - .tmux.conf

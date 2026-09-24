@@ -3,8 +3,9 @@
 fonts_nerd_fonts:
   - Hack
 
-fonts_version: "" # empty resolves the latest release
-fonts_release_api: https://api.github.com/repos/ryanoasis/nerd-fonts/releases/latest
+# Pinned (ADR 0004). A bump downloads nothing on a machine that already has the fonts: the creates: guard in the install task keys on the file, not the version.
+# renovate: datasource=github-releases depName=ryanoasis/nerd-fonts
+fonts_version: "3.5.1"
 fonts_dir: "{{ dotfiles_home }}/.local/share/fonts"
 
 fonts_dependencies:

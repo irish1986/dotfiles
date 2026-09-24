@@ -1,0 +1,52 @@
+---
+# Order matters only where one kind depends on another: repositories before their packages, and the uv installer (a script) before uv tools.
+
+- name: Tools | Configure the apt repositories
+  ansible.builtin.include_role:
+    name: apt_repo
+  vars:
+    apt_repo_name: "{{ tools_repo.name }}"
+    apt_repo_uri: "{{ tools_repo.uri | replace('{codename}', ansible_facts.distribution_release) }}"
+    apt_repo_key_url: "{{ tools_repo.key_url | replace('{codename}', ansible_facts.distribution_release) }}"
+    apt_repo_suite: "{{ tools_repo.suite | default('{codename}') | replace('{codename}', ansible_facts.distribution_release) }}"
+    apt_repo_suite_fallback: "{{ tools_repo.suite_fallback | default('') }}"
+    apt_repo_components: "{{ tools_repo.components | default(['main']) }}"
+    apt_repo_probe: "{{ tools_repo.probe | default(true) }}"
+  loop: "{{ tools_apt_repos }}"
+  loop_control:
+    loop_var: tools_repo
+    label: "{{ tools_repo.name }}"
+
+- name: Tools | Install the apt packages
+  ansible.builtin.apt:
+    name: "{{ tools_apt + (tools_apt_repos | map(attribute='packages') | flatten) }}"
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+  become: true
+  when: (tools_apt + (tools_apt_repos | map(attribute='packages') | flatten)) | length > 0
+
+- name: Tools | Install the .deb releases
+  ansible.builtin.include_tasks: "{{ role_path }}/tasks/kinds/deb.yml"
+  loop: "{{ tools_debs }}"
+  loop_control:
+    loop_var: tools_deb
+    label: "{{ tools_deb.name }}"
+
+- name: Tools | Install the release binaries
+  ansible.builtin.include_tasks: "{{ role_path }}/tasks/kinds/binary.yml"
+  loop: "{{ tools_binaries }}"
+  loop_control:
+    loop_var: tools_binary
+    label: "{{ tools_binary.name }}"
+
+- name: Tools | Run the installer scripts
+  ansible.builtin.include_tasks: "{{ role_path }}/tasks/kinds/script.yml"
+  loop: "{{ tools_scripts }}"
+  loop_control:
+    loop_var: tools_script
+    label: "{{ tools_script.name }}"
+
+- name: Tools | Install the uv interpreter and tools
+  ansible.builtin.include_tasks: "{{ role_path }}/tasks/kinds/uv.yml"
+  when: tools_uv_python | length > 0 or tools_uv_tools | length > 0

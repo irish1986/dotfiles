@@ -8,8 +8,9 @@ Several roles resolved "latest" from the GitHub API on every run: reruns changed
 
 ## Decision
 
-- Every tool installed from a release (binaries, `.deb`s, installer scripts, uv tools) is pinned. A `# renovate:` comment above each `version:` lets Renovate open a pull request per bump, and CI converges it before merge.
-- apt packages follow the archive and are upgraded by the `update` role. Claude Code keeps its own updater, because its native installer is built around it.
+- Every tool installed from a release (binaries, `.deb`s, uv tools, Nerd Fonts, herdr, win32yank) is pinned. A `# renovate:` comment above each `version:` lets Renovate open a pull request per bump, and CI converges it before merge.
+- apt packages follow the archive and are upgraded by the `update` role.
+- Installer scripts (uv, rustup, Claude Code) run once and the tool's own updater owns upgrades afterwards; a script that takes a version (nvm) is pinned for that first install.
 - Renovate is the only dependency bot. It also covers GitHub Actions, pre-commit hooks and Galaxy collections.
 - No releases: `main` is the version. Conventional Commits stay.
 
