@@ -4,7 +4,5 @@
 .env
 .cache_ggshield
 
-# Machine identity, seeded from docs/examples/group_vars-all.yml. Ignore the
-# *contents* of group_vars rather than the directory: git never descends into
-# an excluded directory, so a negation for a file inside one is never applied.
+# The legacy per-machine config, from before profiles (ADR 0002). Still ignored so a leftover copy, which holds identity, can never be committed; the playbook warns while it exists.
 /inventory/group_vars/*
