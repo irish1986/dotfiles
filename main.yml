@@ -4,6 +4,9 @@
   connection: local
   gather_facts: true
 
+  # The run's own downloads -- get_url, uri, installer scripts, uv -- go through the corporate proxy when the local file sets one (roles/network). Evaluated per task, so it is empty until the layers are loaded and empty on a machine without a proxy.
+  environment: "{{ dotfiles_proxy_environment }}"
+
   vars:
     dotfiles_supported_versions:
       - "24.04"
@@ -15,8 +18,15 @@
       {{ lookup('ansible.builtin.env', 'DOTFILES_LOCAL_FILE')
          | default(lookup('ansible.builtin.env', 'HOME') ~ '/.config/dotfiles/local.yml', true) }}
 
+    dotfiles_proxy_environment: >-
+      {{ {} if (network_proxy | default('')) | length == 0 else
+         dict(['http_proxy', 'https_proxy', 'HTTP_PROXY', 'HTTPS_PROXY'] | zip([network_proxy] * 4))
+         | combine({'no_proxy': network_no_proxy | default('localhost,127.0.0.1,::1'),
+                    'NO_PROXY': network_no_proxy | default('localhost,127.0.0.1,::1')}) }}
+
     # The order roles run in. The layers decide *which* roles run (dotfiles_roles); this decides *when*, so a profile that appends a role cannot run it too early or too late.
     dotfiles_role_order:
+      - network # first: a proxy and its CA have to be in place before anything downloads
       - update # apt upgrade first, so everything below installs current
       - system # hostname, base packages
       - fonts # before wsl: the Windows font install stages from ~/.local/share/fonts

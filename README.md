@@ -48,6 +48,15 @@ What a machine gets is layered ([ADR 0002](docs/adr/0002-profiles-and-local-file
 
 A later layer overrides scalars and appends to lists. `scripts/setup --profile <name>` seeds the local file from [`docs/examples/local.yml`](docs/examples/local.yml) on first run, and switches the profile on later ones.
 
+### Behind a corporate proxy
+
+`profiles/work.yml` enables the `network` role, which takes `network_proxy` and `network_ca_certificates` from the local file and applies them to the shell, apt, docker, git and the playbook run itself (see [`docs/examples/local.yml`](docs/examples/local.yml)). The bootstrap itself runs before any of that, so on the very first run export the proxy, and trust the CA if the proxy intercepts TLS:
+
+```bash
+export https_proxy=http://proxy.example.com:8080 http_proxy=http://proxy.example.com:8080
+sudo cp /mnt/c/Users/<you>/corp-root-ca.crt /usr/local/share/ca-certificates/ && sudo update-ca-certificates
+```
+
 ## Adding a tool
 
 Add a tool entry to a profile ([ADR 0003](docs/adr/0003-data-driven-tools.md)) — `profiles/base.yml` for every machine, `home.yml` or `work.yml` for one kind. [`roles/tools/defaults/main.yml`](roles/tools/defaults/main.yml) documents each kind: apt package, apt repository, `.deb`, release binary, installer script, uv tool, config file. Then:

@@ -1,0 +1,6 @@
+# Managed by the dotfiles playbook (roles/network). Do not edit.
+# The daemon pulls images; it does not read the shell's environment.
+[Service]
+Environment="HTTP_PROXY={{ network_proxy }}"
+Environment="HTTPS_PROXY={{ network_proxy }}"
+Environment="NO_PROXY={{ network_no_proxy }}"

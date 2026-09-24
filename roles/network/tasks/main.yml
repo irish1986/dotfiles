@@ -1,0 +1,15 @@
+---
+# Orchestrator only: no module calls other than include_vars / include_tasks. Nothing to install: every tool this configures is in the base image or installed by a later role.
+
+- name: Network | Configure
+  ansible.builtin.include_tasks: "{{ role_path }}/tasks/configure.yml"
+  tags:
+    - network
+    - configure
+
+- name: Network | Verify
+  ansible.builtin.include_tasks: "{{ role_path }}/tasks/verify.yml"
+  when: not ansible_check_mode
+  tags:
+    - network
+    - verify

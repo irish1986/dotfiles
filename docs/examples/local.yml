@@ -17,3 +17,9 @@ git_signing_key: id_ed25519.pub
 # dotfiles_hostname: ubuntu-wsl # defaults to the short hostname; on WSL it is written to /etc/wsl.conf
 # dotfiles_windows_user: username # WSL only; defaults to the Linux user name
 # dotfiles_confirm: false # skip the "Proceed?" prompt, as `scripts/setup --yes` does for one run
+
+# Work machines, for roles/network (profiles/work.yml enables it). Corporate values live here, never in a profile: the repository is public.
+# network_proxy: http://proxy.example.com:8080
+# network_no_proxy: localhost,127.0.0.1,::1,.corp.example.com
+# network_ca_certificates:
+#   - /mnt/c/Users/username/corp-root-ca.crt # PEM, exported from Windows

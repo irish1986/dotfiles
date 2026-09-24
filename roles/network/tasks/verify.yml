@@ -1,0 +1,37 @@
+---
+# update-ca-certificates links each certificate it accepted into /etc/ssl/certs as <name>.pem. A missing link means the file was skipped -- usually because it is DER, not PEM -- and nothing else would say so.
+- name: Network | Check the trusted certificates
+  ansible.builtin.stat:
+    path: "/etc/ssl/certs/{{ network_ca_certificate | basename | regex_replace('\\.(pem|crt|cer)$', '') }}.pem"
+  register: network_ca_linked
+  loop: "{{ network_ca_certificates }}"
+  loop_control:
+    loop_var: network_ca_certificate
+
+- name: Network | Assert every certificate is trusted
+  ansible.builtin.assert:
+    that:
+      - network_ca_link.stat.exists
+    fail_msg: >-
+      {{ network_ca_link.network_ca_certificate }} was not added to the trust store. update-ca-certificates only accepts PEM; convert a DER file with `openssl x509 -inform der -in cert.cer -out cert.crt`.
+    success_msg: "{{ network_ca_link.network_ca_certificate | basename }} trusted"
+    quiet: true
+  loop: "{{ network_ca_linked.results }}"
+  loop_control:
+    loop_var: network_ca_link
+    label: "{{ network_ca_link.network_ca_certificate | basename }}"
+
+- name: Network | Read back the git proxy
+  community.general.git_config_info:
+    name: http.proxy
+    scope: file
+    path: "{{ network_gitconfig }}"
+  register: network_git_proxy
+
+- name: Network | Assert the git proxy matches
+  ansible.builtin.assert:
+    that:
+      - network_git_proxy.config_value == network_proxy
+    fail_msg: "{{ network_gitconfig }} has http.proxy '{{ network_git_proxy.config_value }}', expected '{{ network_proxy }}'."
+    success_msg: "git http.proxy {{ network_proxy if network_proxy_set | bool else 'unset' }}"
+    quiet: true
