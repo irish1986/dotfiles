@@ -1,5 +1,5 @@
 ---
-# gh comes from GitHub's own repository, not the archive: jammy has no gh package at all (it first appeared in 23.04), and noble's is pinned at 2.45 while upstream is far ahead.
+# gh comes from GitHub's own repository, not the archive: noble's gh is pinned at 2.45 while upstream is far ahead.
 github_packages:
   - gh
 github_apt_uri: https://cli.github.com/packages

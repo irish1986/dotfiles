@@ -14,7 +14,6 @@ dotfiles_loopback_address: 127.0.1.1
 
 # ── Support matrix ────────────────────────────────────────────────────────
 dotfiles_supported_versions:
-  - "22.04"
   - "24.04"
   - "26.04"
 dotfiles_min_ansible_version: "2.16"

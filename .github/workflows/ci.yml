@@ -95,13 +95,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - release: "22.04"
-            experimental: false
           - release: "24.04"
             experimental: false
-          # The base image does not exist until release; a missing image must not red the build.
           - release: "26.04"
-            experimental: true
+            experimental: false
 
     container:
       image: ubuntu:${{ matrix.release }}

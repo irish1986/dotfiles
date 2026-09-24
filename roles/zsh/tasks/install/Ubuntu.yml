@@ -1,7 +1,7 @@
 ---
 - name: ZSH | Install packages
   ansible.builtin.apt:
-    name: "{{ zsh_packages + zsh_optional_packages }}"
+    name: "{{ zsh_packages }}"
     state: present
   become: true
 

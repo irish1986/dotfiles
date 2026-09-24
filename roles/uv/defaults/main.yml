@@ -1,5 +1,5 @@
 ---
-# uv is the single Python tool manager for this repo, which is why pipx is deliberately absent: uv sidesteps PEP 668 the same way, works identically on 22.04/24.04/26.04, and one tool means one place for tools to end up.
+# uv is the single Python tool manager for this repo, which is why pipx is deliberately absent: uv sidesteps PEP 668 the same way, works identically on every supported release, and one tool means one place for tools to end up.
 uv_install_url: https://astral.sh/uv/install.sh
 
 uv_dependencies:

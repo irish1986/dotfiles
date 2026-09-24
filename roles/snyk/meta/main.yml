@@ -9,7 +9,6 @@ galaxy_info:
   platforms:
     - name: Ubuntu
       versions:
-        - jammy
         - noble
 # Always empty. Role dependencies bypass dotfiles_roles selection and execute silently; ordering is expressed once, in that list.
 dependencies: []
