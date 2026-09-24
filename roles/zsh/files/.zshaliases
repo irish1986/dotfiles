@@ -8,7 +8,7 @@ alias x="exit"
 alias da='date "+%Y-%m-%d %A %T %Z"'
 
 # alias - *top
-alias top="htop"
+alias top="btop"
 
 # alias - change directory
 alias home='cd $HOME'

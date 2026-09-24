@@ -1,0 +1,13 @@
+---
+# One command per entry, defaulting to `<name> --version`. A non-zero exit fails the run, which is the point: a tool that installed but does not start is caught here, not the next time it is needed.
+- name: Tools | Run the verify commands
+  ansible.builtin.shell:
+    cmd: "{{ tools_entry.verify | default(tools_entry.name ~ ' --version') | replace('{home}', dotfiles_home) }}"
+    executable: /bin/bash
+  environment:
+    PATH: "{{ tools_path }}"
+  loop: "{{ tools_verifiable }}"
+  loop_control:
+    loop_var: tools_entry
+    label: "{{ tools_entry.name }}"
+  changed_when: false

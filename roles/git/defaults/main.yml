@@ -45,3 +45,15 @@ git_config:
   status.short: true
   tag.gpgsign: true
   tag.sort: version:refname
+
+# gh, which the tools role installs from base.yml. Written through `gh config set`, the same way git_config goes through git_config: gh rewrites config.yml itself, maintaining a `version` key of its own, so a template would fight it on every run. Skipped when gh is not installed.
+git_gh_config_dir: "{{ dotfiles_home }}/.config/gh"
+git_gh_config:
+  git_protocol: ssh
+  # Matches core.editor above.
+  editor: code --wait
+  prompt: enabled
+git_gh_aliases:
+  co: pr checkout
+  pv: pr view
+  st: status

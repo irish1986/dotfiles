@@ -1,0 +1,20 @@
+---
+# One .deb entry, as tools_deb. Keyed on the version dpkg reports, so a converged machine downloads nothing and a bumped pin actually lands.
+
+- name: "Tools | Query the installed version: {{ tools_deb.name }}"
+  ansible.builtin.command: dpkg-query -W -f=${Version} {{ tools_deb.package | default(tools_deb.name) }}
+  register: tools_deb_installed
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: "Tools | Install the release: {{ tools_deb.name ~ ' ' ~ tools_deb.version }}"
+  ansible.builtin.apt:
+    deb: >-
+      {{ tools_deb.url
+         | replace('{version}', tools_deb.version)
+         | replace('{arch}', dotfiles_dpkg_architecture)
+         | replace('{machine}', ansible_facts.architecture) }}
+    state: present
+  become: true
+  when: tools_deb_installed.stdout is not search('^' ~ (tools_deb.version | regex_escape))

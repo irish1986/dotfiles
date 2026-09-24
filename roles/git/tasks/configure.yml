@@ -64,3 +64,67 @@
     loop_var: git_config_entry
     label: "{{ git_config_entry.key }}"
   when: git_config_entry.value | string | length > 0
+
+- name: Git | Detect gh
+  ansible.builtin.stat:
+    path: "{{ git_gh_binary }}"
+  register: git_gh_present
+
+- name: Git | Configure gh
+  when: git_gh_present.stat.exists
+  block:
+    - name: Git | Ensure the gh configuration directory exists
+      ansible.builtin.file:
+        path: "{{ git_gh_config_dir }}"
+        state: directory
+        owner: "{{ dotfiles_user }}"
+        group: "{{ dotfiles_user }}"
+        mode: "0700"
+
+    - name: Git | Read the current gh configuration
+      ansible.builtin.command: "{{ git_gh_binary }} config get {{ git_gh_entry.key }}"
+      environment: "{{ git_gh_environment }}"
+      register: git_gh_config_current
+      loop: "{{ git_gh_config | dict2items }}"
+      loop_control:
+        loop_var: git_gh_entry
+        label: "{{ git_gh_entry.key }}"
+      changed_when: false
+      failed_when: false
+      check_mode: false
+
+    - name: Git | Write the gh configuration
+      ansible.builtin.command: >-
+        {{ git_gh_binary }} config set {{ git_gh_result.git_gh_entry.key }}
+        {{ git_gh_result.git_gh_entry.value | quote }}
+      environment: "{{ git_gh_environment }}"
+      loop: "{{ git_gh_config_current.results }}"
+      loop_control:
+        loop_var: git_gh_result
+        label: "{{ git_gh_result.git_gh_entry.key }}"
+      when: git_gh_result.stdout | trim != git_gh_result.git_gh_entry.value
+      changed_when: true
+
+    - name: Git | Read the current gh aliases
+      ansible.builtin.command: "{{ git_gh_binary }} alias list"
+      environment: "{{ git_gh_environment }}"
+      register: git_gh_alias_list
+      changed_when: false
+      failed_when: false
+      check_mode: false
+
+    # `gh alias list` prints one "name: expansion" line per alias, so matching the whole line catches a changed expansion as well as a missing alias. --clobber because a plain `alias set` fails on an alias that already exists.
+    - name: Git | Write the gh aliases
+      ansible.builtin.command: >-
+        {{ git_gh_binary }} alias set {{ git_gh_alias.key }}
+        {{ git_gh_alias.value | quote }} --clobber
+      environment: "{{ git_gh_environment }}"
+      loop: "{{ git_gh_aliases | dict2items }}"
+      loop_control:
+        loop_var: git_gh_alias
+        label: "{{ git_gh_alias.key }}"
+      when: >-
+        git_gh_alias_list.stdout | default('')
+        is not search('^' ~ (git_gh_alias.key | regex_escape) ~ ': '
+                      ~ (git_gh_alias.value | regex_escape) ~ '$', multiline=True)
+      changed_when: true

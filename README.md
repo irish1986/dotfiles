@@ -48,6 +48,16 @@ What a machine gets is layered ([ADR 0002](docs/adr/0002-profiles-and-local-file
 
 A later layer overrides scalars and appends to lists. `scripts/setup --profile <name>` seeds the local file from [`docs/examples/local.yml`](docs/examples/local.yml) on first run, and switches the profile on later ones.
 
+## Adding a tool
+
+Add a tool entry to a profile ([ADR 0003](docs/adr/0003-data-driven-tools.md)) — `profiles/base.yml` for every machine, `home.yml` or `work.yml` for one kind. [`roles/tools/defaults/main.yml`](roles/tools/defaults/main.yml) documents each kind: apt package, apt repository, `.deb`, release binary, installer script, uv tool, config file. Then:
+
+```bash
+~/.dotfiles/scripts/setup --tags tools
+```
+
+Removing an entry stops managing the tool; to uninstall it, add it to `tools_remove_apt` or `tools_remove_paths`.
+
 ## Local development
 
 ```bash

@@ -1,7 +1,40 @@
 ---
 # Home machines: base.yml plus what is listed here. See docs/adr/0002-profiles-and-local-file.md.
 
-dotfiles_roles:
-  - hugo
-  - rust
-  - tailscale
+tools_apt:
+  - build-essential # cc, which cargo links with
+
+tools_apt_repos:
+  # Tailscale publishes a suite and a key per codename, and lags new releases.
+  - name: tailscale
+    uri: https://pkgs.tailscale.com/stable/ubuntu
+    key_url: https://pkgs.tailscale.com/stable/ubuntu/{codename}.asc
+    suite_fallback: noble
+    packages:
+      - tailscale
+    verify: tailscale version
+
+tools_debs:
+  # The archive lags badly and has no extended edition.
+  - name: hugo
+    # renovate: datasource=github-releases depName=gohugoio/hugo
+    version: "0.166.0"
+    url: https://github.com/gohugoio/hugo/releases/download/v{version}/hugo_extended_{version}_linux-{arch}.deb
+    verify: hugo version
+
+tools_scripts:
+  # rustup rather than the archive's cargo, which is too old for many crates. rustup updates the toolchain itself.
+  - name: rustup
+    url: https://sh.rustup.rs
+    creates: .cargo/bin/rustup
+    args:
+      - -y
+      - --no-modify-path
+      - --profile
+      - default
+      - --default-toolchain
+      - stable
+    env:
+      CARGO_HOME: "{home}/.cargo"
+      RUSTUP_HOME: "{home}/.rustup"
+    verify: cargo --version && rustc --version

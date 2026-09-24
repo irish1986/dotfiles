@@ -1,5 +1,9 @@
 ---
 git_binary: git
+git_gh_binary: /usr/bin/gh
+# gh resolves its config directory from XDG_CONFIG_HOME, which need not agree with git_gh_config_dir; setting it on every call makes the role write where it says it writes.
+git_gh_environment:
+  GH_CONFIG_DIR: "{{ git_gh_config_dir }}"
 git_identity_set: "{{ git_user_name | length > 0 and git_user_email | length > 0 }}"
 git_config_file: "{{ dotfiles_home }}/.gitconfig"
 git_ignore_file: "{{ dotfiles_home }}/.gitignore"

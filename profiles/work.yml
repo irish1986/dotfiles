@@ -1,5 +1,10 @@
 ---
 # Work machines: base.yml plus what is listed here. Identity and corporate network values belong in the local file, never here: this repository is public. See docs/adr/0002-profiles-and-local-file.md.
 
-dotfiles_roles:
-  - snyk
+tools_binaries:
+  # amd64 only: upstream names the amd64 asset snyk-linux and suffixes the others.
+  - name: snyk
+    # renovate: datasource=github-releases depName=snyk/cli
+    version: "1.1307.4"
+    url: https://github.com/snyk/cli/releases/download/v{version}/snyk-linux
+    checksum_url: "{url}.sha256"

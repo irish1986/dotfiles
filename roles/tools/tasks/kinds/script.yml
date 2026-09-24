@@ -1,0 +1,44 @@
+---
+# One installer script entry, as tools_script. Runs once, as the login user: `creates` guards it, and the tool's own updater owns upgrades afterwards.
+
+- name: "Tools | Detect an existing install: {{ tools_script.name }}"
+  ansible.builtin.stat:
+    path: "{{ dotfiles_home }}/{{ tools_script.creates }}"
+  register: tools_script_present
+
+- name: "Tools | Install {{ tools_script.name }}"
+  when: not tools_script_present.stat.exists
+  block:
+    - name: "Tools | Create a staging file: {{ tools_script.name }}"
+      ansible.builtin.tempfile:
+        state: file
+        suffix: "-{{ tools_script.name }}-install"
+      register: tools_script_file
+      changed_when: false
+
+    - name: "Tools | Download the installer: {{ tools_script.name }}"
+      ansible.builtin.get_url:
+        url: "{{ tools_script.url | replace('{version}', tools_script.version | default('')) }}"
+        dest: "{{ tools_script_file.path }}"
+        mode: "0700"
+        force: true
+      changed_when: false
+
+    - name: "Tools | Run the installer: {{ tools_script.name }}"
+      ansible.builtin.command:
+        argv: >-
+          {{ [tools_script.interpreter | default('sh'), tools_script_file.path]
+             + (tools_script.args | default([]) | map('replace', '{home}', dotfiles_home) | list) }}
+      environment: >-
+        {{ dict(tools_script_env.keys() | zip(tools_script_env.values() | map('replace', '{home}', dotfiles_home)))
+           | combine({'PATH': tools_path}) }}
+      vars:
+        tools_script_env: "{{ tools_script.env | default({}) }}"
+      changed_when: true
+  always:
+    - name: "Tools | Remove the staging file: {{ tools_script.name }}"
+      ansible.builtin.file:
+        path: "{{ tools_script_file.path }}"
+        state: absent
+      when: tools_script_file.path is defined
+      changed_when: false

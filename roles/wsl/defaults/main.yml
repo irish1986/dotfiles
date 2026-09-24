@@ -67,6 +67,7 @@ wsl_manage_windows_fonts: true
 # ── Clipboard bridge ──────────────────────────────────────────────────────
 # win32yank is the only clean paste path: `powershell Get-Clipboard` appends CRLF even with -Raw, because PowerShell's output pipeline adds its own newline.
 wsl_manage_win32yank: true
-wsl_win32yank_version: v0.1.1
+# renovate: datasource=github-releases depName=equalsraf/win32yank
+wsl_win32yank_version: "0.1.1"
 wsl_win32yank_url: >-
-  https://github.com/equalsraf/win32yank/releases/download/{{ wsl_win32yank_version }}/win32yank-x64.zip
+  https://github.com/equalsraf/win32yank/releases/download/v{{ wsl_win32yank_version }}/win32yank-x64.zip

@@ -1,0 +1,43 @@
+---
+# One release binary entry, as tools_binary. Keyed on what `<binary> --version` reports rather than on the file existing, so a bumped pin actually lands.
+
+- name: "Tools | Query the installed version: {{ tools_binary.name }}"
+  ansible.builtin.command: "{{ tools_binary_dir }}/{{ tools_binary.name }} --version"
+  register: tools_binary_installed
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: "Tools | Install the release: {{ tools_binary.name ~ ' ' ~ tools_binary.version }}"
+  when: >-
+    (tools_binary_installed.stdout | default('') | regex_search('[0-9]+(\.[0-9]+)+') | default('', true))
+    != tools_binary.version
+  vars:
+    tools_binary_url: >-
+      {{ tools_binary.url
+         | replace('{version}', tools_binary.version)
+         | replace('{arch}', dotfiles_dpkg_architecture)
+         | replace('{machine}', ansible_facts.architecture) }}
+  block:
+    # Read separately rather than handed to get_url as a checksum URL: that form matches the line by the destination's basename, and upstream files usually name the asset, not the binary.
+    - name: "Tools | Fetch the published checksum: {{ tools_binary.name }}"
+      ansible.builtin.uri:
+        url: "{{ tools_binary.checksum_url | replace('{url}', tools_binary_url) | replace('{version}', tools_binary.version) }}"
+        return_content: true
+      register: tools_binary_checksum
+      check_mode: false
+      when: tools_binary.checksum_url is defined
+
+    # get_url stages to a temporary file, verifies it, and only then moves it into place, so a mismatch never leaves a partial binary on PATH.
+    - name: "Tools | Install the binary: {{ tools_binary.name }}"
+      ansible.builtin.get_url:
+        url: "{{ tools_binary_url }}"
+        dest: "{{ tools_binary_dir }}/{{ tools_binary.name }}"
+        checksum: >-
+          {{ ('sha256:' ~ (tools_binary_checksum.content.split() | first))
+             if tools_binary.checksum_url is defined else omit }}
+        force: true
+        owner: root
+        group: root
+        mode: "0755"
+      become: true

@@ -1,0 +1,55 @@
+---
+# Tool entries, set in the profiles rather than here (ADR 0003). Every list is appended to layer by layer, so base.yml, the named profile and the local file each add their own.
+#
+# Placeholders, substituted wherever an entry takes a URL, arguments, environment or a verify command:
+#   {version}   the entry's version
+#   {arch}      dpkg architecture: amd64, arm64
+#   {machine}   uname machine: x86_64, aarch64
+#   {codename}  Ubuntu codename: noble, ...
+#   {home}      the login user's home directory
+#
+# Every entry that installs from a release carries a version, annotated for Renovate on the line above it (ADR 0004):
+#   # renovate: datasource=github-releases depName=<owner>/<repo>
+
+# Package names from the Ubuntu archive. Upgraded by the update role, not pinned.
+tools_apt: []
+
+# Third-party apt repositories and the packages to install from them.
+#   name            becomes /etc/apt/sources.list.d/<name>.sources
+#   uri, key_url    repository base URI and signing key URL
+#   suite           default {codename}
+#   suite_fallback  suite to use when the vendor has not published {codename} yet; empty disables the probe
+#   components      default [main]
+#   probe           default true; false for flat or channel-named suites
+#   packages        what to install from it
+#   verify          optional command asserting it works
+tools_apt_repos: []
+
+# .deb files from a release, installed when dpkg reports a different version.
+#   name, version, url, package (default name), verify (default "<name> --version")
+tools_debs: []
+
+# Single-file release binaries, installed to /usr/local/bin/<name> when `<name> --version` reports a different version.
+#   name, version, url, checksum_url (optional: a file whose first word is the sha256; {url} is the binary's URL), verify
+tools_binaries: []
+
+# Upstream installer scripts, run once: `creates` (relative to $HOME) guards them, and the tool's own updater owns upgrades from then on.
+#   name, url, creates, interpreter (default sh), args (list), env (dict), verify
+tools_scripts: []
+
+# Interpreter uv installs and marks default. Empty leaves the choice to you.
+tools_uv_python: ""
+
+# Python tools installed with `uv tool install <name>==<version>`.
+#   name, version, verify
+tools_uv_tools: []
+
+# Config files for tools, copied from roles/tools/files/.
+#   src   relative to roles/tools/files/
+#   dest  relative to $HOME
+tools_files: []
+
+# The removal list (ADR 0003). Removing an entry above only stops managing it; uninstalling is explicit, here.
+tools_remove_apt: []
+# Relative to $HOME.
+tools_remove_paths: []
