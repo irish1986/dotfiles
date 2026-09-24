@@ -6,9 +6,8 @@ on: # yamllint disable-line rule:truthy
   push:
     branches:
       - main
+  # Any base branch, not only main: stacked pull requests target the branch below them and would otherwise get no checks at all.
   pull_request:
-    branches:
-      - main
   # Weekly rather than daily. The value of a scheduled run is catching upstream rot -- a new ansible-lint release, a yanked collection, a moved apt suite -- not re-linting unchanged code.
   schedule:
     - cron: "32 6 * * 1"
