@@ -1,6 +1,2 @@
 ---
 zsh_binary: zsh
-
-# eza is only in the archive from 24.04; on jammy the zsh-eza plugin has no binary to wrap. Overridden in vars/Ubuntu-22.yml.
-zsh_optional_packages:
-  - eza

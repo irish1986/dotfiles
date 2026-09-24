@@ -28,7 +28,7 @@ Re-runs take arguments:
 ## Goals
 
 - **One command on a fresh machine**, and safe to re-run.
-- **Every supported Ubuntu LTS** — 22.04, 24.04 and 26.04, with no codename hardcoded anywhere.
+- **Ubuntu 24.04 and 26.04** ([ADR 0007](docs/adr/0007-ubuntu-support.md)), with no codename hardcoded anywhere.
 - **WSL2 first.** The Windows side is managed too: Terminal settings, fonts, clipboard, `wsl.conf` and `.wslconfig`.
 - **Fail loudly.** Each role ends by asserting the thing it installs actually works, so a role cannot quietly do nothing.
 

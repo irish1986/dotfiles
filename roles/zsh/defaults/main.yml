@@ -1,6 +1,7 @@
 ---
 zsh_packages:
   - bat
+  - eza
   - fzf
   - git
   - jq

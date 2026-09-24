@@ -21,7 +21,7 @@ readonly REPO_SLUG="irish1986/dotfiles"
 readonly REPO_HTTPS="https://github.com/${REPO_SLUG}.git"
 readonly REPO_SSH="git@github.com:${REPO_SLUG}.git"
 
-readonly MIN_OS_VERSION="22.04"
+readonly MIN_OS_VERSION="24.04"
 
 # Floor is the strictest requires_ansible among the pinned collections in collections/requirements.yml. Ceiling is because ansible-core 2.24 removes INJECT_FACTS_AS_VARS, which every role in this repo still relies on.
 readonly ANSIBLE_CORE_SPEC="ansible-core>=2.16,<2.24"
@@ -592,7 +592,6 @@ ensure_uv() {
 # ansible-core is installed and used from uv, not apt and not the PPA:
 #
 #  * ppa:ansible/ansible ships the batteries-included `ansible` package, whose bundled collections shadow the five pinned in collections/requirements.yml, and the PPA may have no pocket at all for a brand-new LTS.
-#  * jammy's archive ansible-core is 2.12, below the >=2.16 those collections declare, so the distro package cannot satisfy this repo on 22.04.
 #  * PEP 668 blocks `pip install` into the system python on 24.04+.
 ensure_ansible() {
   local uv_ansible="${LOCAL_BIN}/ansible-playbook"
