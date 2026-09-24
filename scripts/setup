@@ -30,6 +30,7 @@ readonly MIN_ANSIBLE_CORE="2.16"
 readonly STATE_DIR="${XDG_STATE_HOME:-${HOME}/.local/state}/dotfiles"
 readonly CONFIG_DIR="${XDG_CONFIG_HOME:-${HOME}/.config}/dotfiles"
 readonly ENV_FILE="${CONFIG_DIR}/setup.env"
+readonly LOCAL_FILE="${CONFIG_DIR}/local.yml"
 readonly LOCAL_BIN="${HOME}/.local/bin"
 readonly LOG_KEEP=10
 readonly LOG_TAIL=40
@@ -79,7 +80,8 @@ OPT_SKIP_TAGS=""
 OPT_BRANCH=""
 OPT_CHECK=0
 OPT_DIFF=0
-OPT_PROFILE=0
+OPT_TIMINGS=0
+OPT_PROFILE_NAME=""
 OPT_SYNTAX_CHECK=0
 OPT_LIST_TAGS=0
 OPT_DRY_RUN=0
@@ -278,7 +280,9 @@ Options:
       --skip-tags TAGS    skip roles/phases matching TAGS
   -c, --check             ansible check mode (no changes made)
   -d, --diff              show file differences
-      --profile           report per-task timings
+      --profile NAME      the profile this machine gets (home, work); recorded in
+                          ~/.config/dotfiles/local.yml, required on first run
+      --timings           report per-task timings
       --syntax-check      parse the playbook and exit
       --list-tags         list available tags and exit
   -n, --dry-run           script-level no-op; implies --check
@@ -333,7 +337,11 @@ parse_args() {
         shift
         ;;
       --profile)
-        OPT_PROFILE=1
+        OPT_PROFILE_NAME="${2:?--profile requires a value}"
+        shift 2
+        ;;
+      --timings)
+        OPT_TIMINGS=1
         shift
         ;;
       --syntax-check)
@@ -738,42 +746,52 @@ maybe_reexec() {
 
 #--- Configuration ------------------------------------------------------------
 #
-# inventory/group_vars/all.yml is gitignored, so a fresh clone does not have it. Without it every role variable is undefined, and the playbook used to swallow the resulting failures and report success. Seeding it here is the difference between a real bootstrap and a silent no-op -- and is the single biggest reason the old script "did not work all the time".
+# The local file holds identity and names the profile, and lives outside the checkout so it can never be committed (ADR 0002). The playbook refuses to run without it, so a first run must say which profile it is.
 
-ensure_group_vars() {
-  local target="${DOTFILES_DIR}/inventory/group_vars/all.yml"
-  local example="${DOTFILES_DIR}/docs/examples/group_vars-all.yml"
+ensure_local_file() {
+  local example="${DOTFILES_DIR}/docs/examples/local.yml"
 
-  if [[ -f $target ]]; then
-    task_begin "Machine configuration"
-    task_skip "inventory/group_vars/all.yml exists"
+  if [[ -n $OPT_PROFILE_NAME ]] \
+    && { [[ $OPT_PROFILE_NAME == base ]] || [[ ! -f ${DOTFILES_DIR}/profiles/${OPT_PROFILE_NAME}.yml ]]; }; then
+    oops "No such profile: ${OPT_PROFILE_NAME}. Profiles live in ${DOTFILES_DIR}/profiles/."
+    return 1
+  fi
+
+  if [[ -f $LOCAL_FILE ]]; then
+    task_begin "Local file"
+    if [[ -z $OPT_PROFILE_NAME ]]; then
+      task_skip "${LOCAL_FILE} exists"
+      return 0
+    fi
+    if grep -q '^dotfiles_profile:' "$LOCAL_FILE"; then
+      sed -i "s|^dotfiles_profile:.*|dotfiles_profile: ${OPT_PROFILE_NAME}|" "$LOCAL_FILE"
+    else
+      printf 'dotfiles_profile: %s\n' "$OPT_PROFILE_NAME" >> "$LOCAL_FILE"
+    fi
+    task_ok
     return 0
   fi
 
-  if [[ ! -f $example ]]; then
-    oops "Neither ${target} nor ${example} exists."
+  if [[ -z $OPT_PROFILE_NAME ]]; then
+    oops "${LOCAL_FILE} does not exist yet. Say which profile this machine gets: --profile home or --profile work."
     return 1
   fi
 
-  task_begin "Seeding inventory/group_vars/all.yml"
-  mkdir -p "$(dirname "$target")"
-  local host
-  host="$(hostname --short 2> /dev/null || hostname)"
-  sed \
-    -e "s|^dotfiles_user: .*|dotfiles_user: ${USER}|" \
-    -e "s|^dotfiles_windows_user: .*|dotfiles_windows_user: ${USER}|" \
-    -e "s|^dotfiles_home: .*|dotfiles_home: ${HOME}|" \
-    -e "s|^dotfiles_hostname: .*|dotfiles_hostname: ${host}|" \
-    "$example" > "$target"
-
-  # A reshuffle of the example must fail loudly rather than silently leaving the placeholder values in place.
-  if ! grep -qx "dotfiles_user: ${USER}" "$target"; then
-    task_fail
-    oops "Seeding produced no dotfiles_user line; ${example} may have changed shape."
-    return 1
-  fi
+  task_begin "Seeding ${LOCAL_FILE}"
+  # Identity comes from an existing ~/.gitconfig when there is one, so re-provisioning a machine keeps it.
+  local name email
+  name="$(git config --global user.name 2> /dev/null || true)"
+  email="$(git config --global user.email 2> /dev/null || true)"
+  (
+    umask 077
+    sed \
+      -e "s|^dotfiles_profile:.*|dotfiles_profile: ${OPT_PROFILE_NAME}|" \
+      -e "s|^git_user_name:.*|git_user_name: \"${name}\"|" \
+      -e "s|^git_user_email:.*|git_user_email: \"${email}\"|" \
+      "$example" > "$LOCAL_FILE"
+  )
   task_ok
-  warn "Review ${target} -- git identity and role selection still need your values."
+  warn "Review ${LOCAL_FILE}: git identity and GitHub login may still need your values."
 }
 
 # Key *material* belongs to roles/ssh, which imports the Windows key on WSL and manages authorized_keys. This only guarantees the directory and permissions. The previous version guarded on authorized_keys while creating id_ed25519, so an existing key with no authorized_keys meant ssh-keygen prompted to overwrite -- hanging, or destroying the private key.
@@ -897,7 +915,7 @@ run_playbook() {
   export ANSIBLE_CONFIG="${DOTFILES_DIR}/ansible.cfg"
 
   # An env var rather than a PLAYBOOK_ARGS entry: ansible-playbook has no CLI flag for callbacks. Enabled here rather than in ansible.cfg so the per-task timestamps stay out of an ordinary run.
-  if ((OPT_PROFILE)); then
+  if ((OPT_TIMINGS)); then
     export ANSIBLE_CALLBACKS_ENABLED="ansible.posix.profile_tasks"
   fi
 
@@ -994,7 +1012,7 @@ main() {
   ensure_ansible
   ensure_repo
   maybe_reexec
-  ensure_group_vars
+  ensure_local_file
   ensure_ssh_dir
   install_collections
   run_playbook

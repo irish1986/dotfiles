@@ -1,0 +1,22 @@
+---
+# Every machine. The named profile (home.yml or work.yml) and then the local file are layered on top: scalars and dictionaries are overridden key by key, lists are appended to. See docs/adr/0002-profiles-and-local-file.md.
+
+# Which roles run. The order here does not matter: main.yml runs roles in a fixed order (dotfiles_role_order), so a profile that appends a role still gets it at the right point.
+dotfiles_roles:
+  - update
+  - system
+  - fonts
+  - wsl
+  - zsh
+  - user
+  - git
+  - github
+  - ssh
+  - python
+  - uv
+  - prek
+  - nvm
+  - docker
+  - herdr
+  - btop
+  - fastfetch

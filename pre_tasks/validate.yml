@@ -9,25 +9,26 @@
       - dotfiles_roles is not string
       - dotfiles_roles | length > 0
     fail_msg: >-
-      dotfiles_roles must be a non-empty list. Define it in inventory/group_vars/all.yml -- see docs/examples/group_vars-all.yml.
+      dotfiles_roles must be a non-empty list. profiles/base.yml defines it; check that the local file has not replaced it with something else.
     quiet: true
 
-- name: Validate | Assert every selected role exists
+# A role missing from dotfiles_role_order would otherwise be dropped silently by the filter in main.yml.
+- name: Validate | Assert every selected role is known
   ansible.builtin.assert:
     that:
+      - dotfiles_role in dotfiles_role_order
       - (playbook_dir ~ '/roles/' ~ dotfiles_role ~ '/tasks/main.yml') is file
     fail_msg: >-
-      dotfiles_roles contains '{{ dotfiles_role }}', which is not a role in {{ playbook_dir }}/roles.
+      dotfiles_roles contains '{{ dotfiles_role }}', which is not a role in {{ playbook_dir }}/roles or not listed in dotfiles_role_order in main.yml.
     quiet: true
   loop: "{{ dotfiles_roles }}"
   loop_control:
     loop_var: dotfiles_role
     label: "{{ dotfiles_role }}"
 
-- name: Validate | Assert no role is listed twice
-  ansible.builtin.assert:
-    that:
-      - dotfiles_roles | length == dotfiles_roles | unique | length
-    fail_msg: >-
-      dotfiles_roles contains duplicates: {{ dotfiles_roles | difference(dotfiles_roles | unique) | unique | join(', ') }}
-    quiet: true
+# The old per-machine config. Ansible still loads it as group_vars, below every layer, so whatever it sets and no layer does -- git identity, most likely -- quietly keeps applying.
+- name: Validate | Warn about the legacy machine configuration
+  ansible.builtin.debug:
+    msg: >-
+      {{ playbook_dir }}/inventory/group_vars/all.yml is from before profiles and still loads at group_vars precedence. Move anything you still need (git_user_login, git_user_email, git_user_name, dotfiles_windows_user) into {{ dotfiles_local_file }}, then delete it.
+  when: (playbook_dir ~ '/inventory/group_vars/all.yml') is file

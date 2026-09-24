@@ -5,7 +5,7 @@ git_packages:
   # Replaces the deleted bfg role: same job, no JRE, and packaged from 24.04.
   - git-filter-repo
 
-# Identity. No defaults worth guessing -- verify.yml asserts these are set.
+# Identity, set in the local file. Left empty, the role skips user.*, commit signing and the allowed signer, and warns.
 git_user_email: ""
 git_user_name: ""
 git_user_login: ""

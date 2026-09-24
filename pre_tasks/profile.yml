@@ -1,0 +1,57 @@
+---
+# Loads the three layers -- profiles/base.yml, profiles/<dotfiles_profile>.yml, then the local file -- and applies the result as facts, so roles read plain variables. A later layer overrides scalars and dictionaries key by key and appends to lists. See docs/adr/0002-profiles-and-local-file.md.
+#
+# Facts sit above role defaults and below extra vars, so a layer overrides any role default and `-e` still overrides everything for one run.
+
+- name: Profile | Assert the local file exists
+  ansible.builtin.assert:
+    that:
+      - dotfiles_local_file is file
+    fail_msg: >-
+      {{ dotfiles_local_file }} does not exist. Run `scripts/setup --profile <name>` to create it, or copy docs/examples/local.yml there and edit it.
+    quiet: true
+
+- name: Profile | Read the local file
+  ansible.builtin.include_vars:
+    file: "{{ dotfiles_local_file }}"
+    name: dotfiles_layer_local
+
+# `-e dotfiles_profile=...` still wins over the local file, for trying a profile without editing it.
+- name: Profile | Resolve the profile name
+  ansible.builtin.set_fact:
+    dotfiles_profile: "{{ dotfiles_profile | default(dotfiles_layer_local.dotfiles_profile | default(''), true) }}"
+
+- name: Profile | Assert the profile exists
+  ansible.builtin.assert:
+    that:
+      - dotfiles_profile in dotfiles_profiles_available
+    fail_msg: >-
+      dotfiles_profile is '{{ dotfiles_profile }}'. Set it in {{ dotfiles_local_file }} to one of: {{ dotfiles_profiles_available | join(', ') }}.
+    quiet: true
+  vars:
+    dotfiles_profiles_available: >-
+      {{ query('ansible.builtin.fileglob', playbook_dir ~ '/profiles/*.yml')
+         | map('basename') | map('regex_replace', '\.yml$', '')
+         | reject('eq', 'base') | sort }}
+
+- name: Profile | Read the base profile
+  ansible.builtin.include_vars:
+    file: "{{ playbook_dir }}/profiles/base.yml"
+    name: dotfiles_layer_base
+
+- name: "Profile | Read the named profile: {{ dotfiles_profile }}"
+  ansible.builtin.include_vars:
+    file: "{{ playbook_dir }}/profiles/{{ dotfiles_profile }}.yml"
+    name: dotfiles_layer_profile
+
+# append_rp appends the later list and drops earlier duplicates, so a role or tool listed in two layers appears once.
+- name: Profile | Apply the layers
+  ansible.builtin.set_fact:
+    "{{ dotfiles_layer.key }}": "{{ dotfiles_layer.value }}"
+  loop: >-
+    {{ dotfiles_layer_base
+       | combine(dotfiles_layer_profile, dotfiles_layer_local, recursive=true, list_merge='append_rp')
+       | dict2items }}
+  loop_control:
+    loop_var: dotfiles_layer
+    label: "{{ dotfiles_layer.key }}"

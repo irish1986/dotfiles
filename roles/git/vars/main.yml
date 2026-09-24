@@ -1,5 +1,6 @@
 ---
 git_binary: git
+git_identity_set: "{{ git_user_name | length > 0 and git_user_email | length > 0 }}"
 git_config_file: "{{ dotfiles_home }}/.gitconfig"
 git_ignore_file: "{{ dotfiles_home }}/.gitignore"
 git_signing_key_path: "{{ dotfiles_home }}/.ssh/{{ git_signing_key }}"

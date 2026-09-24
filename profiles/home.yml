@@ -1,0 +1,7 @@
+---
+# Home machines: base.yml plus what is listed here. See docs/adr/0002-profiles-and-local-file.md.
+
+dotfiles_roles:
+  - hugo
+  - rust
+  - tailscale

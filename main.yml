@@ -4,18 +4,59 @@
   connection: local
   gather_facts: true
 
+  vars:
+    dotfiles_supported_versions:
+      - "24.04"
+      - "26.04"
+    dotfiles_min_ansible_version: "2.16"
+
+    # Outside the checkout on purpose: it can never be committed, and it survives a re-clone. DOTFILES_LOCAL_FILE or -e dotfiles_local_file=... point a run at another one, which is how CI supplies its fixtures.
+    dotfiles_local_file: >-
+      {{ lookup('ansible.builtin.env', 'DOTFILES_LOCAL_FILE')
+         | default(lookup('ansible.builtin.env', 'HOME') ~ '/.config/dotfiles/local.yml', true) }}
+
+    # The order roles run in. The layers decide *which* roles run (dotfiles_roles); this decides *when*, so a profile that appends a role cannot run it too early or too late.
+    dotfiles_role_order:
+      - update # apt upgrade first, so everything below installs current
+      - system # hostname, base packages
+      - fonts # before wsl: the Windows font install stages from ~/.local/share/fonts
+      - wsl # before zsh: .p10k.zsh renders as mojibake without a Nerd Font
+      - zsh
+      - user # after zsh: the login shell must exist before it is set
+      - git
+      - github
+      - ssh
+      - python
+      - uv # provides uv, which prek depends on
+      - prek
+      - nvm
+      - rust
+      - docker
+      - tailscale
+      - hugo
+      - snyk
+      - herdr
+      - btop
+      - fastfetch
+
   pre_tasks:
+    # First: everything after it reads variables the layers set.
+    - name: DotFiles | Load the profile layers
+      ansible.builtin.import_tasks: pre_tasks/profile.yml
+      tags:
+        - always
+
     - name: DotFiles | Resolve environment facts
       ansible.builtin.import_tasks: pre_tasks/facts.yml
       tags:
         - always
 
-    - name: DotFiles | Validate the requested role selection
+    - name: DotFiles | Validate the role selection
       ansible.builtin.import_tasks: pre_tasks/validate.yml
       tags:
         - always
 
-    # Opt-out, not opt-in: the default is to ask. A run that converges the machine without being asked should be something you turned on -- via dotfiles_confirm, `scripts/setup --yes`, or -e -- rather than the default. Skipped under --check, which changes nothing and so has nothing to approve.
+    # Opt-out, not opt-in: the default is to ask. A run that converges the machine without being asked should be something you turned on -- via dotfiles_confirm in the local file, `scripts/setup --yes`, or -e -- rather than the default. Skipped under --check, which changes nothing and so has nothing to approve.
     - name: DotFiles | Confirm the run plan
       ansible.builtin.import_tasks: pre_tasks/confirm.yml
       when:
@@ -25,7 +66,7 @@
         - always
 
   tasks:
-    # Which roles run is decided by dotfiles_roles in group_vars, in order. --tags filters that selection for a single run; it does not replace it.
+    # dotfiles_role_order filtered by the layers' dotfiles_roles. --tags filters that selection for a single run; it does not replace it.
     #
     # There is deliberately no rescue: here. The previous version caught every failure from every role, printed a debug message, and then reported "Playbook ran without any issue" from a post_task -- so the play was structurally incapable of reporting failure. PLAY RECAP and the profile_tasks callback report the truth.
     #
@@ -36,7 +77,7 @@
         apply:
           tags:
             - "{{ dotfiles_role }}"
-      loop: "{{ dotfiles_roles }}"
+      loop: "{{ dotfiles_role_order | select('in', dotfiles_roles) | list }}"
       loop_control:
         loop_var: dotfiles_role
         label: "{{ dotfiles_role }}"

@@ -10,6 +10,8 @@ system_packages:
   - wget
 
 system_manage_hostname: true
+# The Debian convention for a host without a static address: its own name resolves on the loopback, not on 127.0.0.1.
+system_loopback_address: 127.0.1.1
 
 # Installed only on a virtualised guest that is not WSL.
 system_guest_agent_packages:
