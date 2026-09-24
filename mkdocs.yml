@@ -9,8 +9,9 @@ edit_uri: edit/main/docs/
 copyright: MIT licensed
 site_dir: site
 
-# Agent-skill configuration lives beside the docs but is read by coding agents, not published on the site.
+# Agent-skill configuration and ADRs live beside the docs but are read in the repository, not published on the site.
 exclude_docs: |
+  adr/
   agents/
 
 # Turns MkDocs warnings into failures under `mkdocs build --strict`, which is how the docs job gates pull requests. Broken internal links and nav entries pointing at missing files then fail CI rather than shipping.
