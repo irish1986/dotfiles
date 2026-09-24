@@ -2,9 +2,9 @@
 - name: Herdr | Assert the architecture is published
   ansible.builtin.assert:
     that:
-      - ansible_architecture in ['x86_64', 'aarch64']
+      - ansible_facts.architecture in ['x86_64', 'aarch64']
     fail_msg: >-
-      herdr publishes linux-x86_64 and linux-aarch64 only; this host is {{ ansible_architecture }}.
+      herdr publishes linux-x86_64 and linux-aarch64 only; this host is {{ ansible_facts.architecture }}.
     quiet: true
 
 - name: Herdr | Resolve the release to install
@@ -56,3 +56,21 @@
   when: >-
     (herdr_installed.stdout | default('') | regex_search('[0-9]+\.[0-9]+\.[0-9]+') | default('', true))
     != herdr_resolved_version
+
+# /var/lib/systemd/linger/<user> is the on-disk form of linger, so stat is both the idempotency check and one that works without a live login session -- `loginctl show-user` needs one. Root-owned system state, which is why it sits in the install phase and not alongside the user unit in configure.yml.
+- name: Herdr | Check whether the user manager lingers
+  ansible.builtin.stat:
+    path: "/var/lib/systemd/linger/{{ dotfiles_user }}"
+  register: herdr_linger_marker
+  when: dotfiles_has_systemd | bool and herdr_manage_service | bool and herdr_linger | bool
+
+# Without this the user manager stops at logout and the server unit only ever starts on first login, so nothing would restore session.json at boot.
+- name: Herdr | Enable linger for the user manager
+  ansible.builtin.command: "loginctl enable-linger {{ dotfiles_user }}"
+  become: true
+  changed_when: true
+  when:
+    - dotfiles_has_systemd | bool
+    - herdr_manage_service | bool
+    - herdr_linger | bool
+    - not herdr_linger_marker.stat.exists

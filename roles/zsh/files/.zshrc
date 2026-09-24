@@ -37,6 +37,7 @@ source $ZSH/oh-my-zsh.sh
 (( $+commands[uv] )) && eval "$(uv generate-shell-completion zsh)"
 (( $+commands[uvx] )) && eval "$(uvx --generate-shell-completion zsh)"
 (( $+commands[zoxide] )) && eval "$(zoxide init zsh)"
+(( $+commands[herdr] )) && eval "$(herdr completion zsh)"
 
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 

@@ -70,7 +70,7 @@
         VERSION: "{{ copilot_resolved_version | default('') }}"
         PREFIX: "{{ copilot_install_prefix }}"
         # With the install directory already on PATH the script's `command -v copilot` succeeds, so it skips the branch that offers to append an export line to a shell profile -- a write this role does not want and cannot make idempotent.
-        PATH: "{{ copilot_install_prefix }}/bin:{{ ansible_env.PATH }}"
+        PATH: "{{ copilot_install_prefix }}/bin:{{ ansible_facts.env.PATH }}"
       changed_when: true
   always:
     - name: Copilot | Remove the staging file

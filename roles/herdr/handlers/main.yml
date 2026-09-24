@@ -1,0 +1,6 @@
+---
+# daemon-reload only. Restarting the server would kill every live pane and any agent inside it, so a changed unit is picked up deliberately, not as a side effect of an unrelated playbook run.
+- name: Herdr | Reload the user daemon
+  ansible.builtin.systemd_service:
+    scope: user
+    daemon_reload: true

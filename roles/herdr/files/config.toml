@@ -1,7 +1,9 @@
 # herdr configuration
 # Place this file at ~/.config/herdr/config.toml
 
-onboarding = true
+# false: with the .zshenv autostart every terminal launch enters herdr, so a first-run screen
+# that has already been answered would show up on every window.
+onboarding = false
 
 [theme]
 name = "one-dark"
@@ -22,8 +24,10 @@ default_shell = "/usr/bin/zsh"
 
 [update]
 channel = "stable"
-version_check = true
-manifest_check = true
+# false on both: herdr_version is pinned in the role, so Ansible owns which release is on disk.
+# `herdr update` would move the binary out from under it, and the nag is noise while pinned.
+version_check = false
+manifest_check = false
 
 [keys]
 # Prefix key to enter prefix mode (default: "ctrl+b")
@@ -250,7 +254,7 @@ resume_agents_on_restore = true
 # ServerAliveCountMax as fallbacks (so any keepalive values you set yourself
 # still win) to survive idle network/NAT timeouts. Herdr also uses a private
 # per-attach OpenSSH control socket to reuse the first authenticated connection.
-# Set false to run plain ssh against your ssh config unchanged ΓÇö this does not
+# Set false to run plain ssh against your ssh config unchanged -- this does not
 # force keepalive or multiplexing off, it only stops herdr from adding its own.
 # manage_ssh_config = true
 
@@ -260,8 +264,11 @@ resume_agents_on_restore = true
 # Experimental local Kitty graphics rendering for attached clients.
 # Requires a Kitty graphics-compatible outer terminal.
 # kitty_graphics = false
-# Save recent pane screen history across full server restarts.
-pane_history = false
+# Save recent pane screen history across full server restarts. This is the tmux-resurrect
+# "pane contents" equivalent -- session.json restores the layout, this restores what was on
+# screen. Upstream defaults it off because the capture lands in session-history.json in
+# plaintext beside session.json, and pane output can include secrets, tokens and prompts.
+pane_history = true
 # While prefix mode is active, temporarily switch the macOS host input
 # source to an ASCII-capable keyboard layout so prefix commands register
 # even when a CJK IME is active, then restore the previous input source

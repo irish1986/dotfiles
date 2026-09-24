@@ -15,3 +15,60 @@
     owner: "{{ dotfiles_user }}"
     group: "{{ dotfiles_user }}"
     mode: "0644"
+
+# ~/.zshenv rather than ~/.zshrc, and a marker block rather than a copy: zsh reads .zshenv first and for every shell, so the exec below lands before the p10k instant prompt, oh-my-zsh and compinit -- a shell that is about to be replaced never pays for them. mode matches the 0600 the zsh role sets on the same file for its secrets block, so the two tasks do not fight over it.
+- name: Herdr | Manage the shell autostart
+  ansible.builtin.blockinfile:
+    path: "{{ herdr_zshenv }}"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK herdr"
+    state: "{{ herdr_autostart | ternary('present', 'absent') }}"
+    create: true
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0600"
+    block: |
+      # {{ herdr_install_dir }} otherwise reaches PATH only via uv's env file, which .zshrc sources -- interactive-only, and later than the exec below needs it.
+      [[ ":$PATH:" == *":{{ herdr_install_dir }}:"* ]] || export PATH="{{ herdr_install_dir }}:$PATH"
+
+      # Replace the login shell with the persistent herdr client, so a terminal window opens straight into the session.
+      #   -o login       only the shell login(1)/wsl.exe starts. herdr's own pane shells are non-login on Linux ([terminal] shell_mode = "auto"), so they never re-enter this.
+      #   -o interactive never fires for `zsh -c` in scripts, ansible, or editor tooling.
+      #   HERDR_ENV      second belt: exported into every herdr-managed process, the equivalent of tmux's $TMUX.
+      #   -x             a no-op on a box where the install phase has not run yet.
+      # Escape hatch when the client is wedged: HERDR_AUTOSTART=0 zsh -l
+      if [[ -o login && -o interactive && -z $HERDR_ENV \
+            && ${HERDR_AUTOSTART:-1} != 0 && -x {{ herdr_binary_path }} ]]; then
+        exec {{ herdr_binary_path }}
+      fi
+
+- name: Herdr | Ensure the user unit directory exists
+  ansible.builtin.file:
+    path: "{{ herdr_service_dir }}"
+    state: directory
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0755"
+  when: dotfiles_has_systemd | bool and herdr_manage_service | bool
+
+# Notifies a daemon-reload and nothing more. There is deliberately no restart handler: restarting the server kills every live pane and any agent running inside it, which is the same reason config.toml above has none. Picking up a changed unit is a manual, deliberate act.
+- name: Herdr | Deploy the server unit
+  ansible.builtin.template:
+    src: herdr.service.j2
+    dest: "{{ herdr_service_dir }}/{{ herdr_service_name }}.service"
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0644"
+  notify: Herdr | Reload the user daemon
+  when: dotfiles_has_systemd | bool and herdr_manage_service | bool
+
+# Enabled, deliberately not started. A server is usually already running by the time the playbook reaches here -- the one that spawned this very shell -- and `state: started` against it would either collide on herdr.sock or adopt and restart it, killing every live pane. The unit takes over at the next boot, which is the only moment there is nothing to lose. Same reasoning as the missing restart handler.
+- name: Herdr | Enable the server unit
+  ansible.builtin.systemd_service:
+    name: "{{ herdr_service_name }}"
+    scope: user
+    enabled: true
+    daemon_reload: true
+  when:
+    - dotfiles_has_systemd | bool
+    - herdr_manage_service | bool
+    - not ansible_check_mode

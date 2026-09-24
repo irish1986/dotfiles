@@ -2,8 +2,14 @@
 herdr_binary: herdr
 herdr_binary_path: "{{ herdr_install_dir }}/herdr"
 
-# Asset names carry the raw uname values -- herdr-linux-x86_64, herdr-linux-aarch64 -- which is exactly what ansible_architecture reports. No dpkg architecture translation, and no amd64/arm64 spelling.
-herdr_target: "linux-{{ ansible_architecture }}"
+# Asset names carry the raw uname values -- herdr-linux-x86_64, herdr-linux-aarch64 -- which is exactly what ansible_facts.architecture reports. No dpkg architecture translation, and no amd64/arm64 spelling.
+herdr_target: "linux-{{ ansible_facts.architecture }}"
 # Built from herdr_version rather than from herdr_resolved_version: both facts are set in one task, and a set_fact key cannot see a sibling set in the same task.
 herdr_pinned_url: >-
   {{ herdr_download_base }}/v{{ herdr_version | regex_replace('^v', '') }}/herdr-{{ herdr_target }}
+
+# ~/.zshenv, not ~/.zshrc: zsh reads it first and for every shell, so the exec lands before the p10k instant prompt, oh-my-zsh and compinit -- a shell that is about to be replaced never pays for them. The zsh role already manages a marker block in the same file for secrets, and role order puts zsh before herdr, so those exports are in the environment before the exec runs.
+herdr_zshenv: "{{ dotfiles_home }}/.zshenv"
+
+herdr_service_name: herdr
+herdr_service_dir: "{{ dotfiles_home }}/.config/systemd/user"

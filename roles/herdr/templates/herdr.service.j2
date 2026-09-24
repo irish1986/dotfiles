@@ -1,0 +1,20 @@
+# Managed by the dotfiles playbook (roles/herdr). Do not edit.
+#
+# `systemctl --user restart herdr` kills every live pane and any agent inside it.
+# The layout comes back from session.json, the running processes do not.
+
+[Unit]
+Description=herdr terminal workspace server
+Documentation=https://herdr.dev/docs/session-state/
+After=default.target
+
+[Service]
+Type=simple
+ExecStart={{ herdr_binary_path }} server
+ExecStop={{ herdr_binary_path }} server stop
+Environment=HERDR_CONFIG_PATH={{ herdr_config_dir }}/config.toml
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

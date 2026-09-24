@@ -44,7 +44,7 @@ dotfiles_roles:
   - uv # provides uv, which ansible_tools and prek depend on
   - nvm
   - docker
-  - tmux
+  - herdr # terminal multiplexer; autostarts from ~/.zshenv on a login shell
   - btop
   - fastfetch
 
@@ -56,7 +56,6 @@ dotfiles_roles:
   # - fluxcd
   # - ggshield
   # - helm
-  # - herdr # a tmux alternative; both can be enabled at once
   # - hugo
   # - kubectl
   # - prek
@@ -64,6 +63,7 @@ dotfiles_roles:
   # - snyk
   # - tailscale
   # - timezone
+  # - tmux # a herdr alternative; both can be enabled at once
   # - vscode
 
 # ── Role variables ────────────────────────────────────────────────────────

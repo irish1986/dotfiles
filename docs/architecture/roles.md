@@ -29,9 +29,9 @@ roles/<role>/
     docker_install_tasks: "{{ lookup('ansible.builtin.first_found', docker_install_lookup) }}"
     docker_install_lookup:
       files:
-        - "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
-        - "{{ ansible_distribution }}.yml"
-        - "{{ ansible_os_family }}.yml"
+        - "{{ ansible_facts.distribution }}-{{ ansible_facts.distribution_major_version }}.yml"
+        - "{{ ansible_facts.distribution }}.yml"
+        - "{{ ansible_facts.os_family }}.yml"
       paths:
         - "{{ role_path }}/tasks/install"
 ```

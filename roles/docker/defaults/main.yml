@@ -20,9 +20,9 @@ docker_experimental: true
 docker_buildkit: true
 
 # download.docker.com publishes one suite per Ubuntu codename and lags new releases. apt_repo probes the suite and falls back to noble when absent.
-docker_apt_uri: "https://download.docker.com/linux/{{ ansible_distribution | lower }}"
-docker_apt_key_url: "https://download.docker.com/linux/{{ ansible_distribution | lower }}/gpg"
-docker_apt_suite: "{{ ansible_distribution_release }}"
+docker_apt_uri: "https://download.docker.com/linux/{{ ansible_facts.distribution | lower }}"
+docker_apt_key_url: "https://download.docker.com/linux/{{ ansible_facts.distribution | lower }}/gpg"
+docker_apt_suite: "{{ ansible_facts.distribution_release }}"
 docker_apt_suite_fallback: noble
 docker_apt_components:
   - stable

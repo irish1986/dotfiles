@@ -9,7 +9,7 @@ apt_repo_uri: ""
 apt_repo_key_url: ""
 
 # Suite to request. Defaults to this machine's codename; see apt_repo_probe.
-apt_repo_suite: "{{ ansible_distribution_release }}"
+apt_repo_suite: "{{ ansible_facts.distribution_release }}"
 
 # Suite to fall back to when the vendor has not published one for this release yet. Set to the previous LTS codename. Empty disables the fallback.
 apt_repo_suite_fallback: ""

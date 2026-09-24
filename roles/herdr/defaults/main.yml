@@ -1,6 +1,7 @@
 ---
 # herdr publishes a standalone binary per platform and no Linux package, so there is no apt repository to point at -- the same arrangement as the snyk role. The upstream one-liner (`curl -fsSL https://herdr.dev/install.sh | sh`) is not used: it only ever installs the latest release, so a pin would be impossible and every run would be unguarded.
-herdr_version: "" # empty resolves the latest release
+# Pinned, because herdr is not an ordinary tool here: native agent-session restore carries a per-agent minimum herdr version, so a floating multiplexer can change restore behaviour under a session that is already open. Set to "" to resolve the latest release instead.
+herdr_version: "0.8.2"
 # The same manifest `herdr update` reads, so an install and an in-place update agree on what "latest" is. It is also what makes the GitHub API unnecessary here: no rate limit, no token.
 herdr_manifest_url: https://herdr.dev/latest.json
 herdr_download_base: https://github.com/herdrdev/herdr/releases/download
@@ -13,3 +14,12 @@ herdr_config_dir: "{{ dotfiles_home }}/.config/herdr"
 
 # Upstream publishes no .sha256 beside its assets, unlike snyk. Set this to a sha256 hex digest -- alongside a pinned herdr_version -- to have get_url verify the download; empty skips verification.
 herdr_checksum: ""
+
+# Replace the login shell with the herdr client, so a terminal window opens straight into the persistent session. Written as a marker block in ~/.zshenv, so false removes the block again rather than leaving it behind.
+herdr_autostart: true
+
+# Run the server under systemd --user so it comes up at boot and restores session.json before anything attaches -- the job tmux-continuum did. Skipped on a host without systemd.
+herdr_manage_service: true
+
+# Without linger the user manager stops when the last session closes, so the unit above would only ever start on first login, which defeats the point of running it as a service.
+herdr_linger: true

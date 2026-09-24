@@ -23,7 +23,7 @@ The play is deliberately small: resolve facts, validate the role selection, then
       loop: "{{ dotfiles_roles }}"
 ```
 
-There is no `rescue:`. An earlier version had one that caught every failure from every role, printed a debug message, and then let a `post_task` report "Playbook ran without any issue" — so the play was structurally incapable of reporting failure. `PLAY RECAP` and the `profile_tasks` callback report the truth instead.
+There is no `rescue:`. An earlier version had one that caught every failure from every role, printed a debug message, and then let a `post_task` report "Playbook ran without any issue" — so the play was structurally incapable of reporting failure. `PLAY RECAP` reports the truth instead, and `scripts/setup --profile` adds the `profile_tasks` timings when they are wanted.
 
 ## Environment facts
 
@@ -34,7 +34,7 @@ There is no `rescue:`. An earlier version had one that caught every failure from
 | `dotfiles_user`, `dotfiles_home` | Target user and home, trailing slash stripped |
 | `dotfiles_is_wsl` | Real boolean, from `ansible_virtualization_type` or the kernel string |
 | `dotfiles_wsl_version` | 1 or 2 |
-| `dotfiles_has_systemd` | `ansible_service_mgr == 'systemd'` |
+| `dotfiles_has_systemd` | `ansible_facts.service_mgr == 'systemd'` |
 | `dotfiles_in_container` | Container, excluding WSL |
 | `dotfiles_can_reboot` | False on WSL and in containers |
 | `dotfiles_dpkg_architecture` | Computed once, not per role |

@@ -1,7 +1,8 @@
 ---
 collections:
+  # 2.0.0 emitted two deprecation warnings per run under ansible-core 2.21: the profile_tasks callback implemented the removed playbook_on_stats hook, and authorized_key imported to_native from module_utils._text. Both are fixed upstream in 2.2.x.
   - name: ansible.posix
-    version: 2.0.0
+    version: 2.2.2
   - name: ansible.utils
     version: 6.0.0
   - name: bitwarden.secrets

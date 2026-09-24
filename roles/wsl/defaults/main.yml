@@ -25,7 +25,7 @@ wsl_manage_wslconfig: true
 # Human-readable rather than the raw 51539607552 bytes the file had.
 wsl_config_memory: 48GB
 # Half the host cores, leaving headroom for Windows during a heavy build.
-wsl_config_processors: "{{ ((ansible_processor_vcpus | default(4)) / 2) | round | int }}"
+wsl_config_processors: "{{ ((ansible_facts.processor_vcpus | default(4)) / 2) | round | int }}"
 wsl_config_swap: 8GB
 wsl_config_networking_mode: mirrored
 wsl_config_dns_tunneling: true

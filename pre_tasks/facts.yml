@@ -1,7 +1,7 @@
 ---
 # Resolves the environment into real, typed facts.
 #
-# Replaces the previous whoami.yml, which shelled out to `cat /proc/version` and stored the *string* "true"/"false". A non-empty string is truthy in Jinja, so `when: not ansible_host_environment_is_wsl` evaluated to False on every host regardless of environment, silently disabling several roles.
+# Replaces the previous whoami.yml, which shelled out to `cat /proc/version` and stored the *string* "true"/"false". A non-empty string is truthy in Jinja, so a `when: not <that fact>` guard evaluated to False on every host regardless of environment, silently disabling several roles.
 
 - name: Facts | Resolve the target user and home directory
   ansible.builtin.set_fact:
@@ -12,22 +12,22 @@
          | regex_replace('/+$', '') }}
 
 # Two independent signals, because neither is reliable alone:
-#   * ansible_virtualization_type reports "wsl" on some ansible-core versions but "container" on others (2.16.3 reports "container" on WSL2).
+#   * ansible_facts.virtualization_type reports "wsl" on some ansible-core versions but "container" on others (2.16.3 reports "container" on WSL2).
 #   * the kernel string is stable across both WSL1 ("...-Microsoft") and WSL2
 - name: Facts | Detect WSL
   ansible.builtin.set_fact:
     dotfiles_is_wsl: >-
-      {{ (ansible_virtualization_type | default('') == 'wsl')
-         or (ansible_kernel is search('(?i)microsoft')) }}
-    dotfiles_wsl_version: "{{ 2 if (ansible_kernel is search('(?i)wsl2')) else 1 }}"
+      {{ (ansible_facts.virtualization_type | default('') == 'wsl')
+         or (ansible_facts.kernel is search('(?i)microsoft')) }}
+    dotfiles_wsl_version: "{{ 2 if (ansible_facts.kernel is search('(?i)wsl2')) else 1 }}"
 
 - name: Facts | Detect the runtime environment
   ansible.builtin.set_fact:
     # The real precondition for every service task. Replaces `not is_wsl`, which never expressed what it meant: WSL2 with `systemd=true` in wsl.conf does have systemd, and a CI container does not.
-    dotfiles_has_systemd: "{{ ansible_service_mgr == 'systemd' }}"
+    dotfiles_has_systemd: "{{ ansible_facts.service_mgr == 'systemd' }}"
     # WSL also reports virtualization_type "container", hence the is_wsl guard.
     dotfiles_in_container: >-
-      {{ (ansible_virtualization_type | default('') in ['container', 'containerd', 'docker', 'podman'])
+      {{ (ansible_facts.virtualization_type | default('') in ['container', 'containerd', 'docker', 'podman'])
          and not (dotfiles_is_wsl | bool) }}
 
 - name: Facts | Decide whether reboots are permitted
@@ -61,18 +61,18 @@
 - name: Facts | Assert a supported target
   ansible.builtin.assert:
     that:
-      - ansible_distribution == 'Ubuntu'
-      - ansible_distribution_version in dotfiles_supported_versions
+      - ansible_facts.distribution == 'Ubuntu'
+      - ansible_facts.distribution_version in dotfiles_supported_versions
       - ansible_version.full is version(dotfiles_min_ansible_version, '>=')
     fail_msg: >-
-      Unsupported target: {{ ansible_distribution }} {{ ansible_distribution_version }} running ansible-core {{ ansible_version.full }}. Supported: Ubuntu {{ dotfiles_supported_versions | join(', ') }} with ansible-core >= {{ dotfiles_min_ansible_version }}.
+      Unsupported target: {{ ansible_facts.distribution }} {{ ansible_facts.distribution_version }} running ansible-core {{ ansible_version.full }}. Supported: Ubuntu {{ dotfiles_supported_versions | join(', ') }} with ansible-core >= {{ dotfiles_min_ansible_version }}.
     quiet: true
 
 - name: Facts | Show the resolved environment
   ansible.builtin.debug:
     msg: >-
-      {{ dotfiles_user }}@{{ ansible_distribution }} {{ ansible_distribution_version }}
-      ({{ ansible_distribution_release }}/{{ dotfiles_dpkg_architecture }})
+      {{ dotfiles_user }}@{{ ansible_facts.distribution }} {{ ansible_facts.distribution_version }}
+      ({{ ansible_facts.distribution_release }}/{{ dotfiles_dpkg_architecture }})
       home={{ dotfiles_home }}
       wsl={{ dotfiles_is_wsl }}{{ ' v' ~ dotfiles_wsl_version if dotfiles_is_wsl | bool else '' }}
       systemd={{ dotfiles_has_systemd }}

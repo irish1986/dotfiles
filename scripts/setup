@@ -82,6 +82,7 @@ OPT_SKIP_TAGS=""
 OPT_BRANCH=""
 OPT_CHECK=0
 OPT_DIFF=0
+OPT_PROFILE=0
 OPT_SYNTAX_CHECK=0
 OPT_LIST_TAGS=0
 OPT_DRY_RUN=0
@@ -280,6 +281,7 @@ Options:
       --skip-tags TAGS    skip roles/phases matching TAGS
   -c, --check             ansible check mode (no changes made)
   -d, --diff              show file differences
+      --profile           report per-task timings
       --syntax-check      parse the playbook and exit
       --list-tags         list available tags and exit
   -n, --dry-run           script-level no-op; implies --check
@@ -332,6 +334,10 @@ parse_args() {
         ;;
       -d | --diff)
         OPT_DIFF=1
+        shift
+        ;;
+      --profile)
+        OPT_PROFILE=1
         shift
         ;;
       --syntax-check)
@@ -918,6 +924,11 @@ run_playbook() {
   # ansible.cfg sets inventory and roles_path relative to the repo, so the cwd matters. This replaces the previous version's `popd`, which was unreachable after a failure under set -e.
   cd "$DOTFILES_DIR"
   export ANSIBLE_CONFIG="${DOTFILES_DIR}/ansible.cfg"
+
+  # An env var rather than a PLAYBOOK_ARGS entry: ansible-playbook has no CLI flag for callbacks. Enabled here rather than in ansible.cfg so the per-task timestamps stay out of an ordinary run.
+  if ((OPT_PROFILE)); then
+    export ANSIBLE_CALLBACKS_ENABLED="ansible.posix.profile_tasks"
+  fi
 
   # Deliberately not wrapped in run(): ansible's output belongs on the terminal, and it may need to prompt for the become password.
   if ! run_tty "$ANSIBLE_PLAYBOOK_BIN" "${PLAYBOOK_ARGS[@]}"; then

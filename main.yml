@@ -28,7 +28,9 @@
     # Which roles run is decided by dotfiles_roles in group_vars, in order. --tags filters that selection for a single run; it does not replace it.
     #
     # There is deliberately no rescue: here. The previous version caught every failure from every role, printed a debug message, and then reported "Playbook ran without any issue" from a post_task -- so the play was structurally incapable of reporting failure. PLAY RECAP and the profile_tasks callback report the truth.
-    - name: "DotFiles | Role: {{ dotfiles_role }}"
+    #
+    # The name is static on purpose. A task header is templated once, before the loop starts iterating, so interpolating dotfiles_role here rendered as `<< error 1 - 'dotfiles_role' is undefined >>` and printed a template-error warning on every run. loop_control.label below already names each role in the per-item output.
+    - name: DotFiles | Role
       ansible.builtin.include_role:
         name: "{{ dotfiles_role }}"
         apply:

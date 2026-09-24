@@ -4,5 +4,5 @@ ansible_tools_uv_binary: "{{ dotfiles_home }}/.local/bin/uv"
 ansible_tools_local_bin: "{{ dotfiles_home }}/.local/bin"
 ansible_tools_venv_python: "{{ dotfiles_home }}/.local/share/uv/tools/ansible-core/bin/python"
 ansible_tools_ppa_artifacts:
-  - /etc/apt/sources.list.d/ansible-ubuntu-ansible-{{ ansible_distribution_release }}.list
-  - /etc/apt/sources.list.d/ansible-ubuntu-ansible-{{ ansible_distribution_release }}.sources
+  - /etc/apt/sources.list.d/ansible-ubuntu-ansible-{{ ansible_facts.distribution_release }}.list
+  - /etc/apt/sources.list.d/ansible-ubuntu-ansible-{{ ansible_facts.distribution_release }}.sources

@@ -14,6 +14,7 @@ scripts/setup [options] [-- ansible-playbook args]
 | `--skip-tags TAGS` | Skip roles or phases matching `TAGS` |
 | `-c`, `--check` | Ansible check mode; make no changes |
 | `-d`, `--diff` | Show file differences |
+| `--profile` | Report per-task timings via the `profile_tasks` callback |
 | `--syntax-check` | Parse the playbook and exit |
 | `--list-tags` | List available tags and exit |
 | `-n`, `--dry-run` | Script-level no-op; implies `--check` |

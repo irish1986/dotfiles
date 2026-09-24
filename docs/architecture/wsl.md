@@ -7,7 +7,7 @@ The boundary is deliberately narrow: one fact decides whether the machine is WSL
 ```yaml
 dotfiles_is_wsl: >-
   {{ (ansible_virtualization_type | default('') == 'wsl')
-     or (ansible_kernel is search('(?i)microsoft')) }}
+     or (ansible_facts.kernel is search('(?i)microsoft')) }}
 ```
 
 Two signals, because neither is reliable alone. `ansible_virtualization_type` reports `wsl` on some ansible-core versions and `container` on others — 2.16.3 reports `container` on WSL2 — so the kernel string is the dependable one, and it covers WSL1 (`...-Microsoft`) as well as WSL2 (`...-microsoft-standard-WSL2`).
