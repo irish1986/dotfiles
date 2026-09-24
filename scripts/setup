@@ -260,7 +260,7 @@ confirm() {
   if ((OPT_YES)); then
     return 0
   fi
-  if ((!IS_TTY)); then
+  if ((! IS_TTY)); then
     warn "Not a terminal and --yes was not given; assuming no: ${prompt}"
     return 1
   fi
@@ -802,7 +802,7 @@ ensure_ssh_dir() {
   done
   task_ok
 
-  if ((!OPT_GENERATE_SSH_KEY)); then
+  if ((! OPT_GENERATE_SSH_KEY)); then
     return 0
   fi
   if [[ -f ${dir}/id_ed25519 ]]; then

@@ -9,3 +9,5 @@ fonts_dir: "{{ dotfiles_home }}/.local/share/fonts"
 
 fonts_dependencies:
   - fontconfig
+  # unarchive shells out to unzip for .zip assets, and a minimal image does not carry it.
+  - unzip

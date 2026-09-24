@@ -21,10 +21,17 @@
          or (ansible_facts.kernel is search('(?i)microsoft')) }}
     dotfiles_wsl_version: "{{ 2 if (ansible_facts.kernel is search('(?i)wsl2')) else 1 }}"
 
+# /run/systemd/system exists only when systemd is PID 1 -- the same test sd_booted() makes. ansible_facts.service_mgr alone is not enough: it reports systemd as soon as the systemd package is installed, so in a container the second run saw "systemd" and failed every service task.
+- name: Facts | Detect a running systemd
+  ansible.builtin.stat:
+    path: /run/systemd/system
+  register: dotfiles_systemd_runtime
+
 - name: Facts | Detect the runtime environment
   ansible.builtin.set_fact:
     # The real precondition for every service task. Replaces `not is_wsl`, which never expressed what it meant: WSL2 with `systemd=true` in wsl.conf does have systemd, and a CI container does not.
-    dotfiles_has_systemd: "{{ ansible_facts.service_mgr == 'systemd' }}"
+    dotfiles_has_systemd: >-
+      {{ ansible_facts.service_mgr == 'systemd' and dotfiles_systemd_runtime.stat.isdir | default(false) }}
     # WSL also reports virtualization_type "container", hence the is_wsl guard.
     dotfiles_in_container: >-
       {{ (ansible_facts.virtualization_type | default('') in ['container', 'containerd', 'docker', 'podman'])
