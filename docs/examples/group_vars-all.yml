@@ -71,7 +71,7 @@ dotfiles_roles:
 
 git_user_email: email@example.com
 git_user_name: John Doe
-git_user_login: username
+git_user_login: "" # your GitHub login; empty skips importing its public keys
 git_signing_key: id_ed25519.pub
 
 ssh_private_key: id_ed25519
