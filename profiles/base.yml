@@ -13,6 +13,7 @@ dotfiles_roles:
   - tools
   - git
   - ssh
+  - secrets # installs only, until the local file names a source and targets (ADR 0012)
   - herdr
 
 tools_apt:

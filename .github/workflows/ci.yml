@@ -46,6 +46,9 @@ jobs:
       - name: Check the role structure
         run: uv run --with pyyaml python scripts/check-structure
 
+      - name: Test dotfiles-secrets
+        run: bash tests/dotfiles-secrets.sh
+
   secrets:
     name: Secrets
     runs-on: ubuntu-24.04
@@ -155,6 +158,11 @@ jobs:
           install -o tester -g tester -m 0600 \
             "${GITHUB_WORKSPACE}/dotfiles/tests/fixtures/local-${PROFILE}.yml" \
             /home/tester/.config/dotfiles/local.yml
+          # The work fixture syncs a shell target from the local source (roles/secrets).
+          install -d -o tester -g tester -m 0700 /home/tester/.config/dotfiles/secrets
+          install -o tester -g tester -m 0600 \
+            "${GITHUB_WORKSPACE}/dotfiles/tests/fixtures/secrets-shell.env" \
+            /home/tester/.config/dotfiles/secrets/shell.env
 
       # --skip-tags update omits a full apt upgrade: it is slow, and it is not what this job is testing.
       - name: Converge

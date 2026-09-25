@@ -145,6 +145,29 @@ ensure_local_file() {
   warn "review ${LOCAL_FILE}: git identity and GitHub login may still need your values"
 }
 
+# ADR 0012: the Infisical machine identity is the one secret kept on disk by hand. It is asked for here, where there is a terminal; the playbook only checks for it.
+ensure_infisical_credentials() {
+  grep -qE '^secrets_source:[[:space:]]*["'"'"']?infisical' "$LOCAL_FILE" 2> /dev/null || return 0
+  local file="${HOME}/.config/infisical/universal-auth"
+  [[ ! -s $file ]] || return 0
+  if [[ ! -t 0 ]]; then
+    warn "${file} is missing, so secrets cannot be fetched; re-run scripts/setup from a terminal to enter them"
+    return 0
+  fi
+  info "Infisical machine identity for this machine (dashboard: Access Control > Identities > Universal Auth)"
+  local id secret
+  read -rp 'Client ID: ' id
+  read -rsp 'Client secret: ' secret
+  printf '\n'
+  [[ -n $id && -n $secret ]] || die "both the client ID and the client secret are needed"
+  mkdir -p "$(dirname "$file")"
+  chmod 0700 "$(dirname "$file")"
+  (
+    umask 077
+    printf 'INFISICAL_UNIVERSAL_AUTH_CLIENT_ID=%s\nINFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET=%s\n' "$id" "$secret" > "$file"
+  )
+}
+
 run_playbook() {
   cd "$DOTFILES_DIR"
   export ANSIBLE_CONFIG="${DOTFILES_DIR}/ansible.cfg"
@@ -173,6 +196,7 @@ main() {
   install_ansible
   sync_checkout
   ensure_local_file
+  ensure_infisical_credentials
   run_playbook
 }
 

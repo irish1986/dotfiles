@@ -35,6 +35,7 @@
       - tools # before git: git configures gh, which tools installs
       - ssh # before git: it creates or copies the key (ADR 0011), and git only enables signing when the key is there
       - git
+      - secrets # before herdr: its .zshenv block must sit above herdr's exec (ADR 0012)
       - herdr # last: its autostart execs into the herdr binary
 
   pre_tasks:

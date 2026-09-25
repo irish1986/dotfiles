@@ -57,6 +57,16 @@ export https_proxy=http://proxy.example.com:8080 http_proxy=http://proxy.example
 sudo cp /mnt/c/Users/<you>/corp-root-ca.crt /usr/local/share/ca-certificates/ && sudo update-ca-certificates
 ```
 
+### Secrets
+
+The `secrets` role writes secrets into every shell and into project `.env` files, from Infisical at home or from hand-written files where Infisical is out of reach ([ADR 0012](docs/adr/0012-secrets.md)). The source and the targets go in the local file (see [`docs/examples/local.yml`](docs/examples/local.yml)); with `secrets_source: infisical`, `scripts/setup` asks once for the machine identity's client ID and secret.
+
+```bash
+dotfiles-secrets sync           # rewrite every target after changing a secret
+dotfiles-secrets sync --shell   # only the shell cache; open a new shell to pick it up
+infisical login && infisical secrets set --file=.env --env=dev --path=/myapp --projectId=<id>   # one-off, as yourself: move an existing .env into Infisical
+```
+
 ## Adding a tool
 
 Add a tool entry to a profile ([ADR 0003](docs/adr/0003-data-driven-tools.md)) — `profiles/base.yml` for every machine, `home.yml` or `work.yml` for one kind. [`roles/tools/defaults/main.yml`](roles/tools/defaults/main.yml) documents each kind: apt package, apt repository, `.deb`, release binary, installer script, uv tool, config file. Then:

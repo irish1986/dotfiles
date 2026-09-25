@@ -21,6 +21,13 @@ git_signing_key: id_ed25519.pub
 # wsl_config_memory: 16GB # WSL: .wslconfig memory=; empty leaves the key alone
 # dotfiles_confirm: false # skip the "Proceed?" prompt, as `scripts/setup --yes` does for one run
 
+# Secrets for the shell and project .env files (roles/secrets, ADR 0012). Values never go here: they live at the source.
+# secrets_source: infisical # or local: hand-written ~/.config/dotfiles/secrets/<name>.env files, where Infisical is out of reach
+# secrets_infisical_project: 00000000-0000-0000-0000-000000000000 # Project Settings in the Infisical dashboard
+# secrets_targets:
+#   - { name: shell, dest: shell, env: prod, path: /shell } # every shell; cached in RAM, fetched once per boot
+#   - { name: myapp, dest: ~/git/me/myapp/.env, env: dev, path: /myapp } # a project .env; git must ignore it
+
 # Work machines, for roles/network (profiles/work.yml enables it). Corporate values live here, never in a profile: the repository is public.
 # network_proxy: http://proxy.example.com:8080
 # network_no_proxy: localhost,127.0.0.1,::1,.corp.example.com

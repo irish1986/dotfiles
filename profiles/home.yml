@@ -14,6 +14,16 @@ tools_apt_repos:
       - tailscale
     verify: tailscale version
 
+  # The Infisical CLI, for roles/secrets (ADR 0012). One suite for every release. The Cloudsmith repository it replaced stopped serving in September 2026.
+  - name: infisical
+    uri: https://artifacts-cli.infisical.com/deb
+    key_url: https://artifacts-cli.infisical.com/infisical.gpg
+    suite: stable
+    probe: false
+    packages:
+      - infisical
+    verify: infisical --version
+
 tools_debs:
   # The archive lags badly and has no extended edition.
   - name: hugo

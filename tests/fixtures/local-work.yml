@@ -7,3 +7,7 @@ git_user_login: ""
 network_proxy: http://127.0.0.1:8888
 network_ca_certificates:
   - /opt/dotfiles-ci/test-ca.crt
+# roles/secrets: the local source, with the shell target the converge job provides in ~/.config/dotfiles/secrets/shell.env.
+secrets_source: local
+secrets_targets:
+  - { name: shell, dest: shell }
