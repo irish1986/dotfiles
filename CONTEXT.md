@@ -18,7 +18,7 @@ Decisions behind this shape are recorded in [`docs/adr/`](docs/adr/).
 
 **Full role** — a role under `roles/` with its own install, configure and verify phases. Reserved for things with real configuration: zsh, git, ssh, docker, herdr, wsl, network, and the system-level roles (update, system, user, fonts).
 
-**Tool entry** — one item in a `tools_*` list in a profile, installed by the `tools` role: an apt package, an apt repository, a `.deb`, a release binary, an installer script or a uv tool. Adding a tool means adding a tool entry, not a role.
+**Tool entry** — one item in a `tools_*` list in a profile, installed by the `tools` role: an apt package, an apt repository, a `.deb`, a release binary, a release archive, an installer script or a uv tool. Adding a tool means adding a tool entry, not a role.
 
 **Verify** — the last phase of every full role, and the `verify` command of a tool entry. It asserts that the thing installed actually works, so a run cannot quietly do nothing.
 

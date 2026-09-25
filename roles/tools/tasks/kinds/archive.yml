@@ -1,0 +1,72 @@
+---
+# One release archive entry, as tools_archive: a .zip or .tar.gz holding a single binary, verified against the vendor's checksum file, installed to /usr/local/bin/<name>. Keyed on what `<name> --version` reports, like the binary kind, so a bumped pin actually lands and a converged machine downloads nothing.
+
+- name: "Tools | Query the installed version: {{ tools_archive.name }}"
+  ansible.builtin.command: "{{ tools_binary_dir }}/{{ tools_archive.name }} --version"
+  register: tools_archive_installed
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: "Tools | Install the release: {{ tools_archive.name ~ ' ' ~ tools_archive.version }}"
+  when: >-
+    (tools_archive_installed.stdout | default('') | regex_search('[0-9]+(\.[0-9]+)+') | default('', true))
+    != tools_archive.version
+  vars:
+    tools_archive_url: >-
+      {{ tools_archive.url
+         | replace('{version}', tools_archive.version)
+         | replace('{arch}', dotfiles_dpkg_architecture)
+         | replace('{machine}', ansible_facts.architecture) }}
+  block:
+    # The vendor's file lists "<sha256>  <asset>" per line; the asset's own line is picked by name, so one checksum file can cover every platform.
+    - name: "Tools | Fetch the published checksums: {{ tools_archive.name }}"
+      ansible.builtin.uri:
+        url: "{{ tools_archive.checksums_url | replace('{version}', tools_archive.version) }}"
+        return_content: true
+      register: tools_archive_checksums
+      check_mode: false
+
+    - name: "Tools | Create a staging directory: {{ tools_archive.name }}"
+      ansible.builtin.tempfile:
+        state: directory
+        suffix: "-{{ tools_archive.name }}"
+      register: tools_archive_dir
+      changed_when: false
+
+    - name: "Tools | Download the archive: {{ tools_archive.name }}"
+      ansible.builtin.get_url:
+        url: "{{ tools_archive_url }}"
+        dest: "{{ tools_archive_dir.path }}/{{ tools_archive_url | basename }}"
+        checksum: >-
+          sha256:{{ (tools_archive_checksums.content.splitlines()
+                     | select('search', '[ *]' ~ (tools_archive_url | basename | regex_escape) ~ '$')
+                     | first).split() | first }}
+        mode: "0600"
+      changed_when: false
+
+    - name: "Tools | Unpack the archive: {{ tools_archive.name }}"
+      ansible.builtin.unarchive:
+        src: "{{ tools_archive_dir.path }}/{{ tools_archive_url | basename }}"
+        dest: "{{ tools_archive_dir.path }}"
+        remote_src: true
+        include:
+          - "{{ tools_archive.member }}"
+      changed_when: false
+
+    - name: "Tools | Install the binary: {{ tools_archive.name }}"
+      ansible.builtin.copy:
+        src: "{{ tools_archive_dir.path }}/{{ tools_archive.member }}"
+        dest: "{{ tools_binary_dir }}/{{ tools_archive.name }}"
+        remote_src: true
+        owner: root
+        group: root
+        mode: "0755"
+      become: true
+  always:
+    - name: "Tools | Remove the staging directory: {{ tools_archive.name }}"
+      ansible.builtin.file:
+        path: "{{ tools_archive_dir.path }}"
+        state: absent
+      when: tools_archive_dir.path is defined
+      changed_when: false

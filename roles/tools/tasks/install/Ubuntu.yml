@@ -40,6 +40,13 @@
     loop_var: tools_binary
     label: "{{ tools_binary.name }}"
 
+- name: Tools | Install the release archives
+  ansible.builtin.include_tasks: "{{ role_path }}/tasks/kinds/archive.yml"
+  loop: "{{ tools_archives }}"
+  loop_control:
+    loop_var: tools_archive
+    label: "{{ tools_archive.name }}"
+
 - name: Tools | Run the installer scripts
   ansible.builtin.include_tasks: "{{ role_path }}/tasks/kinds/script.yml"
   loop: "{{ tools_scripts }}"
