@@ -33,6 +33,12 @@ tools_debs: []
 #   name, version, url, checksum_url (optional: a file whose first word is the sha256; {url} is the binary's URL), verify
 tools_binaries: []
 
+# Release archives (.zip or .tar.gz) holding one binary, installed to /usr/local/bin/<name> when `<name> --version` reports a different version.
+#   name, version, url, verify
+#   checksums_url  the vendor's checksum file, one "<sha256>  <asset>" line per asset; the archive is verified against its own line
+#   member         the binary's path inside the archive
+tools_archives: []
+
 # Upstream installer scripts, run once: `creates` (relative to $HOME) guards them, and the tool's own updater owns upgrades from then on.
 #   name, url, creates, interpreter (default sh), args (list), env (dict), verify
 tools_scripts: []

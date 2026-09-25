@@ -7,5 +7,5 @@ tools_path: "{{ dotfiles_home }}/.local/bin:{{ dotfiles_home }}/.cargo/bin:/usr/
 
 # Every entry with something to verify. apt repositories only when they say how; a plain apt package is verified by apt itself.
 tools_verifiable: >-
-  {{ tools_debs + tools_binaries + tools_scripts + tools_uv_tools
+  {{ tools_debs + tools_binaries + tools_archives + tools_scripts + tools_uv_tools
      + (tools_apt_repos | selectattr('verify', 'defined') | list) }}

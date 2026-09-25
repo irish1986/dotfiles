@@ -25,6 +25,13 @@ manifest_check = false
 # ctrl+b is readline's backward-char, used constantly at the shell prompt.
 prefix = "ctrl+space"
 
+# prefix+f: the sessionizer project picker (profiles/base.yml).
+[[keys.command]]
+key = "prefix+f"
+type = "plugin_action"
+command = "sessionizer.open"
+description = "open project space"
+
 [ui]
 # Shared divider borders take less room than separated panes.
 pane_gaps = false

@@ -48,3 +48,28 @@
   when: herdr_plugin_id in (herdr_plugins_installed | map(attribute='plugin_id'))
   changed_when: true
   notify: Herdr | Reload the config
+
+- name: Herdr | Ensure the plugin config directories exist
+  ansible.builtin.file:
+    path: "{{ herdr_config_dir }}/plugins/config/{{ herdr_plugin.id }}"
+    state: directory
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0700"
+  loop: "{{ herdr_plugins | selectattr('config', 'defined') }}"
+  loop_control:
+    loop_var: herdr_plugin
+    label: "{{ herdr_plugin.id }}"
+
+# A plugin reads its config when an action runs, so a change needs no reload.
+- name: Herdr | Deploy the plugin configs
+  ansible.builtin.copy:
+    src: "plugins/{{ herdr_plugin.config }}"
+    dest: "{{ herdr_config_dir }}/plugins/config/{{ herdr_plugin.id }}/config.toml"
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0600"
+  loop: "{{ herdr_plugins | selectattr('config', 'defined') }}"
+  loop_control:
+    loop_var: herdr_plugin
+    label: "{{ herdr_plugin.id }}"

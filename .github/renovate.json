@@ -3,14 +3,14 @@
   "customManagers": [
     {
       "customType": "regex",
-      "description": "Versions pinned in profiles and role defaults, each annotated with a `# renovate: datasource=... depName=...` comment on the line above. Versions are stored without a leading v; URL templates add it where upstream tags carry one.",
-      "extractVersionTemplate": "^v?(?<version>.+)$",
+      "description": "Versions pinned in profiles and role defaults, each annotated with a `# renovate: datasource=... depName=...` comment on the line above. Versions are stored without the tag's prefix -- a leading v by default, or whatever an `extractVersion=` regex on the annotation strips -- and URL templates add it back.",
+      "extractVersionTemplate": "{{#if extractVersion}}{{{extractVersion}}}{{else}}^v?(?<version>.+)${{/if}}",
       "managerFilePatterns": [
         "/^profiles/.+\\.ya?ml$/",
         "/^roles/.+/defaults/main\\.ya?ml$/"
       ],
       "matchStrings": [
-        "#\\s*renovate:\\s*datasource=(?<datasource>\\S+)\\s+depName=(?<depName>\\S+)\\s*\\n\\s*(?:-\\s+)?[a-z_]*version:\\s*\"?(?<currentValue>[^\"\\s]+)\"?"
+        "#\\s*renovate:\\s*datasource=(?<datasource>\\S+)\\s+depName=(?<depName>\\S+)(?:\\s+extractVersion=(?<extractVersion>\\S+))?\\s*\\n\\s*(?:-\\s+)?[a-z_]*version:\\s*\"?(?<currentValue>[^\"\\s]+)\"?"
       ]
     },
     {

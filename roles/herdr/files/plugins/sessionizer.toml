@@ -1,0 +1,45 @@
+# herdr-sessionizer configuration. Managed by the dotfiles playbook (roles/herdr, profiles/base.yml): edits here are replaced on the next run.
+#
+# prefix+f opens the picker. Picking a project whose space is already open focuses it; otherwise the space is created with the layout below. A repository can replace the layout (not the roots) with its own .sessionizer/config.toml.
+
+[projects]
+# ~/code/<repo> and ~/code/<owner>/<repo>. The role does not create ~/code; until it exists the picker lists nothing.
+roots = ["~/code"]
+git_only = true
+depth = 2
+
+[ui]
+placement = "popup"
+width = "100%"
+height = "100%"
+
+[worktree]
+github_prs = false
+
+[layout]
+focus = "agent"
+
+# dev: Claude on the left with 70% of the width, a shell on the right.
+[tabs.dev]
+label = "dev"
+
+[[tabs.dev.panes]]
+id = "agent"
+title = "claude"
+command = "claude"
+
+[[tabs.dev.panes]]
+id = "shell"
+from = "agent"
+title = "shell"
+split = "right"
+ratio = 0.3
+
+# git: lazygit, full width.
+[tabs.git]
+label = "git"
+
+[[tabs.git.panes]]
+id = "git"
+title = "lazygit"
+command = "lazygit"

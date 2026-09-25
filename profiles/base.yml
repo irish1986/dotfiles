@@ -43,6 +43,22 @@ tools_debs:
     version: "2.68.1"
     url: https://github.com/fastfetch-cli/fastfetch/releases/download/{version}/fastfetch-linux-{arch}.deb
 
+tools_archives:
+  # sessionizer (herdr_plugins below) builds with bun. amd64 only: upstream names the asset x64.
+  - name: bun
+    # renovate: datasource=github-releases depName=oven-sh/bun extractVersion=^bun-v(?<version>.+)$
+    version: "1.4.2"
+    url: https://github.com/oven-sh/bun/releases/download/bun-v{version}/bun-linux-x64.zip
+    checksums_url: https://github.com/oven-sh/bun/releases/download/bun-v{version}/SHASUMS256.txt
+    member: bun-linux-x64/bun
+  # The git tab of a sessionizer project space. Not in the 24.04 archive. amd64 only, like bun: upstream names the arm asset arm64, which neither {arch} nor {machine} produces.
+  - name: lazygit
+    # renovate: datasource=github-releases depName=jesseduffield/lazygit
+    version: "0.65.1"
+    url: https://github.com/jesseduffield/lazygit/releases/download/v{version}/lazygit_{version}_linux_x86_64.tar.gz
+    checksums_url: https://github.com/jesseduffield/lazygit/releases/download/v{version}/checksums.txt
+    member: lazygit
+
 tools_scripts:
   # Also installed by scripts/setup before the first run; this entry covers a bare `ansible-playbook main.yml`.
   - name: uv
@@ -90,3 +106,13 @@ tools_remove_paths:
   - .config/tmux
   - .tmux
   - .tmux.conf
+
+# herdr plugins, pinned (roles/herdr/defaults/main.yml documents an entry).
+herdr_plugins:
+  # prefix+f: fuzzy-pick a project under ~/code and focus its space, or create it with the layout in roles/herdr/files/plugins/sessionizer.toml. Builds with bun (tools_archives above) and picks with fzf (zsh role).
+  - id: sessionizer
+    repo: andrewchng/herdr-sessionizer
+    # renovate: datasource=github-tags depName=andrewchng/herdr-sessionizer
+    ref: v0.8.4
+    commit: b7b3bbae6cf3428f75b53c723c2008b6383e81f4
+    config: sessionizer.toml
