@@ -33,7 +33,7 @@
       - zsh
       - user # after zsh: the login shell must exist before it is set
       - tools # before git: git configures gh, which tools installs
-      - ssh # before git: it creates or links the key (ADR 0010), and git only enables signing when the key is there
+      - ssh # before git: it creates or copies the key (ADR 0011), and git only enables signing when the key is there
       - git
       - herdr # last: its autostart execs into the herdr binary
 

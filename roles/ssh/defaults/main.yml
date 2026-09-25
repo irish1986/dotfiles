@@ -9,9 +9,9 @@ ssh_public_key: id_ed25519.pub
 ssh_import_github_keys: true
 ssh_github_user: "{{ git_user_login | default('') }}"
 
-# ── The key (ADR 0010) ────────────────────────────────────────────────────
-# One key per machine. On WSL it is the Windows user's key in %USERPROFILE%\.ssh, served to every distro by the Windows ssh-agent; no distro holds a copy of the private key. Elsewhere it is this host's own ~/.ssh key.
-ssh_windows_agent: true
+# ── The key (ADR 0011) ────────────────────────────────────────────────────
+# One key per machine. On WSL it is the Windows user's key in %USERPROFILE%\.ssh, copied into ~/.ssh on every run; a distro copy that differs is overwritten and kept as a backup. Elsewhere it is this host's own ~/.ssh key.
+ssh_copy_from_windows: true
 
 # Generated when missing, without a passphrase: the run is unattended. A key you generated yourself, with a passphrase, is never replaced -- except by scripts/setup --rotate-ssh-key, which sets ssh_rotate_key.
 ssh_generate_key: true
@@ -20,12 +20,6 @@ ssh_rotate_key: false
 
 # Add the key to the GitHub account gh is logged in to, as an authentication key and as a signing key. Needs the admin:public_key and admin:ssh_signing_key scopes; without them the run says how to grant them and carries on.
 ssh_github_register: true
-
-# Relays the Windows agent's named pipe to a unix socket. Windows-only, amd64 only upstream.
-# renovate: datasource=github-releases depName=albertony/npiperelay
-ssh_npiperelay_version: "1.12.1"
-ssh_npiperelay_url: https://github.com/albertony/npiperelay/releases/download/v{{ ssh_npiperelay_version }}/npiperelay_windows_amd64.exe
-ssh_npiperelay_checksum_url: https://github.com/albertony/npiperelay/releases/download/v{{ ssh_npiperelay_version }}/npiperelay_checksums.txt
 
 # Write the hardened `Host *` defaults into ~/.ssh/config. The block is appended, and it is the last thing in the file on purpose: ssh_config takes the FIRST value it obtains for each keyword, so a `Host *` block placed above a host-specific one would shadow it.
 ssh_manage_config: true

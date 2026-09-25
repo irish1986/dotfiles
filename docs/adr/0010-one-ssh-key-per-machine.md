@@ -1,6 +1,6 @@
 # 0010. One SSH key per machine
 
-Status: accepted, 2026-09-25
+Status: superseded by [0011](0011-copy-the-windows-ssh-key.md), 2026-09-25
 
 ## Context
 

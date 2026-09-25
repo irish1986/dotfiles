@@ -1,6 +1,0 @@
----
-- name: SSH | Reload the user daemon
-  ansible.builtin.systemd_service:
-    scope: user
-    daemon_reload: true
-  when: dotfiles_has_user_systemd | bool

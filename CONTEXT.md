@@ -24,8 +24,8 @@ Decisions behind this shape are recorded in [`docs/adr/`](docs/adr/).
 
 **Removal list** — `tools_remove_apt` and `tools_remove_paths`. Deleting a tool entry only stops managing it; uninstalling is explicit, by adding it here.
 
-**Windows side** — files on the Windows host (`.wslconfig`, Windows Terminal settings, per-user fonts) that the `wsl` role manages through WSL interop, plus the SSH key and the `ssh-agent` service that the `ssh` role manages. Every Windows-side task is skipped off WSL. It belongs to the Windows user, not to a distro, so on a host with several distros only the **global owner** writes it.
+**Windows side** — files on the Windows host (`.wslconfig`, Windows Terminal settings, per-user fonts) that the `wsl` role manages through WSL interop, plus the SSH key that the `ssh` role manages. Every Windows-side task is skipped off WSL. It belongs to the Windows user, not to a distro, so on a host with several distros only the **global owner** writes it.
 
 **Global owner** — the one distro, named by `wsl_global_owner` in every distro's local file, that writes the Windows side, except the SSH key, which any distro may create or rotate. The others only compare `.wslconfig` against their own settings and warn on drift. Unset, every distro writes it, which is only safe with a single distro.
 
-**Machine key** — the one SSH key a machine has (ADR 0010). On WSL it is the Windows user's key, held by the Windows `ssh-agent` and relayed into every distro; no distro holds the private key. Elsewhere it is the host's own `~/.ssh/id_ed25519`. Rotated with `scripts/setup --rotate-ssh-key`.
+**Machine key** — the one SSH key a machine has (ADR 0011). On WSL it is the Windows user's key, copied into every distro's `~/.ssh` on each run. Elsewhere it is the host's own `~/.ssh/id_ed25519`. Rotated with `scripts/setup --rotate-ssh-key`.
