@@ -9,3 +9,15 @@ tools_path: "{{ dotfiles_home }}/.local/bin:{{ dotfiles_home }}/.cargo/bin:/usr/
 tools_verifiable: >-
   {{ tools_debs + tools_binaries + tools_scripts + tools_uv_tools
      + (tools_apt_repos | selectattr('verify', 'defined') | list) }}
+
+# The docker daemon configuration (tasks/docker.yml) follows the docker repository entry: removing the entry stops managing both.
+tools_docker_enabled: "{{ 'docker' in (tools_apt_repos | map(attribute='name')) }}"
+tools_docker_daemon_binary: /usr/bin/dockerd
+tools_docker_daemon_config: /etc/docker/daemon.json
+tools_docker_service_name: docker
+
+# Left behind by the pre-deb822 implementation.
+tools_docker_legacy_artifacts:
+  - /etc/apt/keyrings/docker.gpg
+  - /etc/apt/keyrings/docker.gpg~
+  - /etc/apt/sources.list.d/docker.list

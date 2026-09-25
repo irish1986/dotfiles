@@ -1,0 +1,15 @@
+{
+{% if tools_docker_data_root | length > 0 %}
+  "data-root": "{{ tools_docker_data_root }}",
+{% endif %}
+  "default-address-pools": [
+    {
+      "base": "{{ tools_docker_address_pool_base }}",
+      "size": {{ tools_docker_address_pool_size }}
+    }
+  ],
+  "experimental": {{ tools_docker_experimental | bool | lower }},
+  "features": {
+    "buildkit": {{ tools_docker_buildkit | bool | lower }}
+  }
+}

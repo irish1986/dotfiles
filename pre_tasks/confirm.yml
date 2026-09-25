@@ -1,5 +1,5 @@
 ---
-# Shows the selection and waits, so a run that was meant to be `--tags docker` is caught before it converges seventeen roles.
+# Shows the selection and waits, so a run that was meant to be `--tags zsh` is caught before it converges seventeen roles.
 #
 # Runs after validate.yml deliberately: a typo in dotfiles_roles should fail on its own terms rather than be presented for approval and only then blow up.
 

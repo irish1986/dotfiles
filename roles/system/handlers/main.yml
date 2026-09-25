@@ -6,3 +6,9 @@
     state: started
   become: true
   when: dotfiles_has_systemd | bool
+
+# changed_when: true, not `rc != 0`. The previous form reported "changed" only when the command *failed*, so a successful cache rebuild looked like a no-op and a failed one looked like a change. Off WSL only: on WSL the fonts are for Windows, and fontconfig is not installed.
+- name: System | Update font cache
+  ansible.builtin.command: fc-cache --force "{{ system_fonts_dir }}"
+  changed_when: true
+  when: not (dotfiles_is_wsl | bool)

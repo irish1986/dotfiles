@@ -16,9 +16,9 @@ Decisions behind this shape are recorded in [`docs/adr/`](docs/adr/).
 
 **Layer** — one of base profile, named profile, local file, applied in that order. A later layer overrides scalars and dictionaries key by key and appends to lists. Avoid "override file" or "group_vars" for this; group_vars are not used for machine configuration.
 
-**Full role** — a role under `roles/` with its own install, configure and verify phases. Reserved for things with real configuration: zsh, git, ssh, docker, herdr, wsl, network, and the system-level roles (update, system, user, fonts).
+**Full role** — a role under `roles/` with its own install, configure and verify phases. Reserved for things with real configuration: zsh, git, ssh, herdr, wsl, network, and the system-level roles (update, system, user).
 
-**Tool entry** — one item in a `tools_*` list in a profile, installed by the `tools` role: an apt package, an apt repository, a `.deb`, a release binary, an installer script or a uv tool. Adding a tool means adding a tool entry, not a role.
+**Tool entry** — one item in a `tools_*` list in a profile, installed by the `tools` role: an apt package, an apt repository, a `.deb`, a release binary, an installer script or a uv tool. Adding a tool means adding a tool entry, not a role. The `tools` role is the only thing that adds an apt repository; docker is one such entry, whose daemon configuration the `tools` role applies alongside it.
 
 **Verify** — the last phase of every full role, and the `verify` command of a tool entry. It asserts that the thing installed actually works, so a run cannot quietly do nothing.
 

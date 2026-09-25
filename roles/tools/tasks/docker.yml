@@ -1,0 +1,33 @@
+---
+# The docker repository entry's daemon configuration. The one tool with real configuration beyond a copied file, so it keeps a task file of its own rather than a full role (ADR 0003).
+
+- name: Tools | Ensure the docker data root exists
+  ansible.builtin.file:
+    path: "{{ tools_docker_data_root }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0710"
+  become: true
+  when: tools_docker_data_root | length > 0
+
+# validate: mirrors the visudo pattern elsewhere in this repo. Without it a malformed daemon.json means dockerd simply refuses to start, with nothing in the Ansible output to say why.
+- name: Tools | Deploy the docker daemon.json
+  ansible.builtin.template:
+    src: docker/daemon.json.j2
+    dest: "{{ tools_docker_daemon_config }}"
+    owner: root
+    group: root
+    mode: "0644"
+    validate: "{{ tools_docker_daemon_binary }} --validate --config-file %s"
+  become: true
+  notify: Tools | Restart docker
+
+# Gated on systemd rather than on "not WSL": WSL2 with systemd=true in wsl.conf does have systemd and does want Docker enabled, while a CI container has none.
+- name: Tools | Enable and start docker
+  ansible.builtin.systemd_service:
+    name: "{{ tools_docker_service_name }}"
+    enabled: true
+    state: started
+  become: true
+  when: dotfiles_has_systemd | bool

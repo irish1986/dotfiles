@@ -22,6 +22,14 @@
     - tools
     - configure
 
+- name: Tools | Configure docker
+  ansible.builtin.include_tasks: "{{ role_path }}/tasks/docker.yml"
+  when: tools_docker_enabled | bool
+  tags:
+    - tools
+    - docker
+    - configure
+
 - name: Tools | Verify
   ansible.builtin.include_tasks: "{{ role_path }}/tasks/verify.yml"
   when: not ansible_check_mode

@@ -18,3 +18,36 @@
          | map(attribute='system_package') | join(', ') }}
     success_msg: "{{ system_packages | length }} base packages installed"
     quiet: true
+
+- name: System | List the installed font families
+  ansible.builtin.command: fc-list --format='%{family}\n'
+  register: system_fonts_installed
+  changed_when: false
+  failed_when: false
+  when: not (dotfiles_is_wsl | bool)
+
+- name: System | Assert each font is registered with fontconfig
+  ansible.builtin.assert:
+    that:
+      - system_fonts_installed.rc == 0
+      - system_fonts_installed.stdout is search(system_nerd_font, ignorecase=True)
+    fail_msg: "{{ system_nerd_font }} Nerd Font is not registered with fontconfig."
+    success_msg: "{{ system_nerd_font }} Nerd Font available"
+    quiet: true
+  loop: "{{ system_nerd_fonts }}"
+  loop_control:
+    loop_var: system_nerd_font
+  when: not (dotfiles_is_wsl | bool)
+
+# On WSL the files are what the wsl role registers with Windows, so their presence is what matters here.
+- name: System | Assert each font is unpacked
+  ansible.builtin.assert:
+    that:
+      - (system_fonts_dir ~ '/' ~ system_nerd_font ~ system_fonts_probe_suffix) is file
+    fail_msg: "{{ system_nerd_font }} Nerd Font is missing from {{ system_fonts_dir }}."
+    success_msg: "{{ system_nerd_font }} Nerd Font unpacked"
+    quiet: true
+  loop: "{{ system_nerd_fonts }}"
+  loop_control:
+    loop_var: system_nerd_font
+  when: dotfiles_is_wsl | bool
