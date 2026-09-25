@@ -127,3 +127,17 @@
     loop_var: herdr_integration
     label: "{{ herdr_integration.name }}"
   when: (dotfiles_home ~ '/' ~ herdr_integration.dir) is directory
+
+# Runs it the way herdr will, bounded like the tab-bar entry. An empty line is a valid result -- no usage data yet, or no gh -- so this asserts only that it exits cleanly and prints no more than one line.
+- name: Herdr | Run the tab-bar usage segment
+  ansible.builtin.command: timeout 20 {{ herdr_install_dir }}/herdr-usage-segment
+  register: herdr_usage_segment
+  changed_when: false
+
+- name: Herdr | Assert the usage segment prints a single line
+  ansible.builtin.assert:
+    that:
+      - herdr_usage_segment.stdout_lines | length <= 1
+    fail_msg: "herdr-usage-segment printed {{ herdr_usage_segment.stdout_lines | length }} lines; the tab bar shows only the last."
+    success_msg: "usage segment: {{ herdr_usage_segment.stdout | default('(empty)', true) }}"
+    quiet: true
