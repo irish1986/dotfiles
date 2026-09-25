@@ -18,3 +18,10 @@ git_computed_config:
   user.email: "{{ git_user_email }}"
   user.name: "{{ git_user_name }}"
   user.signingkey: "{{ git_signing_key_path }}"
+
+# Replaces the signing entries when there is no identity or no key. false rather than left alone, so a machine that had signing on before its key went missing is corrected; empty values are skipped by the writer.
+git_signing_off_config:
+  commit.gpgsign: false
+  tag.gpgsign: false
+  user.signingkey: ""
+  gpg.ssh.allowedSignersFile: ""
