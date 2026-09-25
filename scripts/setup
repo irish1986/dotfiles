@@ -2,9 +2,11 @@
 #
 # scripts/setup - bootstrap this machine and run the dotfiles playbook. Safe to re-run.
 #
-# First run, on a bare Ubuntu. The `bash -c "$(curl ...)"` form keeps stdin on the terminal so sudo can prompt; `curl | bash` would not:
+# First run, on a bare Ubuntu. The `bash -c "$(curl ...)"` form keeps stdin on the terminal so sudo and the local-file questions can prompt; `curl | bash` would not:
 #
-#   bash -c "$(curl -fsSL https://raw.githubusercontent.com/irish1986/dotfiles/main/scripts/setup)" -- --profile home
+#   bash -c "$(curl -fsSL https://raw.githubusercontent.com/irish1986/dotfiles/main/scripts/setup)"
+#
+# It asks for the profile, git identity and GitHub login, writes them to the local file, then converges. Unattended, pass them instead: `-- --profile home --yes`, with the identity already in ~/.config/dotfiles/local.yml.
 #
 # Later runs. Any option this script does not know goes to ansible-playbook:
 #
@@ -25,6 +27,7 @@ profile=""
 yes=0
 pull=1
 rotate_key=0
+configure=0
 playbook_args=()
 
 info() { printf '==> %s\n' "$*"; }
@@ -36,10 +39,13 @@ die() {
 
 usage() {
   cat << 'EOF'
-Usage: scripts/setup [--profile NAME] [--yes] [--no-pull] [--rotate-ssh-key] [ansible-playbook options]
+Usage: scripts/setup [--profile NAME] [--configure] [--yes] [--no-pull] [--rotate-ssh-key] [ansible-playbook options]
 
-  --profile NAME  the profile this machine gets (see profiles/); required on the
-                  first run, recorded in ~/.config/dotfiles/local.yml after that
+  --profile NAME  the profile this machine gets (see profiles/), recorded in
+                  ~/.config/dotfiles/local.yml; asked for on a first run from a
+                  terminal, required on one without
+  --configure     ask again for the profile, git identity and GitHub login, even
+                  when the local file has them (a terminal is needed)
   -y, --yes       do not ask before converging
   --no-pull       use the checkout as it is; do not fast-forward it
   --rotate-ssh-key
@@ -58,6 +64,7 @@ parse_args() {
     case "$1" in
       --profile) profile="${2:?--profile needs a name}" && shift 2 ;;
       --profile=*) profile="${1#*=}" && shift ;;
+      --configure) configure=1 && shift ;;
       -y | --yes) yes=1 && shift ;;
       --no-pull) pull=0 && shift ;;
       --rotate-ssh-key) rotate_key=1 && shift ;;
@@ -114,35 +121,115 @@ sync_checkout() {
 }
 
 # The local file names the profile and holds identity; it lives outside the checkout so it can never be committed (ADR 0002).
+#
+# local_get and local_set read and write one top-level scalar of it -- all the core values are. local_set passes the value through the environment rather than into a sed expression, so a name with | & / or quotes cannot break the file.
+local_get() { # KEY
+  local line value dq='^"(([^"\\]|\\.)*)"' sq="^'(([^']|'')*)'"
+  line="$(grep -m1 "^${1}:" "$LOCAL_FILE" 2> /dev/null)" || return 0
+  value="${line#*:}"
+  value="${value#"${value%%[![:space:]]*}"}"
+  if [[ $value =~ $dq ]]; then
+    value="${BASH_REMATCH[1]//\\\"/\"}"
+    value="${value//\\\\/\\}"
+  elif [[ $value =~ $sq ]]; then
+    value="${BASH_REMATCH[1]//\'\'/\'}"
+  else
+    value="${value%%[[:space:]]#*}"
+    value="${value%"${value##*[![:space:]]}"}"
+  fi
+  printf '%s' "$value"
+}
+
+local_set() { # KEY VALUE
+  local value="${2//\\/\\\\}" tmp
+  value="${value//\"/\\\"}"
+  tmp="$(mktemp)"
+  KEY="$1" LINE="${1}: \"${value}\"" awk '
+    !done && index($0, ENVIRON["KEY"] ":") == 1 { print ENVIRON["LINE"]; done = 1; next }
+    { print }
+    END { if (!done) print ENVIRON["LINE"] }
+  ' "$LOCAL_FILE" > "$tmp"
+  # cat rather than mv keeps the local file's 0600 mode.
+  cat "$tmp" > "$LOCAL_FILE"
+  rm -f "$tmp"
+}
+
+interactive() { [[ -t 0 && -t 1 ]]; }
+
+profile_exists() { [[ $1 =~ ^[A-Za-z0-9_-]+$ && $1 != base && -f ${DOTFILES_DIR}/profiles/${1}.yml ]]; }
+is_set() { [[ -n $1 ]]; }
+is_email() { [[ $1 =~ ^[^@[:space:]]+@[^@[:space:]]+$ ]]; }
+is_login() { [[ -z $1 || $1 =~ ^[A-Za-z0-9-]+$ ]]; }
+
+# ask PROMPT DEFAULT VALIDATOR: prints the answer. Enter keeps the default; `-` clears it.
+ask() {
+  local reply
+  while true; do
+    read -rp "${1}${2:+ [${2}]}: " reply || die "no answer to '${1}'"
+    reply="${reply:-$2}"
+    [[ $reply != - ]] || reply=""
+    if "$3" "$reply"; then
+      printf '%s' "$reply"
+      return 0
+    fi
+    warn "'${reply}' is not a valid answer"
+  done
+}
+
+ask_core_values() {
+  local profiles=() file p name email login
+  for file in "${DOTFILES_DIR}"/profiles/*.yml; do
+    file="${file##*/}"
+    [[ $file == base.yml ]] || profiles+=("${file%.yml}")
+  done
+  name="$(local_get git_user_name)"
+  email="$(local_get git_user_email)"
+  info "Values for ${LOCAL_FILE}. Enter keeps the one in brackets, - clears it."
+  p="$(ask "Profile ($(IFS=/ && printf '%s' "${profiles[*]}"))" "$(local_get dotfiles_profile)" profile_exists)"
+  name="$(ask "Git name" "${name:-$(git config --global user.name || true)}" is_set)"
+  email="$(ask "Git email" "${email:-$(git config --global user.email || true)}" is_email)"
+  login="$(ask "GitHub login, for ~/git/<login> and authorized_keys (- for none)" "$(local_get git_user_login)" is_login)"
+  local_set dotfiles_profile "$p"
+  local_set git_user_name "$name"
+  local_set git_user_email "$email"
+  local_set git_user_login "$login"
+  printf '  profile: %s\n  git:     %s <%s>\n  github:  %s\n' "$p" "$name" "$email" "${login:-(none)}"
+  info "Wrote ${LOCAL_FILE}; edit it for anything else (see docs/examples/local.yml)"
+}
+
 ensure_local_file() {
-  if [[ -n $profile ]] && { [[ $profile == base ]] || [[ ! -f ${DOTFILES_DIR}/profiles/${profile}.yml ]]; }; then
+  if [[ -n $profile ]] && ! profile_exists "$profile"; then
     die "no profile named '${profile}' in ${DOTFILES_DIR}/profiles/"
   fi
-  if [[ -f $LOCAL_FILE ]]; then
-    [[ -n $profile ]] || return 0
-    if grep -q '^dotfiles_profile:' "$LOCAL_FILE"; then
-      sed -i "s|^dotfiles_profile:.*|dotfiles_profile: ${profile}|" "$LOCAL_FILE"
-    else
-      printf 'dotfiles_profile: %s\n' "$profile" >> "$LOCAL_FILE"
-    fi
-    return 0
+  local created=0
+  if [[ ! -f $LOCAL_FILE ]]; then
+    [[ -n $profile ]] || interactive || die "first run without a terminal: say which profile this machine gets, e.g. --profile home"
+    info "Creating ${LOCAL_FILE}"
+    mkdir -p "$(dirname "$LOCAL_FILE")"
+    (
+      umask 077
+      cp "${DOTFILES_DIR}/docs/examples/local.yml" "$LOCAL_FILE"
+    )
+    # Identity comes from an existing ~/.gitconfig when there is one, so re-provisioning a machine keeps it.
+    local_set git_user_name "$(git config --global user.name || true)"
+    local_set git_user_email "$(git config --global user.email || true)"
+    created=1
   fi
-  [[ -n $profile ]] || die "first run: say which profile this machine gets, e.g. --profile home"
+  [[ -z $profile ]] || local_set dotfiles_profile "$profile"
 
-  info "Creating ${LOCAL_FILE}"
-  # Identity comes from an existing ~/.gitconfig when there is one, so re-provisioning a machine keeps it.
-  local name email
-  name="$(git config --global user.name || true)"
-  email="$(git config --global user.email || true)"
-  mkdir -p "$(dirname "$LOCAL_FILE")"
-  (
-    umask 077
-    sed -e "s|^dotfiles_profile:.*|dotfiles_profile: ${profile}|" \
-      -e "s|^git_user_name:.*|git_user_name: \"${name}\"|" \
-      -e "s|^git_user_email:.*|git_user_email: \"${email}\"|" \
-      "${DOTFILES_DIR}/docs/examples/local.yml" > "$LOCAL_FILE"
-  )
-  warn "review ${LOCAL_FILE}: git identity and GitHub login may still need your values"
+  local missing=()
+  profile_exists "$(local_get dotfiles_profile)" || missing+=(dotfiles_profile)
+  is_set "$(local_get git_user_name)" || missing+=(git_user_name)
+  is_email "$(local_get git_user_email)" || missing+=(git_user_email)
+  ((created || configure || ${#missing[@]})) || return 0
+
+  if interactive; then
+    ask_core_values
+  elif ((${#missing[@]})); then
+    warn "${LOCAL_FILE} lacks ${missing[*]}; run scripts/setup from a terminal to be asked, or edit the file"
+  elif ((configure)); then
+    warn "--configure needs a terminal; ${LOCAL_FILE} is left as it is"
+  fi
 }
 
 # ADR 0012: the Infisical machine identity is the one secret kept on disk by hand. It is asked for here, where there is a terminal; the playbook only checks for it.
@@ -200,4 +287,5 @@ main() {
   run_playbook
 }
 
-main "$@"
+# Sourcing (tests/setup-local-file.sh) loads the functions without running anything.
+(return 0 2> /dev/null) || main "$@"

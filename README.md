@@ -11,10 +11,10 @@ Ansible playbook that provisions a Windows 11 + WSL2 Ubuntu workstation, and the
 ## Quick start
 
 ```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/irish1986/dotfiles/main/scripts/setup)" -- --profile home
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/irish1986/dotfiles/main/scripts/setup)"
 ```
 
-Use `--profile work` on a work machine. That takes a bare Ubuntu install to a working workstation, and is safe to run again afterwards. Note the form — `bash -c "$(curl ...)"` passes the script as an argument, so stdin stays on the terminal and `sudo` can prompt; `curl | bash` would consume stdin and the prompt would hang.
+On the first run it asks which profile the machine gets (`home` or `work`), the git name and email (offering the ones in `~/.gitconfig`), and the GitHub login. It writes them to the local file and converges without stopping again. That takes a bare Ubuntu install to a working workstation, and is safe to run again afterwards: it asks again only if one of those values is missing, or when you pass `--configure`. Without a terminal it asks nothing, so pass `-- --profile work --yes` and have the local file in place first. Note the form — `bash -c "$(curl ...)"` passes the script as an argument, so stdin stays on the terminal and `sudo` and the questions can prompt; `curl | bash` would consume stdin and the prompt would hang.
 
 Re-runs take arguments:
 
@@ -22,6 +22,7 @@ Re-runs take arguments:
 ~/.dotfiles/scripts/setup --tags zsh,git      # only those roles
 ~/.dotfiles/scripts/setup --tags configure    # only config, no installs
 ~/.dotfiles/scripts/setup --check --diff      # preview, change nothing
+~/.dotfiles/scripts/setup --configure         # change the profile, git identity or GitHub login
 ~/.dotfiles/scripts/setup --help
 ```
 
@@ -46,7 +47,7 @@ What a machine gets is layered ([ADR 0002](docs/adr/0002-profiles-and-local-file
 2. [`profiles/home.yml`](profiles/home.yml) or [`profiles/work.yml`](profiles/work.yml) — what that kind of machine adds.
 3. `~/.config/dotfiles/local.yml` — the local file: which profile this machine is, git identity, anything machine-specific. Never committed.
 
-A later layer overrides scalars and appends to lists. `scripts/setup --profile <name>` seeds the local file from [`docs/examples/local.yml`](docs/examples/local.yml) on first run, and switches the profile on later ones.
+A later layer overrides scalars and appends to lists. On the first run `scripts/setup` seeds the local file from [`docs/examples/local.yml`](docs/examples/local.yml) and asks for the profile, git identity and GitHub login. `--profile <name>` switches the profile on later runs. Everything else in the local file is edited by hand.
 
 ### Behind a corporate proxy
 

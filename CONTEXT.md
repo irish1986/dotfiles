@@ -8,7 +8,7 @@ Decisions behind this shape are recorded in [`docs/adr/`](docs/adr/).
 
 **Run** — one `ansible-playbook main.yml` execution, usually started by `scripts/setup`. A second run on an unchanged machine must report `changed=0`; CI asserts it.
 
-**Bootstrap** — `scripts/setup`. Takes a bare Ubuntu to the point where a run can start (base packages, uv, ansible-core, the checkout, collections, the local file), then starts one.
+**Bootstrap** — `scripts/setup`. Takes a bare Ubuntu to the point where a run can start (base packages, uv, ansible-core, the checkout, collections, the local file), asking for the profile, git identity and GitHub login when the local file lacks them, then starts one.
 
 **Profile** — a committed file under `profiles/` describing what a kind of machine gets. `base` applies to every machine; exactly one named profile (`home` or `work`) is layered on top of it.
 

@@ -1,9 +1,9 @@
 ---
 # The local file: ~/.config/dotfiles/local.yml. Never committed.
 #
-# scripts/setup seeds it from this example on first run; edit it afterwards. It is the last layer, applied on top of profiles/base.yml and the named profile, so a value here overrides both. See docs/adr/0002-profiles-and-local-file.md.
+# scripts/setup seeds it from this example on first run and asks for the profile, git identity and GitHub login (again with --configure); edit it by hand for anything else. It is the last layer, applied on top of profiles/base.yml and the named profile, so a value here overrides both. See docs/adr/0002-profiles-and-local-file.md.
 
-# Which profile this machine gets. `scripts/setup --profile <name>` rewrites this line.
+# Which profile this machine gets. `scripts/setup --profile <name>` or `--configure` rewrites this line.
 dotfiles_profile: home
 
 # Git identity. Left empty, the git role skips it and warns on every run.

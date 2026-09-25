@@ -49,6 +49,9 @@ jobs:
       - name: Test dotfiles-secrets
         run: bash tests/dotfiles-secrets.sh
 
+      - name: Test the local-file setup
+        run: bash tests/setup-local-file.sh
+
   secrets:
     name: Secrets
     runs-on: ubuntu-24.04
