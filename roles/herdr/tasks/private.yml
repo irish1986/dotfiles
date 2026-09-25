@@ -1,0 +1,19 @@
+---
+# Last, after the plugin phase: `plugin install` rewrites plugins.json at the playbook's umask. Also catches files herdr wrote before its processes ran at umask 077 (see the autostart block). Top level only: plugins/ holds checkouts with executables of their own, and the 0700 directory already closes them off.
+- name: Herdr | Find the files in the config directory
+  ansible.builtin.find:
+    paths: "{{ herdr_config_dir }}"
+    file_type: file
+    hidden: true
+    recurse: false
+  register: herdr_config_files
+
+- name: Herdr | Make the config directory files private
+  ansible.builtin.file:
+    path: "{{ herdr_config_file.path }}"
+    mode: "0600"
+  loop: "{{ herdr_config_files.files }}"
+  loop_control:
+    loop_var: herdr_config_file
+    label: "{{ herdr_config_file.path | basename }}"
+  when: herdr_config_file.mode != '0600'

@@ -75,6 +75,13 @@ scripts/check-structure            # role layout checks
 ansible-playbook main.yml --check  # preview, change nothing
 ```
 
+## CI secrets
+
+| Secret | Used by | What it is |
+| --- | --- | --- |
+| `GITGUARDIAN_API_KEY` | `ci.yml` (Secrets) | GitGuardian API key for the secret scan |
+| `CHECKSUM_TOKEN` | `herdr-checksums.yml` | Fine-grained token for this repository only, with Contents: read and write. Pushes recomputed herdr checksums to Renovate's herdr bumps; a push with the default token would not re-trigger CI. Without it, run `scripts/herdr-checksums` and push by hand |
+
 ## Contributing
 
 Commit conventions are in [CONTRIBUTING.md](.github/CONTRIBUTING.md). There are no releases: `main` is the version.

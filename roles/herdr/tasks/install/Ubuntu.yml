@@ -49,7 +49,7 @@
   ansible.builtin.get_url:
     url: "{{ herdr_resolved_url }}"
     dest: "{{ herdr_binary_path }}"
-    checksum: "{{ ('sha256:' ~ herdr_checksum) if herdr_checksum | length > 0 else omit }}"
+    checksum: "{{ ('sha256:' ~ herdr_checksums[ansible_facts.architecture]) if herdr_version | length > 0 else omit }}"
     owner: "{{ dotfiles_user }}"
     group: "{{ dotfiles_user }}"
     mode: "0755"

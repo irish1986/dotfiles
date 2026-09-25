@@ -51,6 +51,13 @@
     - shell
     - plugins
 
+- name: Herdr | Make the config directory private
+  ansible.builtin.include_tasks: "{{ role_path }}/tasks/private.yml"
+  tags:
+    - herdr
+    - shell
+    - configure
+
 - name: Herdr | Verify
   ansible.builtin.include_tasks: "{{ role_path }}/tasks/verify.yml"
   when: not ansible_check_mode

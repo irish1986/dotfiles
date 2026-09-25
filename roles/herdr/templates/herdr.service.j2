@@ -14,6 +14,8 @@ ExecStart={{ herdr_binary_path }} server
 ExecStop={{ herdr_binary_path }} server stop
 Environment=HERDR_CONFIG_PATH={{ herdr_config_dir }}/config.toml
 Restart=on-failure
+# Session state and pane history are written private from the start; see the umask in the ~/.zshenv autostart block.
+UMask=0077
 RestartSec=5
 
 [Install]

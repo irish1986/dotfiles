@@ -1,20 +1,56 @@
 ---
+# 0700: the directory holds session.json and, with pane_history on, session-history.json, whose captured screens can contain tokens and prompts in plaintext.
 - name: Herdr | Ensure the config directory exists
   ansible.builtin.file:
     path: "{{ herdr_config_dir }}"
     state: directory
     owner: "{{ dotfiles_user }}"
     group: "{{ dotfiles_user }}"
-    mode: "0755"
+    mode: "0700"
 
-# The running server holds its own copy: a changed file takes effect on the next `herdr` start, not immediately. No handler restarts it -- that would kill live panes and any agent running in them to apply a theme.
+# validate: runs `herdr config check` against the candidate before it replaces anything, so a broken config never lands -- check exits non-zero on a parse error and on an unknown key. The handler then applies it to the running server with reload-config, which keeps every pane; the few settings that only apply at startup wait for the next server start.
 - name: Herdr | Deploy config.toml
   ansible.builtin.copy:
     src: config.toml
     dest: "{{ herdr_config_dir }}/config.toml"
     owner: "{{ dotfiles_user }}"
     group: "{{ dotfiles_user }}"
-    mode: "0644"
+    mode: "0600"
+    validate: /usr/bin/env HERDR_CONFIG_PATH=%s {{ herdr_binary_path }} config check
+  notify: Herdr | Reload the config
+
+- name: Herdr | Detect the agent directories
+  ansible.builtin.stat:
+    path: "{{ dotfiles_home }}/{{ herdr_integration.dir }}"
+  loop: "{{ herdr_integrations }}"
+  loop_control:
+    loop_var: herdr_integration
+    label: "{{ herdr_integration.name }}"
+  register: herdr_agent_dirs
+
+- name: Herdr | Read the integration status
+  ansible.builtin.command: "{{ herdr_binary_path }} integration status"
+  register: herdr_integration_status
+  changed_when: false
+  check_mode: false
+
+# Keyed on herdr's own verdict, so an integration left behind by a herdr bump ("outdated") is reinstalled as well as a missing one. Reinstalling a current one would leave settings.json byte-for-byte unchanged, but would still report a change.
+- name: Herdr | Install the agent integrations
+  ansible.builtin.command:
+    argv:
+      - "{{ herdr_binary_path }}"
+      - integration
+      - install
+      - "{{ herdr_agent_dir.herdr_integration.name }}"
+  loop: "{{ herdr_agent_dirs.results }}"
+  loop_control:
+    loop_var: herdr_agent_dir
+    label: "{{ herdr_agent_dir.herdr_integration.name }}"
+  when:
+    - herdr_agent_dir.stat.exists
+    - >-
+      herdr_integration_status.stdout is not search('^' ~ (herdr_agent_dir.herdr_integration.name | regex_escape) ~ ': current', multiline=True)
+  changed_when: true
 
 # ~/.zshenv rather than ~/.zshrc, and a marker block rather than a copy: zsh reads .zshenv first and for every shell, so the exec below lands before the p10k instant prompt, oh-my-zsh and compinit -- a shell that is about to be replaced never pays for them. mode 0600 because ~/.zshenv is where hand-managed environment secrets usually live.
 - name: Herdr | Manage the shell autostart
@@ -36,10 +72,16 @@
       #   HERDR_ENV      second belt: exported into every herdr-managed process, the equivalent of tmux's $TMUX.
       #   -x             a no-op on a box where the install phase has not run yet.
       # Escape hatch when the client is wedged: HERDR_AUTOSTART=0 zsh -l
+      #
+      # umask 077 for herdr itself: the client, and the server it starts, write session state and pane history into {{ herdr_config_dir }}, and those files should be private from the moment they are created. DOTFILES_UMASK carries the login umask through, so shells inside herdr panes get it back below; the systemd unit sets UMask=0077 the same way.
       if [[ -o login && -o interactive && -z $HERDR_ENV \
             && ${HERDR_AUTOSTART:-1} != 0 && -x {{ herdr_binary_path }} ]]; then
+        export DOTFILES_UMASK=$(umask)
+        umask 077
         exec {{ herdr_binary_path }}
       fi
+      # Inside a herdr pane: the login umask, or Ubuntu's usergroups default when the server was started by systemd and never saw a login shell.
+      [[ -n $HERDR_ENV ]] && umask ${DOTFILES_UMASK:-002}
 
 - name: Herdr | Ensure the user unit directory exists
   ansible.builtin.file:

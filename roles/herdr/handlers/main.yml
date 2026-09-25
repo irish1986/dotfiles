@@ -4,3 +4,12 @@
   ansible.builtin.systemd_service:
     scope: user
     daemon_reload: true
+
+# Applies config.toml to the running server without touching any pane. With no server running there is nothing to reload: the next start reads the file anyway, so that is not a failure.
+- name: Herdr | Reload the config
+  ansible.builtin.command: "{{ herdr_binary_path }} server reload-config"
+  register: herdr_reload
+  changed_when: herdr_reload.rc == 0
+  failed_when:
+    - herdr_reload.rc != 0
+    - "'server_not_running' not in (herdr_reload.stdout ~ herdr_reload.stderr)"

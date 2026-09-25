@@ -84,3 +84,46 @@
   loop: "{{ herdr_plugins_remove }}"
   loop_control:
     loop_var: herdr_plugin_id
+
+- name: Herdr | Check the config directory
+  ansible.builtin.stat:
+    path: "{{ herdr_config_dir }}"
+  register: herdr_config_dir_check
+
+- name: Herdr | Find the files in the config directory
+  ansible.builtin.find:
+    paths: "{{ herdr_config_dir }}"
+    file_type: file
+    hidden: true
+    recurse: false
+  register: herdr_config_files_check
+
+- name: Herdr | Assert the config directory is private
+  ansible.builtin.assert:
+    that:
+      - herdr_config_dir_check.stat.mode == '0700'
+      - herdr_config_files_check.files | rejectattr('mode', 'equalto', '0600') | list | length == 0
+    fail_msg: >-
+      {{ herdr_config_dir }} is {{ herdr_config_dir_check.stat.mode }}; files not 0600:
+      {{ herdr_config_files_check.files | rejectattr('mode', 'equalto', '0600') | map(attribute='path') | map('basename') | join(', ') }}
+    success_msg: "{{ herdr_config_dir }} is 0700, its files 0600"
+    quiet: true
+
+- name: Herdr | Read back the integration status
+  ansible.builtin.command: "{{ herdr_binary_path }} integration status"
+  register: herdr_integration_check
+  changed_when: false
+
+- name: Herdr | Assert each present agent's integration is current
+  ansible.builtin.assert:
+    that:
+      - >-
+        herdr_integration_check.stdout is search('^' ~ (herdr_integration.name | regex_escape) ~ ': current', multiline=True)
+    fail_msg: "herdr reports the {{ herdr_integration.name }} integration as not current: {{ herdr_integration_check.stdout_lines | select('match', herdr_integration.name ~ ':') | join('') }}"
+    success_msg: "{{ herdr_integration.name }} integration current"
+    quiet: true
+  loop: "{{ herdr_integrations }}"
+  loop_control:
+    loop_var: herdr_integration
+    label: "{{ herdr_integration.name }}"
+  when: (dotfiles_home ~ '/' ~ herdr_integration.dir) is directory
