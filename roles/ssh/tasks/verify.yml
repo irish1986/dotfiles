@@ -48,7 +48,8 @@
 
     # `ssh -G` resolves the config the way a real connection would, without connecting. Reading it back from the installed file catches a bad merge that the blockinfile validate step could not see, because validate only ever saw this role's own block.
     - name: SSH | Resolve the effective configuration
-      ansible.builtin.command: ssh -G example.com
+      # -T: with no remote command ssh plans an interactive session, and without it prints "Pseudo-terminal will not be allocated" because ansible's stdin is not a terminal.
+      ansible.builtin.command: ssh -T -G example.com
       register: ssh_effective
       changed_when: false
       failed_when: false
