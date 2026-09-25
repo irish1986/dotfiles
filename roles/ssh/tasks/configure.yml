@@ -46,6 +46,15 @@
     - ssh_github_user | length > 0
 
 # ADR 0010. On WSL everything here goes through Windows interop: the key lives in the Windows profile and the agent is a Windows service.
+# The wsl role detects the Windows host, and --tags ssh alone skips it. Without this the Windows side would be skipped as though interop were down.
+- name: SSH | Detect the Windows host
+  ansible.builtin.include_role:
+    name: wsl
+    tasks_from: detect.yml
+  when:
+    - ssh_wsl_agent | bool
+    - wsl_interop_available is not defined
+
 - name: SSH | Report that the Windows side is unreachable
   ansible.builtin.debug:
     msg: >-

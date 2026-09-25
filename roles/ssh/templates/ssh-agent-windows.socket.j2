@@ -8,6 +8,8 @@ Documentation=https://github.com/albertony/npiperelay
 
 [Socket]
 ListenStream=%t/{{ ssh_relay_unit }}.sock
+# Also Ubuntu's own agent path, which the masked ssh-agent.socket used to serve. Every process started before the switch -- the herdr server and every pane in it, until it restarts -- still has SSH_AUTH_SOCK pointing here. Without this, ssh in those shells finds no agent and falls back to reading IdentityFile, the public key, as a private key, failing with a misleading "UNPROTECTED PRIVATE KEY FILE" about the .pub.
+ListenStream=%t/openssh_agent
 SocketMode=0600
 Accept=yes
 # The same mechanism Ubuntu's ssh-agent.socket uses, which this replaces: every service the user manager starts from here on -- the herdr server, and the shells in it -- gets the relay.

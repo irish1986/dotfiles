@@ -77,6 +77,7 @@
         - "{{ ssh_relay_unit }}@.service"
       loop_control:
         loop_var: ssh_relay_template
+      register: ssh_relay_units
       notify: SSH | Reload the user daemon
 
     - name: SSH | Apply the unit changes
@@ -93,12 +94,13 @@
       loop_control:
         loop_var: ssh_distro_agent_unit
 
+    # Restarted when its units change: a daemon-reload alone leaves a running socket listening on its old paths. Connections in progress are separate instances and survive it.
     - name: SSH | Enable the relay
       ansible.builtin.systemd_service:
         name: "{{ ssh_relay_unit }}.socket"
         scope: user
         enabled: true
-        state: started
+        state: "{{ 'restarted' if ssh_relay_units is changed else 'started' }}"
       when: not ansible_check_mode
 
 - name: SSH | Warn that the relay needs systemd
