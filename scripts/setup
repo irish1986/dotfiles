@@ -149,8 +149,11 @@ run_playbook() {
   if ((yes)); then
     args+=(-e dotfiles_confirm=false)
   fi
-  # ansible's become runs without a tty, so an interactive sudo ticket does not carry over. Once the user role grants NOPASSWD this stops asking.
-  sudo -n true 2> /dev/null || args+=(--ask-become-pass)
+  # ansible's become runs without a tty, so an interactive sudo ticket does not carry over -- `sudo -n true`
+  # would still report success from the ticket install_base_packages just cached in this terminal, even
+  # though that ticket is useless to ansible. Check the sudoers policy instead of the ticket cache. Once the
+  # user role grants NOPASSWD this stops asking.
+  sudo -n -l 2> /dev/null | grep -q NOPASSWD || args+=(--ask-become-pass)
   exec ansible-playbook "${args[@]}" "${playbook_args[@]}"
 }
 
