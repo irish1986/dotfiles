@@ -24,4 +24,6 @@ Decisions behind this shape are recorded in [`docs/adr/`](docs/adr/).
 
 **Removal list** — `tools_remove_apt` and `tools_remove_paths`. Deleting a tool entry only stops managing it; uninstalling is explicit, by adding it here.
 
+**Agent integration** — the hook herdr installs into an agent's own config (`~/.claude`, `~/.copilot`) so it can report agent state and the session reference restore resumes from. The herdr role keeps it current; it is the only thing the repo writes under those directories ([ADR 0009](docs/adr/0009-herdr-agent-integrations.md)).
+
 **Windows side** — files on the Windows host (`.wslconfig`, Windows Terminal settings, per-user fonts) that the `wsl` role manages through WSL interop. Every Windows-side task is skipped off WSL.
