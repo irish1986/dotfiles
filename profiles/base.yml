@@ -116,3 +116,9 @@ herdr_plugins:
     ref: v0.8.4
     commit: b7b3bbae6cf3428f75b53c723c2008b6383e81f4
     config: sessionizer.toml
+  # Per-agent usage in the sidebar: rate-limit use ($limit) and context fill ($context), placed by [ui.sidebar.agents] in roles/herdr/files/config.toml. Installs usagebar's prebuilt release binary; no toolchain needed. Its data also feeds the tab-bar segment (roles/herdr/files/herdr-usage-segment).
+  - id: usagebar
+    repo: senna-lang/herdr-agent-usage
+    # renovate: datasource=github-tags depName=senna-lang/herdr-agent-usage
+    ref: v0.5.16
+    commit: 956aa4f3efa5e86f4d5f1665533210bb7eadaa09

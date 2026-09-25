@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+#
+# herdr-usage-segment - account-wide AI usage for herdr's tab bar. Deployed by roles/herdr and run by the `[ui] tab_bar_right` command entry in its config.toml.
+#
+#   claude   5-hour window: used % and time until it resets. Read through usagebar (the herdr plugin in profiles/base.yml), which takes it from Claude's statusLine bridge; see roles/herdr/README.md for that one-time step.
+#   copilot  monthly premium requests: used %. From GitHub's undocumented /copilot_internal/user endpoint, which resets on the 1st at 00:00 UTC. Nice to have: blank when gh is missing or unauthenticated, or the call fails or changes shape.
+#
+# Prints one line. Each source has its own timeout and prints nothing when it fails, so the segment never shows an error; herdr also clears the entry after the entry's timeout_seconds.
+
+set -uo pipefail
+
+claude_usage() {
+  local bin
+  bin="$(compgen -G "${HOME}/.config/herdr/plugins/github/usagebar-*/bin/usagebar" | head -n 1)"
+  [[ -n $bin && -x $bin ]] || return 0
+  timeout 10 "$bin" collect 2> /dev/null | jq -r --argjson now "$(date +%s)" '
+    [.providers[]? | select(.ProviderID == "claude") | .Primary | select(. != null and .usedPercentage != null)][0] // empty
+    | "claude \(.usedPercentage | round)%"
+      + (((.resetsAt // 0) - $now) as $left
+         | if $left > 0 then " \($left / 3600 | floor)h\($left % 3600 / 60 | floor)m" else "" end)
+  ' 2> /dev/null
+}
+
+copilot_usage() {
+  command -v gh > /dev/null || return 0
+  timeout 8 gh api /copilot_internal/user --jq '
+    .quota_snapshots.premium_interactions
+    | select(.unlimited == false and (.percent_remaining | type) == "number")
+    | "copilot \(100 - .percent_remaining | round)%"
+  ' 2> /dev/null
+}
+
+parts=()
+for source in claude_usage copilot_usage; do
+  part="$("$source" | head -n 1)"
+  [[ -n $part ]] && parts+=("$part")
+done
+
+out=""
+for part in "${parts[@]}"; do
+  out+="${out:+ · }${part}"
+done
+printf '%s\n' "$out"

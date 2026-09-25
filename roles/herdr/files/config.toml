@@ -35,6 +35,18 @@ description = "open project space"
 [ui]
 # Shared divider borders take less room than separated panes.
 pane_gaps = false
+# Account-wide AI usage on the right of the tab bar: Claude's 5-hour window and Copilot's monthly premium requests. The script is deployed by the herdr role; herdr clears the entry if it fails or exceeds its timeout.
+tab_bar_right = [
+  { type = "command", command = "~/.local/bin/herdr-usage-segment", interval_seconds = 60, timeout_seconds = 20 },
+]
+
+# Per-agent usage from the usagebar plugin: $limit is the provider's rate-limit use, $context the context-window fill. $title and $provider replace the built-in tab and agent tokens, which usagebar fills in more reliably.
+[ui.sidebar.agents]
+rows = [
+  ["state_icon", "$title"],
+  ["$provider", "$limit"],
+  ["$context"],
+]
 
 [ui.toast]
 # A finished or blocked agent in a background space should be noticed without looking at herdr. "terminal" asks Windows Terminal for a Windows notification; "system" has no notification bridge under WSL.

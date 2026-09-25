@@ -52,6 +52,15 @@
       herdr_integration_status.stdout is not search('^' ~ (herdr_agent_dir.herdr_integration.name | regex_escape) ~ ': current', multiline=True)
   changed_when: true
 
+# Outside the config directory on purpose: the private.yml phase makes every file there 0600, which would strip the execute bit.
+- name: Herdr | Deploy the tab-bar usage segment
+  ansible.builtin.copy:
+    src: herdr-usage-segment
+    dest: "{{ herdr_install_dir }}/herdr-usage-segment"
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0755"
+
 # ~/.zshenv rather than ~/.zshrc, and a marker block rather than a copy: zsh reads .zshenv first and for every shell, so the exec below lands before the p10k instant prompt, oh-my-zsh and compinit -- a shell that is about to be replaced never pays for them. mode 0600 because ~/.zshenv is where hand-managed environment secrets usually live.
 - name: Herdr | Manage the shell autostart
   ansible.builtin.blockinfile:
