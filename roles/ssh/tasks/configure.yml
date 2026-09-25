@@ -45,34 +45,28 @@
     - ssh_import_github_keys | bool
     - ssh_github_user | length > 0
 
-# Gated on WSL, unlike the previous version which stat'd /mnt/c unconditionally and so ran two pointless probes on every non-WSL host.
-- name: SSH | Seed the keypair from Windows
+# ADR 0010. On WSL everything here goes through Windows interop: the key lives in the Windows profile and the agent is a Windows service.
+- name: SSH | Report that the Windows side is unreachable
+  ansible.builtin.debug:
+    msg: >-
+      Windows interop is not available, so the Windows SSH key, the agent relay and the GitHub keys were skipped. The wsl role reports why.
   when:
-    - ssh_import_from_windows | bool
-    - dotfiles_is_wsl | bool
-  block:
-    - name: SSH | Detect the Windows keypair
-      ansible.builtin.stat:
-        path: "{{ ssh_windows_dir }}/{{ ssh_windows_key }}"
-      register: ssh_windows_keys
-      loop:
-        - "{{ ssh_private_key }}"
-        - "{{ ssh_public_key }}"
-      loop_control:
-        loop_var: ssh_windows_key
-      become: false
+    - ssh_wsl_agent | bool
+    - not (wsl_interop_available | default(false) | bool)
 
-    - name: SSH | Copy the Windows keypair
-      ansible.builtin.copy:
-        src: "{{ ssh_windows_dir }}/{{ ssh_windows_key }}"
-        dest: "{{ ssh_dir }}/{{ ssh_windows_key }}"
-        owner: "{{ dotfiles_user }}"
-        group: "{{ dotfiles_user }}"
-        mode: "0600"
-        force: false
-      loop:
-        - "{{ ssh_private_key }}"
-        - "{{ ssh_public_key }}"
-      loop_control:
-        loop_var: ssh_windows_key
-      when: ssh_windows_keys.results | selectattr('stat.exists') | list | length == 2
+- name: SSH | Manage the key and the agent
+  when: not (ssh_wsl_agent | bool) or (wsl_interop_available | default(false) | bool)
+  block:
+    - name: SSH | Manage the key
+      ansible.builtin.include_tasks: "{{ role_path }}/tasks/key.yml"
+
+    - name: SSH | Relay the Windows agent
+      ansible.builtin.include_tasks: "{{ role_path }}/tasks/agent.yml"
+      when: ssh_wsl_agent | bool
+
+    - name: SSH | Add the key to GitHub
+      ansible.builtin.include_tasks: "{{ role_path }}/tasks/github.yml"
+      when:
+        - ssh_github_register | bool
+        - ssh_key_public_body | length > 0
+        - ssh_gh_binary is file

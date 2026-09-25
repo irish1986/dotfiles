@@ -24,6 +24,7 @@ readonly LOCAL_BIN="${HOME}/.local/bin"
 profile=""
 yes=0
 pull=1
+rotate_key=0
 playbook_args=()
 
 info() { printf '==> %s\n' "$*"; }
@@ -35,12 +36,15 @@ die() {
 
 usage() {
   cat << 'EOF'
-Usage: scripts/setup [--profile NAME] [--yes] [--no-pull] [ansible-playbook options]
+Usage: scripts/setup [--profile NAME] [--yes] [--no-pull] [--rotate-ssh-key] [ansible-playbook options]
 
   --profile NAME  the profile this machine gets (see profiles/); required on the
                   first run, recorded in ~/.config/dotfiles/local.yml after that
   -y, --yes       do not ask before converging
   --no-pull       use the checkout as it is; do not fast-forward it
+  --rotate-ssh-key
+                  replace this machine's SSH key -- on WSL the Windows key every
+                  distro shares -- keeping the old one as .old (docs/adr/0010)
   -h, --help      show this help
 
 Anything else is passed to ansible-playbook, e.g. --tags zsh --check --diff.
@@ -55,6 +59,7 @@ parse_args() {
       --profile=*) profile="${1#*=}" && shift ;;
       -y | --yes) yes=1 && shift ;;
       --no-pull) pull=0 && shift ;;
+      --rotate-ssh-key) rotate_key=1 && shift ;;
       -h | --help) usage && exit 0 ;;
       --) shift && playbook_args+=("$@") && break ;;
       *) playbook_args+=("$1") && shift ;;
@@ -149,12 +154,41 @@ run_playbook() {
   if ((yes)); then
     args+=(-e dotfiles_confirm=false)
   fi
+  if ((rotate_key)); then
+    args+=(-e ssh_rotate_key=true)
+  fi
   # ansible's become runs without a tty, so an interactive sudo ticket does not carry over -- `sudo -n true`
   # would still report success from the ticket install_base_packages just cached in this terminal, even
   # though that ticket is useless to ansible. Check the sudoers policy instead of the ticket cache. Once the
   # user role grants NOPASSWD this stops asking.
   sudo -n -l 2> /dev/null | grep -q NOPASSWD || args+=(--ask-become-pass)
-  exec ansible-playbook "${args[@]}" "${playbook_args[@]}"
+  ansible-playbook "${args[@]}" "${playbook_args[@]}"
+}
+
+# WSL (docs/adr/0010): the playbook loads a key it generated itself, which has no passphrase. A key with one is loaded here, where there is a terminal to ask on. The Windows agent keeps it across reboots, so this asks once per key, not once per run.
+load_windows_key() {
+  grep -qi microsoft /proc/sys/kernel/osrelease 2> /dev/null && [[ -e /run/WSL ]] || return 0
+  local arg
+  for arg in "${playbook_args[@]}"; do
+    [[ $arg == --check || $arg == -C ]] && return 0
+  done
+  local sock="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/ssh-agent-windows.sock"
+  local pub="${HOME}/.ssh/id_ed25519.pub"
+  [[ -S $sock && -r $pub ]] || return 0
+  # Exit 1 is an empty agent, which is the case being handled; anything else is reported by the playbook's verify.
+  SSH_AUTH_SOCK="$sock" ssh-add -L 2> /dev/null | grep -qF "$(cut -d' ' -f2 "$pub")" && return 0
+
+  local key win_key
+  key="$(readlink -f "$pub")"
+  key="${key%.pub}"
+  win_key="$(wslpath -w "$key")"
+  if ((yes)) || [[ ! -t 0 ]]; then
+    warn "the Windows ssh-agent does not hold your SSH key; load it once with: ssh-add.exe '${win_key}'"
+    return 0
+  fi
+  info "Loading your SSH key into the Windows ssh-agent (asks for its passphrase once; Windows keeps it)"
+  (cd /mnt/c && /mnt/c/Windows/System32/OpenSSH/ssh-add.exe "$win_key") \
+    || warn "could not load ${win_key} into the Windows ssh-agent; ssh and git signing will fail until it is"
 }
 
 main() {
@@ -165,6 +199,7 @@ main() {
   sync_checkout
   ensure_local_file
   run_playbook
+  load_windows_key
 }
 
 main "$@"

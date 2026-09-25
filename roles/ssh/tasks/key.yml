@@ -1,0 +1,133 @@
+---
+# The machine's one key (ADR 0010): the Windows user's on WSL, shared by every distro through the Windows agent, and this host's own elsewhere. Generated when missing; replaced only by scripts/setup --rotate-ssh-key.
+
+# Windows-side files are named to Windows binaries by their Windows path.
+- name: SSH | Translate the Windows key directory
+  ansible.builtin.command:
+    argv:
+      - wslpath
+      - -w
+      - "{{ ssh_key_dir }}"
+  register: ssh_key_dir_windows
+  changed_when: false
+  check_mode: false
+  when: ssh_wsl_agent | bool
+
+- name: SSH | Ensure the key directory exists
+  ansible.builtin.file:
+    path: "{{ ssh_key_dir }}"
+    state: directory
+  when: ssh_wsl_agent | bool
+
+- name: SSH | Read the current public key
+  ansible.builtin.slurp:
+    src: "{{ ssh_key_public_path }}"
+  register: ssh_key_current
+  failed_when: false
+
+# ── Rotation ──────────────────────────────────────────────────────────────
+# The old pair is kept as .old rather than deleted: a host that has not been given the new public key yet is still reachable with `ssh -i <key>.old` until you remove it. A second rotation overwrites the previous .old.
+- name: SSH | Rotate the key
+  when:
+    - ssh_rotate_key | bool
+    - ssh_key_current.content is defined
+    - not ansible_check_mode
+  block:
+    - name: SSH | Register the key being rotated out
+      ansible.builtin.set_fact:
+        ssh_key_rotated_out: "{{ (ssh_key_current.content | b64decode).split()[:2] | join(' ') }}"
+
+    # Through the relay, so it is the Windows agent that forgets it. Only the public half is needed to name the key.
+    - name: SSH | Remove the old key from the Windows agent
+      ansible.builtin.command:
+        argv:
+          - ssh-add
+          - -d
+          - "{{ ssh_key_public_path }}"
+      environment:
+        SSH_AUTH_SOCK: "{{ ssh_relay_socket }}"
+      register: ssh_key_agent_removed
+      changed_when: ssh_key_agent_removed.rc == 0
+      failed_when: false
+      when: ssh_wsl_agent | bool
+
+    # mv rather than the copy module: on DrvFs a rename keeps the Windows ACLs ssh-keygen.exe set, where a copy would inherit the directory's.
+    - name: SSH | Keep the old key pair as .old
+      ansible.builtin.command:
+        argv:
+          - mv
+          - -f
+          - "{{ ssh_key_file }}"
+          - "{{ ssh_key_file }}.old"
+      loop:
+        - "{{ ssh_key_private_path }}"
+        - "{{ ssh_key_public_path }}"
+      loop_control:
+        loop_var: ssh_key_file
+      changed_when: true
+
+# ── Generation ────────────────────────────────────────────────────────────
+# ssh-keygen.exe on WSL, so the key file gets Windows' own ACLs and the Windows agent and ssh.exe accept it. -N "": the run is unattended, so a generated key has no passphrase; generate one yourself before the first run to have one.
+- name: SSH | Generate the key on Windows
+  ansible.builtin.command:
+    argv:
+      - "{{ ssh_windows_keygen }}"
+      - -q
+      - -t
+      - ed25519
+      - -N
+      - ""
+      - -C
+      - "{{ ssh_key_comment }}"
+      - -f
+      - "{{ ssh_key_dir_windows.stdout | trim }}\\{{ ssh_private_key }}"
+    chdir: "{{ ssh_windows_c_drive }}"
+    creates: "{{ ssh_key_private_path }}"
+  register: ssh_key_generated_windows
+  when:
+    - ssh_generate_key | bool
+    - ssh_wsl_agent | bool
+
+- name: SSH | Generate the key
+  ansible.builtin.command:
+    argv:
+      - ssh-keygen
+      - -q
+      - -t
+      - ed25519
+      - -N
+      - ""
+      - -C
+      - "{{ ssh_key_comment }}"
+      - -f
+      - "{{ ssh_key_private_path }}"
+    creates: "{{ ssh_key_private_path }}"
+  register: ssh_key_generated_local
+  when:
+    - ssh_generate_key | bool
+    - not (ssh_wsl_agent | bool)
+
+- name: SSH | Register whether the key is new
+  ansible.builtin.set_fact:
+    ssh_key_generated: >-
+      {{ (ssh_key_generated_windows is changed) or (ssh_key_generated_local is changed) }}
+
+- name: SSH | Read the public key
+  ansible.builtin.slurp:
+    src: "{{ ssh_key_public_path }}"
+  register: ssh_key_public
+  failed_when: false
+
+- name: SSH | Register the public key
+  ansible.builtin.set_fact:
+    # "<type> <base64>", without the comment: the form GitHub stores and ssh-add -L prints.
+    ssh_key_public_body: >-
+      {{ ((ssh_key_public.content | b64decode).split()[:2] | join(' ')) if ssh_key_public.content is defined else '' }}
+
+- name: SSH | Warn about a missing key
+  ansible.builtin.debug:
+    msg: >-
+      {{ ssh_key_public_path }} does not exist and ssh_generate_key is false, so this machine has no SSH key: git signing stays off and GitHub is not updated.
+  when:
+    - ssh_key_public_body | length == 0
+    - not ansible_check_mode

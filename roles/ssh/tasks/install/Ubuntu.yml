@@ -4,3 +4,41 @@
     name: "{{ ssh_packages }}"
     state: present
   become: true
+
+# A Windows .exe stored on ext4 executes fine through the WSLInterop binfmt handler, so it does not need to live on /mnt/c.
+- name: SSH | Install the Windows agent relay
+  when: ssh_wsl_agent | bool
+  block:
+    - name: SSH | Ensure the relay directories exist
+      ansible.builtin.file:
+        path: "{{ ssh_relay_directory }}"
+        state: directory
+        owner: "{{ dotfiles_user }}"
+        group: "{{ dotfiles_user }}"
+        mode: "0755"
+      loop:
+        - "{{ ssh_npiperelay_path | dirname }}"
+        - "{{ ssh_npiperelay_dir }}"
+      loop_control:
+        loop_var: ssh_relay_directory
+
+    # The checksum file names the release asset, which is the URL's basename, so get_url can look the line up itself.
+    - name: SSH | Install npiperelay
+      ansible.builtin.get_url:
+        url: "{{ ssh_npiperelay_url }}"
+        dest: "{{ ssh_npiperelay_dir }}/npiperelay.exe"
+        checksum: "sha256:{{ ssh_npiperelay_checksum_url }}"
+        owner: "{{ dotfiles_user }}"
+        group: "{{ dotfiles_user }}"
+        mode: "0755"
+      # get_url refuses a dest directory that does not exist, which in check mode it never will on the run that introduces a version.
+      when: not ansible_check_mode or ssh_npiperelay_dir is directory
+
+    - name: SSH | Link npiperelay onto PATH
+      ansible.builtin.file:
+        src: "{{ ssh_npiperelay_dir }}/npiperelay.exe"
+        dest: "{{ ssh_npiperelay_path }}"
+        state: link
+        force: true
+        owner: "{{ dotfiles_user }}"
+        group: "{{ dotfiles_user }}"
