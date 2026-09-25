@@ -12,6 +12,17 @@
       "matchStrings": [
         "#\\s*renovate:\\s*datasource=(?<datasource>\\S+)\\s+depName=(?<depName>\\S+)\\s*\\n\\s*(?:-\\s+)?[a-z_]*version:\\s*\"?(?<currentValue>[^\"\\s]+)\"?"
       ]
+    },
+    {
+      "customType": "regex",
+      "description": "herdr plugins, pinned as an upstream tag plus the commit it points at, annotated with a `# renovate:` comment above `ref:`. Renovate bumps both together; the tag is kept verbatim.",
+      "managerFilePatterns": [
+        "/^profiles/.+\\.ya?ml$/",
+        "/^roles/.+/defaults/main\\.ya?ml$/"
+      ],
+      "matchStrings": [
+        "#\\s*renovate:\\s*datasource=(?<datasource>\\S+)\\s+depName=(?<depName>\\S+)\\s*\\n\\s*ref:\\s*\"?(?<currentValue>[^\"\\s]+)\"?\\s*\\n\\s*commit:\\s*\"?(?<currentDigest>[0-9a-f]{40})\"?"
+      ]
     }
   ],
   "dependencyDashboard": true,

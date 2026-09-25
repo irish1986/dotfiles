@@ -42,6 +42,15 @@
     - shell
     - configure
 
+# After install: plugin commands run the herdr binary.
+- name: Herdr | Plugins
+  ansible.builtin.include_tasks: "{{ role_path }}/tasks/plugins.yml"
+  when: not ansible_check_mode
+  tags:
+    - herdr
+    - shell
+    - plugins
+
 - name: Herdr | Verify
   ansible.builtin.include_tasks: "{{ role_path }}/tasks/verify.yml"
   when: not ansible_check_mode

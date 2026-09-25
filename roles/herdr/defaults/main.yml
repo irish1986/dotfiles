@@ -28,3 +28,17 @@ herdr_manage_service: true
 
 # Without linger the user manager stops when the last session closes, so the unit above would only ever start on first login, which defeats the point of running it as a service.
 herdr_linger: true
+
+# herdr plugins, pinned (ADR 0003, ADR 0004). herdr has no config key for plugins and no `plugin update`: they are installed with `herdr plugin install <repo> --ref <ref>`, and moving a pin means reinstalling, which this does whenever the installed commit differs from `commit`.
+#   repo    owner/name on GitHub
+#   ref     the upstream tag the pin corresponds to; what Renovate tracks
+#   commit  the commit that tag points at. This is what gets installed and compared, so a tag moved upstream cannot change what lands here.
+# Annotate each entry for Renovate, which bumps ref and commit together:
+#   - repo: owner/name
+#     # renovate: datasource=github-tags depName=owner/name
+#     ref: v1.2.3
+#     commit: <40-character sha>
+#
+# A plugin that is installed but not listed is left alone, like an unlisted tool. Uninstalling is explicit: add its plugin id to herdr_plugins_remove.
+herdr_plugins: []
+herdr_plugins_remove: []

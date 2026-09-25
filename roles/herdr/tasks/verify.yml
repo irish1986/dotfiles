@@ -49,3 +49,38 @@
       {{ herdr_service_state.status.ActiveState | default('unknown') }}
     quiet: true
   when: dotfiles_has_systemd | bool and herdr_manage_service | bool
+
+- name: Herdr | Read back the installed plugins
+  ansible.builtin.command: "{{ herdr_binary_path }} plugin list --json"
+  register: herdr_plugin_check
+  changed_when: false
+  when: herdr_plugins | length > 0 or herdr_plugins_remove | length > 0
+
+# Also catches a pinned commit that upstream no longer serves under that repository, which the install step would only have reported as a failure once.
+- name: Herdr | Assert every listed plugin is installed at its pinned commit
+  ansible.builtin.assert:
+    that:
+      - herdr_plugin.repo ~ '@' ~ herdr_plugin.commit in herdr_plugin_pins
+    fail_msg: "{{ herdr_plugin.repo }} is not installed at {{ herdr_plugin.commit }} ({{ herdr_plugin.ref }}). Installed: {{ herdr_plugin_pins | join(', ') }}"
+    success_msg: "{{ herdr_plugin.repo }} {{ herdr_plugin.ref }}"
+    quiet: true
+  loop: "{{ herdr_plugins }}"
+  loop_control:
+    loop_var: herdr_plugin
+    label: "{{ herdr_plugin.repo }}"
+  vars:
+    herdr_plugin_sources: "{{ (herdr_plugin_check.stdout | from_json).result.plugins | map(attribute='source') | selectattr('owner', 'defined') }}"
+    herdr_plugin_pins: >-
+      {{ herdr_plugin_sources | map(attribute='owner')
+         | zip(herdr_plugin_sources | map(attribute='repo'), herdr_plugin_sources | map(attribute='resolved_commit'))
+         | map('join', '/') | map('regex_replace', '/([0-9a-f]{40})$', '@\1') | list }}
+
+- name: Herdr | Assert the removed plugins are gone
+  ansible.builtin.assert:
+    that:
+      - herdr_plugin_id not in ((herdr_plugin_check.stdout | from_json).result.plugins | map(attribute='plugin_id'))
+    fail_msg: "{{ herdr_plugin_id }} is in herdr_plugins_remove but still installed."
+    quiet: true
+  loop: "{{ herdr_plugins_remove }}"
+  loop_control:
+    loop_var: herdr_plugin_id

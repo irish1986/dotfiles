@@ -22,7 +22,9 @@ Decisions behind this shape are recorded in [`docs/adr/`](docs/adr/).
 
 **Verify** — the last phase of every full role, and the `verify` command of a tool entry. It asserts that the thing installed actually works, so a run cannot quietly do nothing.
 
-**Removal list** — `tools_remove_apt` and `tools_remove_paths`. Deleting a tool entry only stops managing it; uninstalling is explicit, by adding it here.
+**herdr plugin** — one item in `herdr_plugins`, installed by the herdr role with `herdr plugin install` at a pinned commit. Like a tool entry, deleting it only stops managing it.
+
+**Removal list** — `tools_remove_apt`, `tools_remove_paths` and `herdr_plugins_remove`. Deleting a tool entry or a herdr plugin only stops managing it; uninstalling is explicit, by adding it here.
 
 **Agent integration** — the hook herdr installs into an agent's own config (`~/.claude`, `~/.copilot`) so it can report agent state and the session reference restore resumes from. The herdr role keeps it current; it is the only thing the repo writes under those directories ([ADR 0009](docs/adr/0009-herdr-agent-integrations.md)).
 
