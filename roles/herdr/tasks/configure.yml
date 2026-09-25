@@ -69,6 +69,6 @@
     enabled: true
     daemon_reload: true
   when:
-    - dotfiles_has_systemd | bool
+    - dotfiles_has_user_systemd | bool
     - herdr_manage_service | bool
     - not ansible_check_mode

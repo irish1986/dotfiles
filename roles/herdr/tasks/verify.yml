@@ -34,7 +34,7 @@
     name: "{{ herdr_service_name }}"
     scope: user
   register: herdr_service_state
-  when: dotfiles_has_systemd | bool and herdr_manage_service | bool
+  when: dotfiles_has_user_systemd | bool and herdr_manage_service | bool
 
 # Enabled only. ActiveState is reported, not asserted: on the run that introduces the unit the server is still the one the configure phase declined to restart, so inactive is the correct state until the next boot.
 - name: Herdr | Assert the server unit is enabled
@@ -48,4 +48,4 @@
       herdr server unit enabled, currently
       {{ herdr_service_state.status.ActiveState | default('unknown') }}
     quiet: true
-  when: dotfiles_has_systemd | bool and herdr_manage_service | bool
+  when: dotfiles_has_user_systemd | bool and herdr_manage_service | bool

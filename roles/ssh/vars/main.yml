@@ -1,6 +1,7 @@
 ---
 ssh_dir: "{{ dotfiles_home }}/.ssh"
-ssh_windows_dir: "/mnt/c/Users/{{ dotfiles_windows_user }}/.ssh"
+# The Windows home the wsl role resolved through interop (it runs first), which survives a Windows user name that differs from dotfiles_windows_user, a redirected profile and a non-C: profile drive.
+ssh_windows_dir: "{{ wsl_windows_home | default('/mnt/c/Users/' ~ dotfiles_windows_user) }}/.ssh"
 ssh_config_file: "{{ ssh_dir }}/config"
 
 # Paths, so they are computed rather than repeated. %C is the hash of (local host, remote host, port, user): a literal %r@%h:%p blows past the ~104-byte sun_path limit on long hostnames, and the failure looks like an unrelated connection error.

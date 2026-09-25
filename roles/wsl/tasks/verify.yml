@@ -7,6 +7,30 @@
     success_msg: "{{ wsl_conf_path }} present"
     quiet: true
 
+# State, not change notification. The handlers only know a file changed *this* run; a rerun after the message was missed would stay silent while the distro still runs on the old settings. Comparing the running distro with wsl.conf keeps reporting it until the restart happens, without ever counting as a change.
+- name: WSL | Detect a restart pending for wsl.conf
+  vars:
+    # DrvFs puts its own options in the 9p aname, separated by semicolons.
+    wsl_mount_options: >-
+      {{ (lookup('ansible.builtin.file', '/proc/mounts').splitlines()
+          | select('search', '^\S+ ' ~ (wsl_c_drive | regex_escape) ~ ' ')
+          | first | default('') | split(' '))[3] | default('')
+         | regex_replace('=0+([0-9])', '=\1') | split(',') | map('split', ';') | flatten }}
+    wsl_mount_wanted: >-
+      {{ wsl_automount_options | regex_replace('=0+([0-9])', '=\1') | split(',') }}
+    wsl_restart_reasons: >-
+      {{ ([] if not (wsl_automount_enabled | bool) or (wsl_mount_wanted | difference(wsl_mount_options) | length == 0)
+            else ['mount options ' ~ (wsl_mount_wanted | difference(wsl_mount_options) | join(',')) ~ ' not active on ' ~ wsl_c_drive])
+         + ([] if (wsl_systemd | bool) == (dotfiles_has_systemd | bool)
+            else ['systemd is ' ~ ('not ' if not (dotfiles_has_systemd | bool) else '') ~ 'running'])
+         + ([] if ansible_facts.hostname == wsl_network_hostname
+            else ['hostname is ' ~ ansible_facts.hostname ~ ', not ' ~ wsl_network_hostname]) }}
+  ansible.builtin.debug:
+    msg: >-
+      This distro is not yet running with its wsl.conf: {{ wsl_restart_reasons | join('; ') }}.
+      Run `wsl --terminate {{ wsl_distro_name | default('<distro>', true) }}` from Windows, reopen it, and re-run the playbook.
+  when: wsl_restart_reasons | length > 0
+
 - name: WSL | Verify the Windows side
   when: wsl_interop_available | default(false) | bool
   block:
@@ -19,9 +43,18 @@
         success_msg: "Windows home {{ wsl_windows_home }}"
         quiet: true
 
+    # The user's clipboard is saved first and put back afterwards, so a run does not replace whatever was copied with the probe string.
     - name: WSL | Check the clipboard bridge
       ansible.builtin.shell:
-        cmd: set -o pipefail && printf 'dotfiles-clipboard-probe' | {{ wsl_win32yank_path }} -i --crlf && {{ wsl_win32yank_path }} -o --lf
+        cmd: |
+          set -o pipefail
+          saved=$(mktemp)
+          trap 'rm -f "$saved"' EXIT
+          {{ wsl_win32yank_path }} -o --lf > "$saved" || true
+          printf 'dotfiles-clipboard-probe' | {{ wsl_win32yank_path }} -i --crlf
+          probe=$({{ wsl_win32yank_path }} -o --lf)
+          {{ wsl_win32yank_path }} -i --crlf < "$saved"
+          printf '%s' "$probe"
         executable: /bin/bash
       register: wsl_clipboard_check
       changed_when: false

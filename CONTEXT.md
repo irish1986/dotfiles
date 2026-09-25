@@ -24,4 +24,6 @@ Decisions behind this shape are recorded in [`docs/adr/`](docs/adr/).
 
 **Removal list** — `tools_remove_apt` and `tools_remove_paths`. Deleting a tool entry only stops managing it; uninstalling is explicit, by adding it here.
 
-**Windows side** — files on the Windows host (`.wslconfig`, Windows Terminal settings, per-user fonts) that the `wsl` role manages through WSL interop. Every Windows-side task is skipped off WSL.
+**Windows side** — files on the Windows host (`.wslconfig`, Windows Terminal settings, per-user fonts) that the `wsl` role manages through WSL interop. Every Windows-side task is skipped off WSL. It belongs to the Windows user, not to a distro, so on a host with several distros only the **global owner** writes it.
+
+**Global owner** — the one distro, named by `wsl_global_owner` in every distro's local file, that writes the Windows side. The others only compare `.wslconfig` against their own settings and warn on drift. Unset, every distro writes it, which is only safe with a single distro.

@@ -32,7 +32,7 @@
     - name: WSL | Probe interop
       ansible.builtin.command:
         cmd: "{{ wsl_cmd }} /c ver"
-        chdir: /mnt/c
+        chdir: "{{ wsl_c_drive }}"
       register: wsl_interop_probe
       changed_when: false
       failed_when: false
@@ -65,13 +65,35 @@
     # chdir is mandatory. Run from a WSL path, cmd.exe emits three lines of UNC warning on stdout *before* the value, which then has to be parsed off. Resolving the profile path rather than the user name also survives C:\Users\name.DOMAIN, redirected profiles and a non-C: profile drive.
     - name: WSL | Query USERPROFILE
       ansible.builtin.command:
-        cmd: "{{ wsl_cmd }} /c echo %USERPROFILE%"
-        chdir: /mnt/c
+        cmd: "{{ wsl_cmd }} /d /c echo %USERPROFILE%"
+        chdir: "{{ wsl_c_drive }}"
       register: wsl_userprofile
       changed_when: false
       failed_when: false
       check_mode: false
       become: false
+
+    # Only with a value: `wslpath -u ""` prints "." and exits 0, which would make the Windows home the playbook's working directory.
+    - name: WSL | Translate the cmd.exe profile path
+      ansible.builtin.command:
+        argv:
+          - wslpath
+          - -u
+          - "{{ wsl_userprofile.stdout | trim }}"
+      register: wsl_userprofile_cmd_path
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      become: false
+      when: wsl_userprofile.rc == 0 and (wsl_userprofile.stdout | trim | length) > 0
+
+    # cmd.exe answers in the OEM code page, so a non-ASCII user name comes back mangled but non-empty. Its answer only counts when it names a directory that exists.
+    - name: WSL | Check the cmd.exe profile path
+      ansible.builtin.stat:
+        path: "{{ wsl_userprofile_cmd_path.stdout | default('') | trim }}"
+      register: wsl_userprofile_cmd_stat
+      become: false
+      when: (wsl_userprofile_cmd_path.stdout | default('') | trim) is match('/')
 
     - name: WSL | Query USERPROFILE via PowerShell
       ansible.builtin.command:
@@ -80,42 +102,62 @@
           - -NoProfile
           - -NonInteractive
           - -Command
-          - "[Console]::Out.Write($env:USERPROFILE)"
-        chdir: /mnt/c
+          - "[Console]::OutputEncoding = [Text.Encoding]::UTF8; [Console]::Out.Write($env:USERPROFILE)"
+        chdir: "{{ wsl_c_drive }}"
       register: wsl_userprofile_ps
       changed_when: false
       failed_when: false
       check_mode: false
       become: false
-      when: wsl_userprofile.rc != 0 or (wsl_userprofile.stdout | trim | length) == 0
+      when: not (wsl_userprofile_cmd_stat.stat.isdir | default(false))
 
-    - name: WSL | Register the Windows profile path
-      ansible.builtin.set_fact:
-        wsl_userprofile_windows: >-
-          {{ (wsl_userprofile.stdout | trim) if (wsl_userprofile.stdout | trim | length) > 0
-             else (wsl_userprofile_ps.stdout | default('') | trim) }}
-
-    # Only with a value: `wslpath -u ""` prints "." and exits 0, which would make the Windows home the playbook's working directory.
-    - name: WSL | Translate the profile path to a WSL path
+    - name: WSL | Translate the PowerShell profile path
       ansible.builtin.command:
         argv:
           - wslpath
           - -u
-          - "{{ wsl_userprofile_windows }}"
-      register: wsl_windows_home_path
+          - "{{ wsl_userprofile_ps.stdout | trim }}"
+      register: wsl_userprofile_ps_path
       changed_when: false
       failed_when: false
       check_mode: false
       become: false
-      when: wsl_userprofile_windows | length > 0
+      when: (wsl_userprofile_ps.stdout | default('') | trim | length) > 0
+
+    # %NUMBER_OF_PROCESSORS% is the host's logical CPU count. The count inside the VM is not: .wslconfig processors= caps it.
+    - name: WSL | Query the host CPU count
+      ansible.builtin.command:
+        cmd: "{{ wsl_cmd }} /d /c echo %NUMBER_OF_PROCESSORS%"
+        chdir: "{{ wsl_c_drive }}"
+      register: wsl_host_cpu_query
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      become: false
+
+    # wslinfo is WSL's own binary (a link to /init), present on every WSL 2.x; an older WSL simply has none and the version stays unknown.
+    - name: WSL | Query the WSL version
+      ansible.builtin.command:
+        cmd: wslinfo --version
+      register: wsl_version_query
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      become: false
 
 - name: WSL | Register the Windows host facts
   ansible.builtin.set_fact:
     # Falls back to the configured user name so the role degrades rather than failing when interop is unavailable. Anything but an absolute path is discarded for the same reason as above.
     wsl_windows_home: >-
-      {{ (wsl_windows_home_path.stdout | default('') | trim)
-         if (wsl_windows_home_path.stdout | default('') | trim) is match('/')
-         else '/mnt/c/Users/' ~ dotfiles_windows_user }}
+      {{ (wsl_userprofile_cmd_path.stdout | trim)
+           if (wsl_userprofile_cmd_stat.stat.isdir | default(false))
+         else (wsl_userprofile_ps_path.stdout | trim)
+           if (wsl_userprofile_ps_path.stdout | default('') | trim) is match('/')
+         else wsl_c_drive ~ '/Users/' ~ dotfiles_windows_user }}
+    wsl_host_processors: >-
+      {{ (wsl_host_cpu_query.stdout | default('') | trim) if (wsl_host_cpu_query.stdout | default('') | trim) is match('^[0-9]+$') else 0 }}
+    wsl_version: >-
+      {{ wsl_version_query.stdout | default('') | regex_search('[0-9]+(\.[0-9]+)+') | default('', true) }}
 
 - name: WSL | Register the detected Windows user
   ansible.builtin.set_fact:
@@ -124,6 +166,20 @@
 - name: WSL | Show the Windows host facts
   ansible.builtin.debug:
     msg: >-
+      distro={{ wsl_distro_name }}
+      wsl={{ wsl_version | default('unknown', true) }}
       interop={{ wsl_interop_available }}
       windows_home={{ wsl_windows_home }}
       windows_user={{ wsl_windows_user }}
+      host_cpus={{ wsl_host_processors }}
+      global_owner={{ wsl_is_global_owner }}
+
+# The binfmt re-registration above is the fallback for this; below this version it is the only defence.
+- name: WSL | Warn about an old WSL
+  ansible.builtin.debug:
+    msg: >-
+      WSL {{ wsl_version }} predates {{ wsl_min_version }}: a systemd distro stopping clears Windows interop for every running distro (microsoft/WSL#13885).
+      Run `wsl --update` from Windows.
+  when:
+    - wsl_version | length > 0
+    - wsl_version is version(wsl_min_version, '<')
