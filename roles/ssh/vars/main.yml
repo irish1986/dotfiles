@@ -7,5 +7,32 @@ ssh_config_file: "{{ ssh_dir }}/config"
 # Paths, so they are computed rather than repeated. %C is the hash of (local host, remote host, port, user): a literal %r@%h:%p blows past the ~104-byte sun_path limit on long hostnames, and the failure looks like an unrelated connection error.
 ssh_control_dir: "{{ ssh_dir }}/sockets"
 ssh_computed_config:
-  IdentityFile: "{{ ssh_dir }}/{{ ssh_private_key }}"
+  # With the Windows agent, the public key: IdentitiesOnly then offers exactly the agent key that matches it, and there is no private key in this distro to name.
+  IdentityFile: "{{ ssh_dir }}/{{ ssh_public_key if (ssh_wsl_agent | bool) else ssh_private_key }}"
   ControlPath: "{{ ssh_control_dir }}/%C"
+
+# Where the machine's one key lives: the Windows user's .ssh on WSL (ADR 0010), this host's own otherwise.
+ssh_wsl_agent: "{{ (dotfiles_is_wsl | bool) and (ssh_windows_agent | bool) }}"
+ssh_key_dir: "{{ ssh_windows_dir if (ssh_wsl_agent | bool) else ssh_dir }}"
+ssh_key_private_path: "{{ ssh_key_dir }}/{{ ssh_private_key }}"
+ssh_key_public_path: "{{ ssh_key_dir }}/{{ ssh_public_key }}"
+
+# Absolute, not PATH-resolved: interop binaries are only on PATH when appendWindowsPath is on. Derived like the wsl role's paths, from the automount root.
+ssh_windows_c_drive: "{{ (wsl_automount_root | default('/mnt/')) | regex_replace('/+$', '') }}/c"
+ssh_windows_system32: "{{ ssh_windows_c_drive }}/Windows/System32"
+ssh_windows_powershell: "{{ ssh_windows_system32 }}/WindowsPowerShell/v1.0/powershell.exe"
+ssh_windows_keygen: "{{ ssh_windows_system32 }}/OpenSSH/ssh-keygen.exe"
+ssh_windows_add: "{{ ssh_windows_system32 }}/OpenSSH/ssh-add.exe"
+
+# The relay. Versioned, so a Renovate bump downloads the new release; the stable path is a symlink into it, and is what the unit runs.
+ssh_npiperelay_dir: "{{ dotfiles_home }}/.local/opt/npiperelay-{{ ssh_npiperelay_version }}"
+ssh_npiperelay_path: "{{ dotfiles_home }}/.local/bin/npiperelay.exe"
+ssh_relay_unit: ssh-agent-windows
+ssh_relay_unit_dir: "{{ dotfiles_home }}/.config/systemd/user"
+ssh_relay_socket: "/run/user/{{ ansible_facts.user_uid }}/{{ ssh_relay_unit }}.sock"
+# Ubuntu's own per-user agent. It sets SSH_AUTH_SOCK for the user manager too, so it is masked rather than left to race the relay for it.
+ssh_distro_agent_units:
+  - ssh-agent.socket
+  - ssh-agent.service
+ssh_zshenv: "{{ dotfiles_home }}/.zshenv"
+ssh_gh_binary: /usr/bin/gh

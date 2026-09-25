@@ -71,3 +71,55 @@
           ssh resolves a different cipher list than {{ ssh_config_file }} sets. Something above the managed block claims `Host *` -- ssh takes the first value it finds for a keyword, so that entry wins.
         success_msg: "the managed defaults are in effect"
         quiet: true
+
+- name: SSH | Verify the key
+  when:
+    - ssh_generate_key | bool
+    - not (ssh_wsl_agent | bool) or (wsl_interop_available | default(false) | bool)
+  block:
+    - name: SSH | Check the public key
+      ansible.builtin.stat:
+        path: "{{ ssh_dir }}/{{ ssh_public_key }}"
+        follow: true
+      register: ssh_key_check
+
+    - name: SSH | Assert the key exists
+      ansible.builtin.assert:
+        that:
+          - ssh_key_check.stat.exists
+        fail_msg: "{{ ssh_dir }}/{{ ssh_public_key }} does not exist or does not resolve to {{ ssh_key_public_path }}."
+        success_msg: "{{ ssh_dir }}/{{ ssh_public_key }} present"
+        quiet: true
+
+# End to end: through the socket, the relay and the pipe to the agent, asking for the one key ssh will offer. A warning rather than a failure, because a key with a passphrase is added by scripts/setup after this run.
+- name: SSH | Verify the Windows agent
+  when:
+    - ssh_wsl_agent | bool
+    - wsl_interop_available | default(false) | bool
+    - dotfiles_has_user_systemd | bool
+  block:
+    - name: SSH | List the keys the Windows agent holds
+      ansible.builtin.command: ssh-add -L
+      environment:
+        SSH_AUTH_SOCK: "{{ ssh_relay_socket }}"
+      register: ssh_agent_keys
+      changed_when: false
+      failed_when: false
+
+    # ssh-add exits 1 for an empty agent and 2 when it cannot reach one at all.
+    - name: SSH | Assert the relay reaches the Windows agent
+      ansible.builtin.assert:
+        that:
+          - ssh_agent_keys.rc in [0, 1]
+        fail_msg: >-
+          {{ ssh_relay_socket }} does not reach the Windows ssh-agent: {{ ssh_agent_keys.stderr | default('no output', true) | trim }}.
+          Check `systemctl --user status {{ ssh_relay_unit }}.socket` and that the Windows ssh-agent service is running.
+        success_msg: the relay reaches the Windows agent
+        quiet: true
+
+    - name: SSH | Report a key the agent does not hold
+      ansible.builtin.debug:
+        msg: >-
+          The Windows ssh-agent does not hold {{ ssh_key_private_path }} yet, so ssh and git signing will fail.
+          scripts/setup loads it after the run, asking for its passphrase once; or run: ssh-add.exe '{{ ssh_key_dir_windows.stdout | default('', true) | trim }}\{{ ssh_private_key }}'
+      when: ssh_key_public_body | default('') not in ssh_agent_keys.stdout

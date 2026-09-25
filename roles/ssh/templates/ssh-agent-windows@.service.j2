@@ -1,0 +1,14 @@
+# Managed by the dotfiles playbook (roles/ssh). Do not edit.
+#
+# One instance per connection to ssh-agent-windows.socket. The connection is this process's stdin and stdout; npiperelay copies it to and from the Windows agent's pipe, so no socat is needed.
+
+[Unit]
+Description=Windows OpenSSH agent relay (connection)
+
+[Service]
+#   -ei  exit when stdin closes, which is the client disconnecting
+#   -s   send a zero-byte message on close, which the agent pipe expects
+ExecStart={{ ssh_npiperelay_path }} -ei -s //./pipe/openssh-ssh-agent
+StandardInput=socket
+StandardOutput=socket
+StandardError=journal

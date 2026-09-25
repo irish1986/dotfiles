@@ -1,0 +1,90 @@
+---
+# The key on GitHub: as an authentication key, and as a signing key so commits signed with it show Verified. Matched on the key itself, not a title, so each key is added once however often this runs.
+
+- name: SSH | Check the GitHub login
+  ansible.builtin.command:
+    argv:
+      - "{{ ssh_gh_binary }}"
+      - auth
+      - status
+      - --hostname
+      - github.com
+  register: ssh_gh_auth
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: SSH | Report that gh is not logged in
+  ansible.builtin.debug:
+    msg: >-
+      gh is not logged in to github.com, so the SSH key was not added to GitHub. Run `gh auth login`, then re-run --tags ssh.
+  when: ssh_gh_auth.rc != 0
+
+- name: SSH | Sync the key with GitHub
+  when: ssh_gh_auth.rc == 0
+  block:
+    # Separate endpoints, and separate scopes: admin:public_key and admin:ssh_signing_key. gh's default login grants neither.
+    - name: SSH | List the GitHub keys
+      ansible.builtin.command:
+        argv:
+          - "{{ ssh_gh_binary }}"
+          - api
+          - "{{ ssh_gh_endpoint.path }}"
+      register: ssh_gh_keys
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      loop:
+        - { type: authentication, path: user/keys }
+        - { type: signing, path: user/ssh_signing_keys }
+      loop_control:
+        loop_var: ssh_gh_endpoint
+        label: "{{ ssh_gh_endpoint.type }}"
+
+    - name: SSH | Report the missing gh scopes
+      ansible.builtin.debug:
+        msg: >-
+          gh cannot manage your SSH keys, so the key was not added to GitHub as {{ ssh_gh_denied | join(' and ') }}.
+          Grant the scopes once with `gh auth refresh -h github.com -s admin:public_key,admin:ssh_signing_key`, then re-run --tags ssh.
+      vars:
+        ssh_gh_denied: >-
+          {{ ssh_gh_keys.results | rejectattr('rc', 'eq', 0) | map(attribute='ssh_gh_endpoint.type') | list }}
+      when: ssh_gh_denied | length > 0
+
+    - name: SSH | Add the key to GitHub
+      ansible.builtin.command:
+        argv:
+          - "{{ ssh_gh_binary }}"
+          - ssh-key
+          - add
+          - "{{ ssh_key_public_path }}"
+          - --title
+          - "{{ ssh_key_comment }}"
+          - --type
+          - "{{ ssh_gh_list.ssh_gh_endpoint.type }}"
+      changed_when: true
+      loop: "{{ ssh_gh_keys.results }}"
+      loop_control:
+        loop_var: ssh_gh_list
+        label: "{{ ssh_gh_list.ssh_gh_endpoint.type }}"
+      when:
+        - ssh_gh_list.rc == 0
+        - ssh_key_public_body not in (ssh_gh_list.stdout | from_json | map(attribute='key') | list)
+
+    # Authentication only. A signing key stays: deleting it turns every commit already signed with it Unverified.
+    - name: SSH | Remove the rotated-out key from GitHub authentication
+      ansible.builtin.command:
+        argv:
+          - "{{ ssh_gh_binary }}"
+          - ssh-key
+          - delete
+          - "{{ ssh_gh_old_key.id }}"
+          - --yes
+      changed_when: true
+      loop: >-
+        {{ ((ssh_gh_keys.results[0].stdout if ssh_gh_keys.results[0].rc == 0 else '[]') | from_json)
+           | selectattr('key', 'eq', ssh_key_rotated_out | default('')) | list }}
+      loop_control:
+        loop_var: ssh_gh_old_key
+        label: "{{ ssh_gh_old_key.title }}"
+      when: ssh_key_rotated_out is defined
