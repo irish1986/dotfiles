@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+#
+# scripts/herdr-checksums - recompute herdr_checksums in roles/herdr/defaults/main.yml for the pinned herdr_version.
+#
+# herdr publishes no checksum files, so the pin is hashed from the release assets themselves. .github/workflows/herdr-checksums.yml runs this on Renovate's herdr bumps; run it by hand after bumping herdr_version yourself.
+
+set -euo pipefail
+
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+readonly DEFAULTS="${root}/roles/herdr/defaults/main.yml"
+readonly BASE="https://github.com/herdrdev/herdr/releases/download"
+
+version="$(sed -n 's/^herdr_version: "\{0,1\}\([^"]*\)"\{0,1\}$/\1/p' "$DEFAULTS")"
+[[ -n $version ]] || {
+  echo "herdr_version is empty or missing in ${DEFAULTS}; nothing to pin" >&2
+  exit 1
+}
+
+tmp="$(mktemp -d)"
+trap 'rm -rf "$tmp"' EXIT
+
+for arch in x86_64 aarch64; do
+  curl -fsSL -o "${tmp}/herdr" "${BASE}/v${version}/herdr-linux-${arch}"
+  sum="$(sha256sum "${tmp}/herdr" | cut -d' ' -f1)"
+  sed -i "s/^\(  ${arch}: \)[0-9a-f]\{64\}$/\1${sum}/" "$DEFAULTS"
+  grep -q "^  ${arch}: ${sum}$" "$DEFAULTS" || {
+    echo "no '  ${arch}: <sha256>' line under herdr_checksums in ${DEFAULTS}" >&2
+    exit 1
+  }
+  printf 'herdr %s %s %s\n' "$version" "$arch" "$sum"
+done

@@ -1,0 +1,60 @@
+---
+name: herdr checksums
+run-name: herdr checksums for ${{ github.head_ref }}
+
+# Renovate can bump herdr_version but not the sha256 pins beside it: herdr publishes no checksum files, so the pins are hashed from the release assets. This recomputes them on Renovate's pull requests and pushes the result to the branch, so the converge job verifies the new binary rather than failing on a stale hash.
+#
+# The commit is authored as github-actions[bot], which renovate.json lists in gitIgnoredAuthors; otherwise Renovate would treat its branch as edited by someone else and stop rebasing it, stalling the next herdr release.
+#
+# The push uses CHECKSUM_TOKEN, a fine-grained personal access token for this repository only, with Contents: read and write. A push made with GITHUB_TOKEN would not trigger CI again, leaving the pull request red after it was fixed. Without the secret this job fails and says so; the fallback is running scripts/herdr-checksums locally and pushing.
+on: # yamllint disable-line rule:truthy
+  pull_request:
+    paths:
+      - roles/herdr/defaults/main.yml
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  checksums:
+    name: Recompute herdr checksums
+    # Renovate's own branches only: anyone else bumping herdr runs the script themselves, and a fork's branch cannot be pushed to anyway.
+    if: startsWith(github.head_ref, 'renovate/') && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+
+    steps:
+      - name: Require the push token
+        env:
+          HAS_TOKEN: ${{ secrets.CHECKSUM_TOKEN != '' }}
+        run: |
+          if [[ "${HAS_TOKEN}" != "true" ]]; then
+            echo "::error::CHECKSUM_TOKEN is not set. Create a fine-grained token for this repository with Contents: read and write, store it as the CHECKSUM_TOKEN secret, and re-run -- or run scripts/herdr-checksums locally and push."
+            exit 1
+          fi
+
+      - name: Checkout the pull request branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.head_ref }}
+          token: ${{ secrets.CHECKSUM_TOKEN }}
+
+      - name: Recompute the checksums
+        run: scripts/herdr-checksums
+
+      - name: Push them if they changed
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- roles/herdr/defaults/main.yml; then
+            echo "Checksums already match the pinned version."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore(deps): update the herdr checksums for the pinned version" -- roles/herdr/defaults/main.yml
+          git push origin "HEAD:${GITHUB_HEAD_REF}"

@@ -17,8 +17,17 @@ herdr_install_dir: "{{ dotfiles_home }}/.local/bin"
 # herdr keeps config, plugin lock, logs and its sockets in one directory, so this is not only where config.toml lands -- it is the runtime directory too, and the role only ever writes config.toml inside it.
 herdr_config_dir: "{{ dotfiles_home }}/.config/herdr"
 
-# Upstream publishes no .sha256 beside its assets, unlike snyk. Set this to a sha256 hex digest -- alongside a pinned herdr_version -- to have get_url verify the download; empty skips verification.
-herdr_checksum: ""
+# sha256 of each release asset, pinned alongside herdr_version. Upstream publishes no checksum files, so these were computed from the assets themselves. On a Renovate bump, .github/workflows/herdr-checksums.yml recomputes them and pushes them to the pull request, and CI's converge then verifies the download against them. Ignored when herdr_version is empty.
+herdr_checksums:
+  x86_64: 2a02fed16beb651ef006e1d43f048f652ca4dc58ad053cd2d44450563d5c54b7
+  aarch64: f4ccf4de745f2cb9a39a983e9ba3703dad50ec2a58dea83026ceab721bbd8d9e
+
+# Agents whose herdr integration the role installs and keeps current (ADR 0009): herdr's hook script and its hook entries in the agent's settings.json, nothing else. Skipped where the agent's directory does not exist; herdr refuses to install into a missing one.
+herdr_integrations:
+  - name: claude
+    dir: .claude
+  - name: copilot
+    dir: .copilot
 
 # Replace the login shell with the herdr client, so a terminal window opens straight into the persistent session. Written as a marker block in ~/.zshenv, so false removes the block again rather than leaving it behind.
 herdr_autostart: true

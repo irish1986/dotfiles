@@ -33,6 +33,7 @@
     | selectattr('source.resolved_commit', 'equalto', herdr_plugin.commit)
     | list | length == 0
   changed_when: true
+  notify: Herdr | Reload the config
 
 - name: Herdr | Uninstall the listed plugins
   ansible.builtin.command:
@@ -46,3 +47,4 @@
     loop_var: herdr_plugin_id
   when: herdr_plugin_id in (herdr_plugins_installed | map(attribute='plugin_id'))
   changed_when: true
+  notify: Herdr | Reload the config
