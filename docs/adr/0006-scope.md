@@ -15,7 +15,7 @@ Out of scope, and removed:
 - Templates for other repositories. They live in their own repositories.
 - Secrets management. Environment secrets are managed by hand, outside the repo.
 - The MkDocs site. `README.md`, this directory and `CONTEXT.md` are the documentation; the role source is the reference.
-- Configuration of Claude Code. The `tools` role installs it; `~/.claude` is managed by hand.
+- Configuration of Claude Code. The `tools` role installs it; `~/.claude` is managed by hand, except for herdr's own hook ([0009](0009-herdr-agent-integrations.md)).
 
 ## Consequences
 
