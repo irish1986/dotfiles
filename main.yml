@@ -34,8 +34,8 @@
       - zsh
       - user # after zsh: the login shell must exist before it is set
       - tools # before git: git configures gh, which tools installs
+      - ssh # before git: it seeds ~/.ssh from Windows, and git only enables signing when the key is there
       - git
-      - ssh
       - docker
       - herdr # last: its autostart execs into the herdr binary
 
