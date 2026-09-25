@@ -1,0 +1,48 @@
+---
+# `plugin list` and `plugin install` work without a running server: plugins are files under the config directory, which the server reads when it starts or reloads.
+- name: Herdr | List the installed plugins
+  ansible.builtin.command: "{{ herdr_binary_path }} plugin list --json"
+  register: herdr_plugin_list
+  changed_when: false
+  check_mode: false
+
+- name: Herdr | Register the installed plugins
+  ansible.builtin.set_fact:
+    herdr_plugins_installed: "{{ (herdr_plugin_list.stdout | from_json).result.plugins }}"
+
+# Installed by commit rather than by tag: the commit is what the pin means, and it is also what `plugin list` reports back as resolved_commit, which makes the skip below exact. --yes because a remote install otherwise prompts for confirmation and fails without a terminal.
+- name: Herdr | Install the pinned plugins
+  ansible.builtin.command:
+    argv:
+      - "{{ herdr_binary_path }}"
+      - plugin
+      - install
+      - "{{ herdr_plugin.repo }}"
+      - --ref
+      - "{{ herdr_plugin.commit }}"
+      - --yes
+  loop: "{{ herdr_plugins }}"
+  loop_control:
+    loop_var: herdr_plugin
+    label: "{{ herdr_plugin.repo }} {{ herdr_plugin.ref }}"
+  when: >-
+    herdr_plugins_installed
+    | selectattr('source.owner', 'defined')
+    | selectattr('source.owner', 'equalto', herdr_plugin.repo.split('/') | first)
+    | selectattr('source.repo', 'equalto', herdr_plugin.repo.split('/') | last)
+    | selectattr('source.resolved_commit', 'equalto', herdr_plugin.commit)
+    | list | length == 0
+  changed_when: true
+
+- name: Herdr | Uninstall the listed plugins
+  ansible.builtin.command:
+    argv:
+      - "{{ herdr_binary_path }}"
+      - plugin
+      - uninstall
+      - "{{ herdr_plugin_id }}"
+  loop: "{{ herdr_plugins_remove }}"
+  loop_control:
+    loop_var: herdr_plugin_id
+  when: herdr_plugin_id in (herdr_plugins_installed | map(attribute='plugin_id'))
+  changed_when: true
