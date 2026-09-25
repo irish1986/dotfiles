@@ -13,3 +13,4 @@ Support and test Ubuntu 24.04 and 26.04 only. No codename is hardcoded: third-pa
 ## Consequences
 
 - A 22.04 machine is refused by the playbook's first assertion. Upgrade it first.
+- 26.04 ships sudo-rs as `sudo`, and its prompt wrapping defeats ansible's password-prompt match. Become uses classic sudo (`sudo.ws`, still installed alongside) wherever it exists; see `inventory/hosts.yml`. CI grants NOPASSWD, so it never sees a prompt and cannot catch a regression here.
