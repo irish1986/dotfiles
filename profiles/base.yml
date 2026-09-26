@@ -56,6 +56,14 @@ tools_debs:
     version: "2.68.1"
     url: https://github.com/fastfetch-cli/fastfetch/releases/download/{version}/fastfetch-linux-{arch}.deb
 
+tools_binaries:
+  # Token Use: token and cost usage across Claude Code, Copilot and other agents, read from their local session files. The TUI only; ~/.config/tokenuse is rewritten by the app, so it is yours to manage.
+  - name: tokenuse
+    # renovate: datasource=github-releases depName=russmckendrick/tokenuse
+    version: "1.2.6"
+    url: https://github.com/russmckendrick/tokenuse/releases/download/v{version}/tokenuse-linux-{arch}
+    checksum_url: "{url}.sha256"
+
 tools_scripts:
   # Also installed by scripts/setup before the first run; this entry covers a bare `ansible-playbook main.yml`.
   - name: uv
