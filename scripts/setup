@@ -15,7 +15,9 @@
 
 set -Eeuo pipefail
 
+# Cloned over HTTPS, which needs no key: on a bare machine the SSH key does not exist yet, or is not on GitHub, until the playbook has run. origin is then pointed at SSH, so later pulls and pushes use the machine key.
 readonly REPO_URL="https://github.com/irish1986/dotfiles.git"
+readonly REPO_SSH_URL="git@github.com:irish1986/dotfiles.git"
 # Floor: the strictest requires_ansible among collections/requirements.yml. Ceiling: 2.24 removes INJECT_FACTS_AS_VARS, which ansible.cfg still sets.
 readonly ANSIBLE_CORE_SPEC="ansible-core>=2.16,<2.24"
 readonly MIN_UBUNTU="24.04"
@@ -114,6 +116,7 @@ sync_checkout() {
     [[ ! -e $DOTFILES_DIR ]] || die "${DOTFILES_DIR} exists and is not a git checkout"
     info "Cloning into ${DOTFILES_DIR}"
     git clone --quiet "$REPO_URL" "$DOTFILES_DIR"
+    git -C "$DOTFILES_DIR" remote set-url origin "$REPO_SSH_URL"
   elif ((pull)); then
     # Never fatal: the checkout on disk is still worth applying, and this repo is edited locally.
     git -C "$DOTFILES_DIR" pull --ff-only --autostash --quiet || warn "could not fast-forward ${DOTFILES_DIR}; using it as it is"
