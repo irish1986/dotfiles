@@ -65,7 +65,6 @@ jobs:
       - name: Ensure every action is pinned by SHA
         uses: zgosalvez/github-actions-ensure-sha-pinned-actions@ca46236c6ce584ae24bc6283ba8dcf4b3ec8a066 # v5.0.4
 
-  # A real converge of each profile in a clean container of each supported release, through the bootstrap, run twice. The second run asserting changed=0 is what catches a non-idempotent task; each role's verify phase and each tool entry's verify command are what catch "installed something that does not work".
   converge:
     name: Converge (${{ matrix.release }}, ${{ matrix.profile }})
     runs-on: ubuntu-24.04
