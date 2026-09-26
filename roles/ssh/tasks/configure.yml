@@ -45,34 +45,39 @@
     - ssh_import_github_keys | bool
     - ssh_github_user | length > 0
 
-# Gated on WSL, unlike the previous version which stat'd /mnt/c unconditionally and so ran two pointless probes on every non-WSL host.
-- name: SSH | Seed the keypair from Windows
+# ADR 0011. On WSL the key lives in the Windows profile and is generated there with ssh-keygen.exe, which needs Windows interop.
+# The wsl role detects the Windows host, and --tags ssh alone skips it. Without this the Windows side would be skipped as though interop were down.
+- name: SSH | Detect the Windows host
+  ansible.builtin.include_role:
+    name: wsl
+    tasks_from: detect.yml
   when:
-    - ssh_import_from_windows | bool
-    - dotfiles_is_wsl | bool
-  block:
-    - name: SSH | Detect the Windows keypair
-      ansible.builtin.stat:
-        path: "{{ ssh_windows_dir }}/{{ ssh_windows_key }}"
-      register: ssh_windows_keys
-      loop:
-        - "{{ ssh_private_key }}"
-        - "{{ ssh_public_key }}"
-      loop_control:
-        loop_var: ssh_windows_key
-      become: false
+    - ssh_wsl_copy | bool
+    - wsl_interop_available is not defined
 
-    - name: SSH | Copy the Windows keypair
-      ansible.builtin.copy:
-        src: "{{ ssh_windows_dir }}/{{ ssh_windows_key }}"
-        dest: "{{ ssh_dir }}/{{ ssh_windows_key }}"
-        owner: "{{ dotfiles_user }}"
-        group: "{{ dotfiles_user }}"
-        mode: "0600"
-        force: false
-      loop:
-        - "{{ ssh_private_key }}"
-        - "{{ ssh_public_key }}"
-      loop_control:
-        loop_var: ssh_windows_key
-      when: ssh_windows_keys.results | selectattr('stat.exists') | list | length == 2
+- name: SSH | Report that the Windows side is unreachable
+  ansible.builtin.debug:
+    msg: >-
+      Windows interop is not available, so the Windows SSH key, its copy into this distro and the GitHub keys were skipped. The wsl role reports why.
+  when:
+    - ssh_wsl_copy | bool
+    - not (wsl_interop_available | default(false) | bool)
+
+- name: SSH | Manage the key
+  when: not (ssh_wsl_copy | bool) or (wsl_interop_available | default(false) | bool)
+  block:
+    - name: SSH | Create or rotate the key
+      ansible.builtin.include_tasks: "{{ role_path }}/tasks/key.yml"
+
+    - name: SSH | Copy the Windows key into this distro
+      ansible.builtin.include_tasks: "{{ role_path }}/tasks/copy.yml"
+      when:
+        - ssh_wsl_copy | bool
+        - ssh_key_public_body | length > 0
+
+    - name: SSH | Add the key to GitHub
+      ansible.builtin.include_tasks: "{{ role_path }}/tasks/github.yml"
+      when:
+        - ssh_github_register | bool
+        - ssh_key_public_body | length > 0
+        - ssh_gh_binary is file

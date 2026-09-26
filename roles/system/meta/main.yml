@@ -3,7 +3,7 @@ galaxy_info:
   role_name: system
   namespace: dotfiles
   author: irish1986
-  description: Hostname, base packages and the guest agent.
+  description: Hostname, base packages, the guest agent and Nerd Fonts.
   license: MIT
   min_ansible_version: "2.16"
   platforms:

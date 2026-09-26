@@ -7,14 +7,13 @@
 dotfiles_roles:
   - update
   - system
-  - fonts
   - wsl
   - zsh
   - user
   - tools
   - git
   - ssh
-  - docker
+  - secrets # installs only, until the local file names a source and targets (ADR 0012)
   - herdr
 
 tools_apt:
@@ -35,6 +34,20 @@ tools_apt_repos:
     packages:
       - gh
     verify: gh --version
+  # download.docker.com publishes one suite per codename and lags new releases. The entry named docker also brings the daemon configuration (roles/tools/tasks/docker.yml).
+  - name: docker
+    uri: https://download.docker.com/linux/ubuntu
+    key_url: https://download.docker.com/linux/ubuntu/gpg
+    suite_fallback: noble
+    components:
+      - stable
+    packages:
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-ce
+      - docker-ce-cli
+      - docker-compose-plugin
+    verify: docker --version
 
 tools_debs:
   # Not in the 24.04 archive.

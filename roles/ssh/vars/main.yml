@@ -1,6 +1,7 @@
 ---
 ssh_dir: "{{ dotfiles_home }}/.ssh"
-ssh_windows_dir: "/mnt/c/Users/{{ dotfiles_windows_user }}/.ssh"
+# The Windows home the wsl role resolved through interop (it runs first), which survives a Windows user name that differs from dotfiles_windows_user, a redirected profile and a non-C: profile drive.
+ssh_windows_dir: "{{ wsl_windows_home | default('/mnt/c/Users/' ~ dotfiles_windows_user) }}/.ssh"
 ssh_config_file: "{{ ssh_dir }}/config"
 
 # Paths, so they are computed rather than repeated. %C is the hash of (local host, remote host, port, user): a literal %r@%h:%p blows past the ~104-byte sun_path limit on long hostnames, and the failure looks like an unrelated connection error.
@@ -8,3 +9,14 @@ ssh_control_dir: "{{ ssh_dir }}/sockets"
 ssh_computed_config:
   IdentityFile: "{{ ssh_dir }}/{{ ssh_private_key }}"
   ControlPath: "{{ ssh_control_dir }}/%C"
+
+# Where the machine's one key is made: the Windows user's .ssh on WSL, copied into this distro from there (ADR 0011); this host's own otherwise.
+ssh_wsl_copy: "{{ (dotfiles_is_wsl | bool) and (ssh_copy_from_windows | bool) }}"
+ssh_key_dir: "{{ ssh_windows_dir if (ssh_wsl_copy | bool) else ssh_dir }}"
+ssh_key_private_path: "{{ ssh_key_dir }}/{{ ssh_private_key }}"
+ssh_key_public_path: "{{ ssh_key_dir }}/{{ ssh_public_key }}"
+
+# Absolute, not PATH-resolved: interop binaries are only on PATH when appendWindowsPath is on. Derived like the wsl role's paths, from the automount root.
+ssh_windows_c_drive: "{{ (wsl_automount_root | default('/mnt/')) | regex_replace('/+$', '') }}/c"
+ssh_windows_keygen: "{{ ssh_windows_c_drive }}/Windows/System32/OpenSSH/ssh-keygen.exe"
+ssh_gh_binary: /usr/bin/gh

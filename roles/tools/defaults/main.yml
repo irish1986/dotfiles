@@ -14,13 +14,13 @@
 # Package names from the Ubuntu archive. Upgraded by the update role, not pinned.
 tools_apt: []
 
-# Third-party apt repositories and the packages to install from them.
-#   name            becomes /etc/apt/sources.list.d/<name>.sources
+# Third-party apt repositories and the packages to install from them. The only way the playbook adds an apt source.
+#   name            becomes /etc/apt/sources.list.d/<name>.sources; an entry named docker also gets the daemon configuration below
 #   uri, key_url    repository base URI and signing key URL
 #   suite           default {codename}
-#   suite_fallback  suite to use when the vendor has not published {codename} yet; empty disables the probe
+#   suite_fallback  suite to use when the vendor has not published {codename} yet, found by probing dists/<suite>/Release; empty disables the probe
 #   components      default [main]
-#   probe           default true; false for flat or channel-named suites
+#   probe           default true; false for flat or channel-named suites, which have no dists/ layout to probe
 #   packages        what to install from it
 #   verify          optional command asserting it works
 tools_apt_repos: []
@@ -53,3 +53,11 @@ tools_files: []
 tools_remove_apt: []
 # Relative to $HOME.
 tools_remove_paths: []
+
+# Docker daemon configuration, applied when tools_apt_repos has an entry named docker.
+# Image/container/volume store. Left unset so Docker uses its default, /var/lib/docker. Relocating it into $HOME buys nothing on WSL -- /home and /var share one ext4.vhdx -- and Docker requires the directory root-owned 0710, which is hostile to anything that walks the home directory.
+tools_docker_data_root: ""
+tools_docker_address_pool_base: 172.10.0.0/16
+tools_docker_address_pool_size: 24
+tools_docker_experimental: true
+tools_docker_buildkit: true

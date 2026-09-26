@@ -32,3 +32,36 @@
   become: true
   when: system_is_vm_guest | bool
   notify: System | Start qemu
+
+- name: System | Install the font dependencies
+  ansible.builtin.apt:
+    name: >-
+      {{ system_fonts_dependencies
+         + ([] if (dotfiles_is_wsl | bool) else system_fonts_linux_dependencies) }}
+    state: present
+  become: true
+
+# mode 0755, not 0644: a directory without the execute bit cannot be traversed, so the unarchive below could never write into it.
+- name: System | Ensure the font directory exists
+  ansible.builtin.file:
+    path: "{{ system_fonts_dir }}"
+    state: directory
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0755"
+
+- name: System | Install Nerd Fonts
+  ansible.builtin.unarchive:
+    src: >-
+      https://github.com/ryanoasis/nerd-fonts/releases/download/v{{ system_fonts_version }}/{{ system_nerd_font }}.zip
+    dest: "{{ system_fonts_dir }}"
+    remote_src: true
+    creates: "{{ system_fonts_dir }}/{{ system_nerd_font }}{{ system_fonts_probe_suffix }}"
+    exclude:
+      - LICENSE
+      - LICENSE.txt
+      - README.md
+  loop: "{{ system_nerd_fonts }}"
+  loop_control:
+    loop_var: system_nerd_font
+  notify: System | Update font cache

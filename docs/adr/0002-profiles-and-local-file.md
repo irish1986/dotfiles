@@ -12,6 +12,7 @@ Each machine used to carry one gitignored `inventory/group_vars/all.yml` holding
 - `~/.config/dotfiles/local.yml` holds identity, machine specifics and network values, and names the profile in `dotfiles_profile`. It lives outside the checkout so it can never be committed and survives a re-clone.
 - The playbook loads base, the named profile, then the local file. Later layers override scalars and dictionaries key by key and append to lists (`combine(recursive=true, list_merge='append_rp')`).
 - `scripts/setup --profile work` records the profile once; later runs need no flags.
+- From a terminal, `scripts/setup` asks for the core values -- profile, git identity, GitHub login -- whenever one is missing (and for all of them with `--configure`), so a first run needs no hand-editing. Without a terminal it only warns, so CI and unattended runs stay flag-driven.
 - Role order is fixed in the playbook, not by the order roles appear in the layers, so a profile that adds `network` still gets it before anything downloads.
 
 ## Consequences

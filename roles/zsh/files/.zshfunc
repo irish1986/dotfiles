@@ -48,14 +48,12 @@ mkdirg() {
     cd "$1"
 }
 
-# Automatically do an ls after each cd, z, or zoxide
-cd () {
-    if [ -n "$1" ]; then
-        builtin cd "$@" && ls
-    else
-        builtin cd ~ && ls
-    fi
-}
+# Automatically do an ls after each cd, z, or zoxide. A chpwd hook rather than a cd() override, which only covered cd and still listed inside scripts and agent shells; terminal only (see .zshrc).
+if [[ -n $_dotfiles_terminal ]]; then
+    _dotfiles_auto_ls() { ls }
+    autoload -Uz add-zsh-hook
+    add-zsh-hook chpwd _dotfiles_auto_ls
+fi
 
 # Returns the last 2 fields of the working directory
 pwdtail() {

@@ -4,12 +4,26 @@
     repo: "{{ zsh_plugin.repo }}"
     version: "{{ zsh_plugin.version }}"
     dest: "{{ zsh_omz_dir }}/custom/{{ zsh_plugin.type }}/{{ zsh_plugin.name }}"
-    depth: 1
+    # A shallow clone can only fetch a branch or tag; for a commit pin the git module falls back to a full clone and warns, so ask for one outright.
+    depth: "{{ omit if zsh_plugin.version is match('^[0-9a-f]{40}$') else 1 }}"
     force: true
   loop: "{{ zsh_plugins }}"
   loop_control:
     loop_var: zsh_plugin
     label: "{{ zsh_plugin.name }}"
+
+# Ubuntu's /etc/zsh/zshrc runs compinit before ~/.zshrc -- ahead of the p10k instant prompt, and against a different fpath from oh-my-zsh's, so ~/.zcompdump was rebuilt on every start. oh-my-zsh runs compinit itself; this was ~1.2 s of a ~2 s startup. It has to be set in .zshenv, the only user file read before /etc/zsh/zshrc. A block rather than a file: the herdr and network roles keep blocks of their own in ~/.zshenv.
+- name: ZSH | Skip the system-wide compinit
+  ansible.builtin.blockinfile:
+    path: "{{ dotfiles_home }}/.zshenv"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK zsh"
+    insertbefore: BOF
+    create: true
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0600"
+    block: |
+      skip_global_compinit=1
 
 - name: ZSH | Deploy the shell dotfiles
   ansible.builtin.copy:

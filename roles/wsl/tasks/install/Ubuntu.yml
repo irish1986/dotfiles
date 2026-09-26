@@ -7,26 +7,45 @@
     group: root
     mode: "0644"
   become: true
-  notify: WSL | Shutdown required
+  notify: WSL | Terminate required
 
 - name: WSL | Install the clipboard bridge
   when: wsl_manage_win32yank | bool
   block:
-    - name: WSL | Ensure the user bin directory exists
+    - name: WSL | Ensure the win32yank directories exist
       ansible.builtin.file:
-        path: "{{ wsl_local_bin }}"
+        path: "{{ wsl_win32yank_directory }}"
         state: directory
         owner: "{{ dotfiles_user }}"
         group: "{{ dotfiles_user }}"
         mode: "0755"
+      loop:
+        - "{{ wsl_local_bin }}"
+        - "{{ wsl_win32yank_dir }}"
+      loop_control:
+        loop_var: wsl_win32yank_directory
 
-    # A Windows .exe stored on ext4 executes fine through the WSLInterop binfmt handler, so there is no need to place it on /mnt/c.
+    # A Windows .exe stored on ext4 executes fine through the WSLInterop binfmt handler, so there is no need to place it on /mnt/c. The creates: guard is per version, so a bump downloads the new release.
     - name: WSL | Install win32yank
       ansible.builtin.unarchive:
         src: "{{ wsl_win32yank_url }}"
-        dest: "{{ wsl_local_bin }}"
+        dest: "{{ wsl_win32yank_dir }}"
         remote_src: true
         include:
           - win32yank.exe
+        owner: "{{ dotfiles_user }}"
+        group: "{{ dotfiles_user }}"
         mode: "0755"
-        creates: "{{ wsl_win32yank_path }}"
+        creates: "{{ wsl_win32yank_dir }}/win32yank.exe"
+      # unarchive refuses a dest that does not exist, which in check mode it never will on the run that introduces a version.
+      when: not ansible_check_mode or wsl_win32yank_dir is directory
+
+    # force: replaces the plain file an earlier version of this role installed at this path.
+    - name: WSL | Link win32yank onto PATH
+      ansible.builtin.file:
+        src: "{{ wsl_win32yank_dir }}/win32yank.exe"
+        dest: "{{ wsl_win32yank_path }}"
+        state: link
+        force: true
+        owner: "{{ dotfiles_user }}"
+        group: "{{ dotfiles_user }}"

@@ -2,7 +2,7 @@
 # ── /etc/wsl.conf ─────────────────────────────────────────────────────────
 wsl_systemd: true
 
-# metadata is the highest-value option here. Without it every file under /mnt/c reports mode 0777, so git treats mode changes as diffs and chmod is a no-op. umask/fmask give 0755 directories and 0644 files.
+# metadata is the highest-value option here. Without it every file under /mnt/c reports mode 0777, so git treats mode changes as diffs and chmod is a no-op. The masks are OR-ed, so umask=22,fmask=11 gives 0755 directories and 0744 files -- the owner execute bit is kept on purpose, because a file without stored metadata (every .exe under /mnt/c) gets this default, and fmask=133 would make cmd.exe and powershell.exe unrunnable from this distro.
 wsl_automount_enabled: true
 wsl_automount_root: /mnt/
 wsl_automount_options: "metadata,umask=22,fmask=11"
@@ -20,25 +20,34 @@ wsl_network_generate_resolv_conf: true
 
 wsl_default_user: "{{ dotfiles_user }}"
 
+# ── Shared Windows-side state ─────────────────────────────────────────────
+# .wslconfig, Terminal's settings.json and the per-user font registry belong to the Windows user, not to a distro, so every distro that runs this playbook would otherwise write them from its own variables and they overwrite each other on every run. With several distros, set this to one distro's WSL_DISTRO_NAME in *every* distro's local file: only that distro writes the shared state, the others check it and warn on drift. Empty keeps the single-distro behaviour: this distro writes it.
+wsl_global_owner: ""
+
 # ── .wslconfig (Windows side, WSL2 only) ──────────────────────────────────
+# Managed key by key, never as a whole file: the WSL Settings app edits the same file, and a template would revert everything it changed. An empty value leaves that key alone -- whatever is in the file, or WSL's default, stays.
 wsl_manage_wslconfig: true
-# Human-readable rather than the raw 51539607552 bytes the file had.
+# Human-readable rather than the raw 51539607552 bytes the file had. Sized for a 64 GB workstation; override in the local file elsewhere.
 wsl_config_memory: 48GB
-# Half the host cores, leaving headroom for Windows during a heavy build.
-wsl_config_processors: "{{ ((ansible_facts.processor_vcpus | default(4)) / 2) | round | int }}"
+# Half the host cores, leaving headroom for Windows during a heavy build. Computed from the *Windows* core count (detect.yml): the vCPUs visible inside the VM are the ones this very key limits, so deriving it from ansible_facts halved the value after every wsl --shutdown until the whole VM ran on one core.
+wsl_config_processors: >-
+  {{ (((wsl_host_processors | default(0) | int) / 2) | round(0, 'ceil') | int) if (wsl_host_processors | default(0) | int) > 0 else '' }}
 wsl_config_swap: 8GB
 wsl_config_networking_mode: mirrored
+# dnsTunneling, firewall, guiApplications and nestedVirtualization already default to true in current WSL; pinned so an older WSL behaves the same.
 wsl_config_dns_tunneling: true
 wsl_config_firewall: true
 wsl_config_gui_applications: true
 wsl_config_nested_virtualization: true
-# The biggest quality-of-life win: WSL2 otherwise never returns freed page cache to Windows, so with memory=48GB the VM sits on 48GB indefinitely. `gradual` is safe; `dropcache` is aggressive and hurts build throughput.
+# WSL 2.x defaults to dropCache, which returns freed page cache to Windows promptly but hurts build throughput; `gradual` releases it over time.
 wsl_config_auto_memory_reclaim: gradual
 # Applies to newly created disks only. An existing ext4.vhdx also needs `wsl --manage <distro> --set-sparse true` with the distro stopped.
 wsl_config_sparse_vhd: true
 
 # ── Windows Terminal ──────────────────────────────────────────────────────
 wsl_manage_terminal: true
+# Opt-in: makes *this* distro's Terminal profile the default one. Only the global owner applies it, so two distros cannot take turns.
+wsl_terminal_set_default_profile: false
 # Only profiles.defaults and scalar globals are managed. profiles.list belongs to Terminal's own generators, and actions/keybindings/schemes/themes are left to the UI -- combine(recursive=true) replaces lists wholesale, so managing them would silently revert anything changed there.
 wsl_terminal_settings:
   copyOnSelect: false
@@ -57,7 +66,7 @@ wsl_terminal_settings:
       padding: "2"
       scrollbarState: hidden
       font:
-        face: "{{ (fonts_nerd_fonts | first | default('Hack')) }} Nerd Font"
+        face: "{{ (system_nerd_fonts | first | default('Hack')) }} Nerd Font"
         size: 12
 
 # ── Windows-side fonts ────────────────────────────────────────────────────

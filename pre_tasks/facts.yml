@@ -17,21 +17,37 @@
     dotfiles_hostname: "{{ dotfiles_hostname | default(ansible_facts.hostname, true) }}"
     dotfiles_windows_user: "{{ dotfiles_windows_user | default(dotfiles_user, true) }}"
 
-# Two independent signals, because neither is reliable alone:
-#   * ansible_facts.virtualization_type reports "wsl" on some ansible-core versions but "container" on others (2.16.3 reports "container" on WSL2).
-#   * the kernel string is stable across both WSL1 ("...-Microsoft") and WSL2
+# Container markers first. Docker Desktop and any container on a WSL2 host run on the same "microsoft" kernel, so the kernel string alone treated them as WSL and wrote wsl.conf into a container. Docker writes /.dockerenv, podman /run/.containerenv.
+- name: Facts | Detect container markers
+  ansible.builtin.stat:
+    path: "{{ dotfiles_container_marker }}"
+  register: dotfiles_container_markers
+  loop:
+    - /.dockerenv
+    - /run/.containerenv
+  loop_control:
+    loop_var: dotfiles_container_marker
+
+# The kernel string, not ansible_facts.virtualization_type: that reports "wsl" only when systemd has written /run/systemd/container, and "container" otherwise (2.16.3 reports "container" on WSL2). WSL1 kernels end in "-Microsoft"; any other "microsoft" kernel is WSL2, which also covers a custom kernel whose name lacks "WSL2" -- the previous test searched for "wsl2" and treated such a kernel as WSL1, skipping .wslconfig.
 - name: Facts | Detect WSL
   ansible.builtin.set_fact:
+    dotfiles_has_container_marker: "{{ dotfiles_container_markers.results | selectattr('stat.exists') | list | length > 0 }}"
     dotfiles_is_wsl: >-
-      {{ (ansible_facts.virtualization_type | default('') == 'wsl')
-         or (ansible_facts.kernel is search('(?i)microsoft')) }}
-    dotfiles_wsl_version: "{{ 2 if (ansible_facts.kernel is search('(?i)wsl2')) else 1 }}"
+      {{ (ansible_facts.kernel is search('(?i)microsoft'))
+         and not (dotfiles_container_markers.results | selectattr('stat.exists') | list | length > 0) }}
+    dotfiles_wsl_version: "{{ 1 if (ansible_facts.kernel is search('-Microsoft$')) else 2 }}"
 
 # /run/systemd/system exists only when systemd is PID 1 -- the same test sd_booted() makes. ansible_facts.service_mgr alone is not enough: it reports systemd as soon as the systemd package is installed, so in a container the second run saw "systemd" and failed every service task.
 - name: Facts | Detect a running systemd
   ansible.builtin.stat:
     path: /run/systemd/system
   register: dotfiles_systemd_runtime
+
+# The user's own manager, which `scope: user` tasks talk to. It can be dead while PID 1 is fine: on WSL's first boot user@<uid>.service regularly fails with "Device or resource busy" (microsoft/WSL#8842), and every systemctl --user call then fails until the distro restarts.
+- name: Facts | Detect a running user manager
+  ansible.builtin.stat:
+    path: "/run/user/{{ ansible_facts.user_uid }}/systemd/private"
+  register: dotfiles_user_systemd_runtime
 
 - name: Facts | Detect the runtime environment
   ansible.builtin.set_fact:
@@ -40,8 +56,24 @@
       {{ ansible_facts.service_mgr == 'systemd' and dotfiles_systemd_runtime.stat.isdir | default(false) }}
     # WSL also reports virtualization_type "container", hence the is_wsl guard.
     dotfiles_in_container: >-
-      {{ (ansible_facts.virtualization_type | default('') in ['container', 'containerd', 'docker', 'podman'])
-         and not (dotfiles_is_wsl | bool) }}
+      {{ (dotfiles_has_container_marker | bool)
+         or ((ansible_facts.virtualization_type | default('') in ['container', 'containerd', 'docker', 'podman'])
+             and not (dotfiles_is_wsl | bool)) }}
+
+- name: Facts | Detect the user manager
+  ansible.builtin.set_fact:
+    dotfiles_has_user_systemd: >-
+      {{ (dotfiles_has_systemd | bool) and (dotfiles_user_systemd_runtime.stat.exists | default(false)) }}
+
+- name: Facts | Warn about a failed user manager
+  ansible.builtin.debug:
+    msg: >-
+      systemd is running but the user manager for {{ ansible_facts.user_id }} is not, so user services are skipped this run.
+      {{ 'On WSL this is the first-boot failure of user@' ~ ansible_facts.user_uid ~ '.service: run `wsl --terminate ' ~ lookup('ansible.builtin.env', 'WSL_DISTRO_NAME') ~ '` from Windows and re-run.' if dotfiles_is_wsl | bool else 'Check `systemctl status user@' ~ ansible_facts.user_uid ~ '`.' }}
+  when:
+    - dotfiles_has_systemd | bool
+    - not (dotfiles_has_user_systemd | bool)
+    - not (dotfiles_in_container | bool)
 
 - name: Facts | Decide whether reboots are permitted
   ansible.builtin.set_fact:
@@ -78,6 +110,6 @@
       ({{ ansible_facts.distribution_release }}/{{ dotfiles_dpkg_architecture }})
       home={{ dotfiles_home }}
       wsl={{ dotfiles_is_wsl }}{{ ' v' ~ dotfiles_wsl_version if dotfiles_is_wsl | bool else '' }}
-      systemd={{ dotfiles_has_systemd }}
+      systemd={{ dotfiles_has_systemd }}{{ '' if dotfiles_has_user_systemd | bool or not dotfiles_has_systemd | bool else ' (no user manager)' }}
       container={{ dotfiles_in_container }}
       reboot={{ dotfiles_can_reboot }}

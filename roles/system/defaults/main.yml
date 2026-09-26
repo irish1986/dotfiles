@@ -16,3 +16,21 @@ system_loopback_address: 127.0.1.1
 # Installed only on a virtualised guest that is not WSL.
 system_guest_agent_packages:
   - qemu-guest-agent
+
+# ── Nerd Fonts ────────────────────────────────────────────────────────────
+# Unpacked to system_fonts_dir on every host. Off WSL they are registered with fontconfig; on WSL the terminal is Windows Terminal, so the wsl role copies them from there and registers them with Windows instead.
+# Asset names, not a family label. The previous value was fonts.nf: Nerd, which built .../Nerd.zip -- an asset that has never existed in a Nerd Fonts release.
+system_nerd_fonts:
+  - Hack
+
+# Pinned (ADR 0004). A bump downloads nothing on a machine that already has the fonts: the creates: guard in the install task keys on the file, not the version.
+# renovate: datasource=github-releases depName=ryanoasis/nerd-fonts
+system_fonts_version: "3.5.1"
+system_fonts_dir: "{{ dotfiles_home }}/.local/share/fonts"
+
+# unarchive shells out to unzip for .zip assets, and a minimal image does not carry it.
+system_fonts_dependencies:
+  - unzip
+# Off WSL only: fc-cache and fc-list live in fontconfig.
+system_fonts_linux_dependencies:
+  - fontconfig

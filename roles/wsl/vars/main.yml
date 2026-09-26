@@ -2,11 +2,36 @@
 wsl_conf_path: /etc/wsl.conf
 wsl_local_bin: "{{ dotfiles_home }}/.local/bin"
 wsl_win32yank_path: "{{ dotfiles_home }}/.local/bin/win32yank.exe"
+# Versioned, so a Renovate bump installs the new release instead of being skipped by the creates: guard; the stable path above is a symlink into it.
+wsl_win32yank_dir: "{{ dotfiles_home }}/.local/opt/win32yank-{{ wsl_win32yank_version }}"
 
-# Absolute, not PATH-resolved. Interop binaries are only on PATH when appendWindowsPath is on, and this role must keep working if it is turned off.
-wsl_system32: /mnt/c/Windows/System32
-wsl_cmd: /mnt/c/Windows/System32/cmd.exe
-wsl_powershell: /mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe
+# Derived from the configured automount root rather than hardcoded /mnt/c. Absolute, not PATH-resolved: interop binaries are only on PATH when appendWindowsPath is on, and this role must keep working if it is turned off.
+wsl_c_drive: "{{ wsl_automount_root | regex_replace('/+$', '') }}/c"
+wsl_system32: "{{ wsl_c_drive }}/Windows/System32"
+wsl_cmd: "{{ wsl_system32 }}/cmd.exe"
+wsl_powershell: "{{ wsl_system32 }}/WindowsPowerShell/v1.0/powershell.exe"
+wsl_exe: "{{ wsl_system32 }}/wsl.exe"
+
+# The distro this run is in. Read from the controller environment: under connection: local that is the login user's shell, which WSL's init always populates, whereas the ansible_env gathered under become has lost it.
+wsl_distro_name: "{{ lookup('ansible.builtin.env', 'WSL_DISTRO_NAME') }}"
+wsl_is_global_owner: >-
+  {{ (wsl_global_owner | default('') | length == 0) or (wsl_global_owner == wsl_distro_name) }}
+
+# The release carrying the fix for microsoft/WSL#13885, where one systemd distro stopping cleared the interop binfmt entry for every running distro.
+wsl_min_version: "2.7.6"
+
+# .wslconfig, one entry per key. Keys whose value renders empty are left untouched.
+wsl_config_entries:
+  - { section: wsl2, option: memory, value: "{{ wsl_config_memory | string }}" }
+  - { section: wsl2, option: processors, value: "{{ wsl_config_processors | string }}" }
+  - { section: wsl2, option: swap, value: "{{ wsl_config_swap | string }}" }
+  - { section: wsl2, option: networkingMode, value: "{{ wsl_config_networking_mode | string }}" }
+  - { section: wsl2, option: dnsTunneling, value: "{{ wsl_config_dns_tunneling | string | lower }}" }
+  - { section: wsl2, option: firewall, value: "{{ wsl_config_firewall | string | lower }}" }
+  - { section: wsl2, option: guiApplications, value: "{{ wsl_config_gui_applications | string | lower }}" }
+  - { section: wsl2, option: nestedVirtualization, value: "{{ wsl_config_nested_virtualization | string | lower }}" }
+  - { section: experimental, option: autoMemoryReclaim, value: "{{ wsl_config_auto_memory_reclaim | string }}" }
+  - { section: experimental, option: sparseVhd, value: "{{ wsl_config_sparse_vhd | string | lower }}" }
 
 # Store and Preview packages, plus the unpackaged install, in probe order.
 wsl_terminal_candidates:
@@ -18,3 +43,7 @@ wsl_terminal_candidates:
 wsl_terminal_stray_settings:
   - "{{ wsl_windows_home }}/AppData/Local/Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/settings.json"
   - "{{ wsl_windows_home }}/AppData/Local/Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/elevated-state.json"
+
+# Per-user font directory. The staging directory is where the previous implementation copied every font on every run; it is removed if a run of that version left it behind.
+wsl_windows_fonts_dir: "{{ wsl_windows_home }}/AppData/Local/Microsoft/Windows/Fonts"
+wsl_windows_fonts_staging: "{{ wsl_windows_home }}/AppData/Local/Temp/dotfiles-fonts"

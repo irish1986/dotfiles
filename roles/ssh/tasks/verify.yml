@@ -48,7 +48,8 @@
 
     # `ssh -G` resolves the config the way a real connection would, without connecting. Reading it back from the installed file catches a bad merge that the blockinfile validate step could not see, because validate only ever saw this role's own block.
     - name: SSH | Resolve the effective configuration
-      ansible.builtin.command: ssh -G example.com
+      # -T: with no remote command ssh plans an interactive session, and without it prints "Pseudo-terminal will not be allocated" because ansible's stdin is not a terminal.
+      ansible.builtin.command: ssh -T -G example.com
       register: ssh_effective
       changed_when: false
       failed_when: false
@@ -70,3 +71,47 @@
           ssh resolves a different cipher list than {{ ssh_config_file }} sets. Something above the managed block claims `Host *` -- ssh takes the first value it finds for a keyword, so that entry wins.
         success_msg: "the managed defaults are in effect"
         quiet: true
+
+- name: SSH | Verify the key
+  when:
+    - ssh_generate_key | bool
+    - not (ssh_wsl_copy | bool) or (wsl_interop_available | default(false) | bool)
+  block:
+    - name: SSH | Check the key pair
+      ansible.builtin.stat:
+        path: "{{ ssh_dir }}/{{ ssh_key_check_file }}"
+      register: ssh_key_check
+      loop:
+        - "{{ ssh_private_key }}"
+        - "{{ ssh_public_key }}"
+      loop_control:
+        loop_var: ssh_key_check_file
+
+    - name: SSH | Assert the key pair is in place
+      ansible.builtin.assert:
+        that:
+          - ssh_key_check.results[0].stat.exists
+          - ssh_key_check.results[0].stat.mode == '0600'
+          - ssh_key_check.results[1].stat.exists
+        fail_msg: >-
+          {{ ssh_dir }}/{{ ssh_private_key }} is {{ ssh_key_check.results[0].stat.mode | default('missing') }} and
+          {{ ssh_dir }}/{{ ssh_public_key }} is {{ 'present' if ssh_key_check.results[1].stat.exists else 'missing' }}; ssh needs both, with the private key 0600.
+        success_msg: "{{ ssh_dir }}/{{ ssh_private_key }} present and 0600"
+        quiet: true
+
+    # The copy is only as good as its last run: this catches a distro left behind by a rotation made elsewhere.
+    - name: SSH | Verify the distro key is the Windows key
+      when: ssh_wsl_copy | bool
+      block:
+        - name: SSH | Read the distro public key
+          ansible.builtin.slurp:
+            src: "{{ ssh_dir }}/{{ ssh_public_key }}"
+          register: ssh_key_distro
+
+        - name: SSH | Assert the distro key is the Windows key
+          ansible.builtin.assert:
+            that:
+              - ssh_key_public_body | default('') in (ssh_key_distro.content | b64decode)
+            fail_msg: "{{ ssh_dir }}/{{ ssh_public_key }} differs from {{ ssh_key_public_path }}; re-run --tags ssh."
+            success_msg: "{{ ssh_dir }}/{{ ssh_public_key }} matches the Windows key"
+            quiet: true

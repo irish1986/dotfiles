@@ -2,3 +2,6 @@
 system_is_vm_guest: >-
   {{ (ansible_facts.virtualization_role | default('') == 'guest')
      and not (dotfiles_is_wsl | bool) }}
+
+# Each Nerd Fonts release ships <Name>NerdFont-Regular.ttf; used as the creates: guard so the archive is fetched once rather than on every run.
+system_fonts_probe_suffix: NerdFont-Regular.ttf

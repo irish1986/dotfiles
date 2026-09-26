@@ -28,15 +28,14 @@
     dotfiles_role_order:
       - network # first: a proxy and its CA have to be in place before anything downloads
       - update # apt upgrade first, so everything below installs current
-      - system # hostname, base packages
-      - fonts # before wsl: the Windows font install stages from ~/.local/share/fonts
+      - system # hostname, base packages, Nerd Fonts -- before wsl: the Windows font install reads ~/.local/share/fonts
       - wsl # before zsh: .p10k.zsh renders as mojibake without a Nerd Font
       - zsh
       - user # after zsh: the login shell must exist before it is set
       - tools # before git: git configures gh, which tools installs
+      - ssh # before git: it creates or copies the key (ADR 0011), and git only enables signing when the key is there
       - git
-      - ssh
-      - docker
+      - secrets # before herdr: its .zshenv block must sit above herdr's exec (ADR 0012)
       - herdr # last: its autostart execs into the herdr binary
 
   pre_tasks:

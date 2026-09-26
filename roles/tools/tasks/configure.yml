@@ -40,9 +40,42 @@
   loop_control:
     loop_var: tools_remove_path
 
+# Only packages whose removal takes nothing else with it. A stock install depends on some of these through a metapackage (tmux via byobu -> ubuntu-wsl on WSL, tmux and htop via ubuntu-server), and removing one silently removes the metapackage too; the next upgrade's autoremove then strips everything it was holding, snapd and wsl-pro-service included.
+- name: Tools | Simulate removing the listed apt packages
+  ansible.builtin.command:
+    argv: [apt-get, --simulate, --quiet, remove, "{{ tools_remove_pkg }}"]
+  environment:
+    LC_ALL: C
+  register: tools_remove_sim
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  loop: "{{ tools_remove_apt }}"
+  loop_control:
+    loop_var: tools_remove_pkg
+
+- name: Tools | Register the packages safe to remove
+  ansible.builtin.set_fact:
+    # "Remv <pkg> [...]": exactly one such line means the package goes alone. None means it is not installed.
+    tools_remove_safe: >-
+      {{ tools_remove_sim.results
+         | selectattr('stdout', 'search', '(?m)^Remv ')
+         | rejectattr('stdout', 'search', '(?ms)^Remv .*^Remv ')
+         | map(attribute='tools_remove_pkg') | list }}
+    tools_remove_held: >-
+      {{ tools_remove_sim.results
+         | selectattr('stdout', 'search', '(?ms)^Remv .*^Remv ')
+         | map(attribute='tools_remove_pkg') | list }}
+
+- name: Tools | Report packages kept because other packages depend on them
+  ansible.builtin.debug:
+    msg: >-
+      Kept {{ tools_remove_held | join(', ') }}: removing them would also remove packages that depend on them, such as a distribution metapackage.
+  when: tools_remove_held | length > 0
+
 - name: Tools | Remove the listed apt packages
   ansible.builtin.apt:
-    name: "{{ tools_remove_apt }}"
+    name: "{{ tools_remove_safe }}"
     state: absent
   become: true
-  when: tools_remove_apt | length > 0
+  when: tools_remove_safe | length > 0

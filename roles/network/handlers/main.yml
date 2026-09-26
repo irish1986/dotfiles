@@ -1,5 +1,5 @@
 ---
-# try-restart: restarts docker only if it is running, and is a no-op before the docker role has installed it -- this role runs first.
+# try-restart: restarts docker only if it is running, and is a no-op before the tools role has installed it -- this role runs first.
 - name: Network | Restart docker
   ansible.builtin.systemd_service:
     name: docker

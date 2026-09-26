@@ -25,33 +25,43 @@
       git_user_name and git_user_email are not set, so ~/.gitconfig gets no user.name, user.email or signing identity. Set them in {{ dotfiles_local_file }}.
   when: not (git_identity_set | bool)
 
+- name: Git | Detect the signing key
+  ansible.builtin.stat:
+    path: "{{ git_signing_key_path }}"
+  register: git_signing_key_stat
+
+# Signing is all or nothing: gpgsign=true without a key makes every `git commit` fail with "Couldn't load public key", which on a fresh machine is every commit until a key is generated.
+- name: Git | Register whether commits can be signed
+  ansible.builtin.set_fact:
+    git_signing_ready: "{{ (git_identity_set | bool) and git_signing_key_stat.stat.exists }}"
+
+- name: Git | Warn about a missing signing key
+  ansible.builtin.debug:
+    msg: >-
+      {{ git_signing_key_path }} does not exist, so commit and tag signing are turned off. Create the key, or point git_signing_key in {{ dotfiles_local_file }} at an existing one, and re-run --tags git.
+  when:
+    - git_identity_set | bool
+    - not git_signing_key_stat.stat.exists
+
 - name: Git | Configure commit signing
-  when: git_identity_set | bool
+  when: git_signing_ready | bool
   block:
-    - name: Git | Detect the signing key
-      ansible.builtin.stat:
-        path: "{{ git_signing_key_path }}"
-      register: git_signing_key_stat
+    - name: Git | Read the signing key
+      ansible.builtin.slurp:
+        src: "{{ git_signing_key_path }}"
+      register: git_signing_key_content
 
-    - name: Git | Register the allowed signer
-      when: git_signing_key_stat.stat.exists
-      block:
-        - name: Git | Read the signing key
-          ansible.builtin.slurp:
-            src: "{{ git_signing_key_path }}"
-          register: git_signing_key_content
-
-        # marker: keyed on the email, so rotating a key replaces that signer's line instead of appending a second one. Without it blockinfile grows the file every time the key changes.
-        - name: Git | Add the allowed signer
-          ansible.builtin.blockinfile:
-            path: "{{ git_allowed_signers }}"
-            marker: "# {mark} ANSIBLE MANAGED BLOCK {{ git_user_email }}"
-            create: true
-            owner: "{{ dotfiles_user }}"
-            group: "{{ dotfiles_user }}"
-            mode: "0644"
-            block: |
-              {{ git_user_email }} {{ git_signing_key_content.content | b64decode | trim }}
+    # marker: keyed on the email, so rotating a key replaces that signer's line instead of appending a second one. Without it blockinfile grows the file every time the key changes.
+    - name: Git | Add the allowed signer
+      ansible.builtin.blockinfile:
+        path: "{{ git_allowed_signers }}"
+        marker: "# {mark} ANSIBLE MANAGED BLOCK {{ git_user_email }}"
+        create: true
+        owner: "{{ dotfiles_user }}"
+        group: "{{ dotfiles_user }}"
+        mode: "0644"
+        block: |
+          {{ git_user_email }} {{ git_signing_key_content.content | b64decode | trim }}
 
 - name: Git | Write the git configuration
   community.general.git_config:
@@ -59,7 +69,9 @@
     value: "{{ git_config_entry.value }}"
     scope: file
     file: "{{ git_config_file }}"
-  loop: "{{ (git_config | combine(git_computed_config)) | dict2items }}"
+  loop: >-
+    {{ (git_config | combine(git_computed_config)
+        | combine({} if git_signing_ready | bool else git_signing_off_config)) | dict2items }}
   loop_control:
     loop_var: git_config_entry
     label: "{{ git_config_entry.key }}"

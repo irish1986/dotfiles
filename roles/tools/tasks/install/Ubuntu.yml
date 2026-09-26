@@ -1,17 +1,32 @@
 ---
 # Order matters only where one kind depends on another: repositories before their packages, and the uv installer (a script) before uv tools.
 
+# deb822_repository is implemented on top of python3-debian, which is not installed by default on a minimal Ubuntu image.
+- name: Tools | Install the deb822 dependency
+  ansible.builtin.apt:
+    name: python3-debian
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+  become: true
+  when: tools_apt_repos | length > 0
+
+# Left behind by the pre-deb822 docker role, which used the deprecated apt_key module. Removing them prevents a duplicate-source warning on every apt update and drops a key from the legacy trusted keyring.
+- name: Tools | Remove pre-deb822 docker artefacts
+  ansible.builtin.file:
+    path: "{{ tools_docker_legacy_artifact }}"
+    state: absent
+  become: true
+  loop: "{{ tools_docker_legacy_artifacts }}"
+  loop_control:
+    loop_var: tools_docker_legacy_artifact
+  when: tools_docker_enabled | bool
+
 - name: Tools | Configure the apt repositories
-  ansible.builtin.include_role:
-    name: apt_repo
+  ansible.builtin.include_tasks: "{{ role_path }}/tasks/kinds/apt_repo.yml"
   vars:
-    apt_repo_name: "{{ tools_repo.name }}"
-    apt_repo_uri: "{{ tools_repo.uri | replace('{codename}', ansible_facts.distribution_release) }}"
-    apt_repo_key_url: "{{ tools_repo.key_url | replace('{codename}', ansible_facts.distribution_release) }}"
-    apt_repo_suite: "{{ tools_repo.suite | default('{codename}') | replace('{codename}', ansible_facts.distribution_release) }}"
-    apt_repo_suite_fallback: "{{ tools_repo.suite_fallback | default('') }}"
-    apt_repo_components: "{{ tools_repo.components | default(['main']) }}"
-    apt_repo_probe: "{{ tools_repo.probe | default(true) }}"
+    tools_repo_uri: "{{ tools_repo.uri | replace('{codename}', ansible_facts.distribution_release) }}"
+    tools_repo_suite: "{{ tools_repo.suite | default('{codename}') | replace('{codename}', ansible_facts.distribution_release) }}"
   loop: "{{ tools_apt_repos }}"
   loop_control:
     loop_var: tools_repo

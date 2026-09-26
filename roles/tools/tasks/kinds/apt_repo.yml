@@ -1,0 +1,58 @@
+---
+# One apt repository entry, as tools_repo, configured as a deb822 .sources file.
+#
+# The suite is probed rather than looked up in a hardcoded codename map. Third-party repos routinely lag a new Ubuntu release by weeks or months, and pointing apt at a suite that 404s breaks `apt update` for every other repo too. A map is a permanent lie the moment the vendor catches up; the probe self-heals on the next run.
+
+- name: "Tools | Probe the requested suite: {{ tools_repo.name }}"
+  ansible.builtin.uri:
+    url: "{{ tools_repo_uri }}/dists/{{ tools_repo_suite }}/Release"
+    method: HEAD
+    # 403 and 404 both mean "not published here" for the CDNs in use.
+    status_code:
+      - 200
+      - 403
+      - 404
+    timeout: 15
+  register: tools_repo_probe
+  changed_when: false
+  check_mode: false
+  when:
+    - tools_repo.probe | default(true) | bool
+    - tools_repo.suite_fallback | default('') | length > 0
+
+- name: "Tools | Select the effective suite: {{ tools_repo.name }}"
+  ansible.builtin.set_fact:
+    tools_repo_effective_suite: >-
+      {{ tools_repo_suite
+         if (tools_repo_probe.status | default(200)) == 200
+         else tools_repo.suite_fallback }}
+
+- name: "Tools | Report the suite fallback: {{ tools_repo.name }}"
+  ansible.builtin.debug:
+    msg: >-
+      {{ tools_repo.name }} does not publish a suite for {{ tools_repo_suite }} yet; falling back to {{ tools_repo_effective_suite }}.
+  when: tools_repo_effective_suite != tools_repo_suite
+
+# signed_by takes the key URL: deb822_repository fetches and dearmors it itself, so there is no apt-key call and no gpg --dearmor shellout.
+- name: "Tools | Configure the repository: {{ tools_repo.name }}"
+  ansible.builtin.deb822_repository:
+    name: "{{ tools_repo.name }}"
+    types:
+      - deb
+    uris: "{{ tools_repo_uri }}"
+    suites: "{{ tools_repo_effective_suite }}"
+    components: "{{ tools_repo.components | default(['main']) }}"
+    architectures:
+      - "{{ dotfiles_dpkg_architecture }}"
+    signed_by: "{{ tools_repo.key_url | replace('{codename}', ansible_facts.distribution_release) }}"
+    state: present
+    enabled: true
+    mode: "0644"
+  become: true
+  register: tools_repo_configured
+
+- name: "Tools | Refresh the apt cache: {{ tools_repo.name }}"
+  ansible.builtin.apt:
+    update_cache: true
+  become: true
+  when: tools_repo_configured is changed

@@ -1,6 +1,6 @@
 # Managed by the dotfiles playbook (roles/wsl). Do not edit.
 #
-# Changes to this file require `wsl --shutdown` from Windows before they apply.
+# Changes to this file apply once the distro restarts: `wsl --terminate <distro>` from Windows.
 
 [boot]
 systemd = {{ wsl_systemd | bool | lower }}

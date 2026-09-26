@@ -4,3 +4,5 @@ dotfiles_profile: home
 git_user_name: CI
 git_user_email: ci@example.invalid
 git_user_login: ""
+# roles/secrets: the infisical source with no targets, so the CLI is verified but nothing is fetched and no credential is needed.
+secrets_source: infisical

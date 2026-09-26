@@ -1,0 +1,17 @@
+---
+# WSL only (ADR 0011): the Windows key is the source, so every run brings this distro's copy up to date and a key rotated on Windows lands here on the next run. A copy that differs is kept as a timestamped backup rather than lost.
+- name: SSH | Copy the Windows key pair
+  ansible.builtin.copy:
+    src: "{{ ssh_key_dir }}/{{ ssh_key_file.name }}"
+    dest: "{{ ssh_dir }}/{{ ssh_key_file.name }}"
+    remote_src: true
+    backup: true
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "{{ ssh_key_file.mode }}"
+  loop:
+    - { name: "{{ ssh_private_key }}", mode: "0600" }
+    - { name: "{{ ssh_public_key }}", mode: "0644" }
+  loop_control:
+    loop_var: ssh_key_file
+    label: "{{ ssh_key_file.name }}"

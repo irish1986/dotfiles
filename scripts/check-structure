@@ -17,13 +17,10 @@ import yaml
 ROOT = Path(__file__).resolve().parent.parent
 ROLES = ROOT / "roles"
 
-# Roles that are internal helpers rather than user-selectable entries.
-HELPER_ROLES = {"apt_repo"}
-
 # Modules that must not come back. apt-key is gone in Ubuntu 24.04+; the pip ones break under PEP 668 on 24.04+.
 BANNED = {
-    "ansible.builtin.apt_key": "removed in Ubuntu 24.04+; use the apt_repo role",
-    "apt_key": "removed in Ubuntu 24.04+; use the apt_repo role",
+    "ansible.builtin.apt_key": "removed in Ubuntu 24.04+; use a tools_apt_repos entry",
+    "apt_key": "removed in Ubuntu 24.04+; use a tools_apt_repos entry",
     "--break-system-packages": "PEP 668 escape hatch; use uv instead",
 }
 
@@ -90,13 +87,12 @@ def check_role(role: Path) -> None:
     main = role / "tasks" / "main.yml"
     if main.is_file():
         body = main.read_text()
-        if "tasks/verify.yml" not in body and role.name not in HELPER_ROLES:
+        if "tasks/verify.yml" not in body:
             fail(f"{rel}: tasks/main.yml does not include tasks/verify.yml")
 
-        # 4. The orchestrator holds no module calls beyond includes. Helper roles are invoked with include_role and have no phase split.
+        # 4. The orchestrator holds no module calls beyond includes.
         used: list[str] = []
-        if role.name not in HELPER_ROLES:
-            modules_used(load(main), used)
+        modules_used(load(main), used)
         for module in used:
             if module not in ORCHESTRATOR_ALLOWED:
                 fail(f"{rel}: tasks/main.yml calls {module}; move it into a phase file")
