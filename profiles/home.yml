@@ -48,3 +48,19 @@ tools_scripts:
       CARGO_HOME: "{home}/.cargo"
       RUSTUP_HOME: "{home}/.rustup"
     verify: cargo --version && rustc --version
+  # Home machines only; an install already on a work machine is left in place (removal is explicit, ADR 0003). The native installer, not an apt repository: Claude Code updates itself in place, so it is not pinned (ADR 0004). What the repo manages in ~/.claude is in ADR 0014.
+  - name: claude
+    url: https://claude.ai/install.sh
+    interpreter: bash
+    creates: .local/bin/claude
+
+# Claude Code's share of the agent CLI configuration in base.yml (ADR 0014).
+tools_agent_plugins:
+  - cli: claude
+    plugin: mattpocock-skills@claude-plugins-official
+    marketplace: anthropics/claude-plugins-official
+
+tools_files:
+  - src: agents/instructions.md
+    dest: .claude/CLAUDE.md
+    dir_mode: "0700"

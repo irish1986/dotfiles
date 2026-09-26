@@ -4,7 +4,7 @@ Status: accepted, 2026-09-26. Supersedes the Claude Code bullet of [0006](0006-s
 
 ## Context
 
-Claude Code and Copilot CLI are both used on the workstation, with the same skills. Skills that interview the user (grilling) prescribe a markdown format for their questions, so the interactive question picker (`AskUserQuestion`, `ask_user`) appeared only when the model happened to choose it. The fix is a global instruction, and a fresh machine had neither that instruction nor the skills in Copilot, because ADR 0006 left `~/.claude` and `~/.copilot` to be managed by hand.
+Claude Code (home machines) and Copilot CLI (every machine) are used on the workstation, with the same skills. Skills that interview the user (grilling) prescribe a markdown format for their questions, so the interactive question picker (`AskUserQuestion`, `ask_user`) appeared only when the model happened to choose it. The fix is a global instruction, and a fresh machine had neither that instruction nor the skills in Copilot, because ADR 0006 left `~/.claude` and `~/.copilot` to be managed by hand.
 
 ## Decision
 
