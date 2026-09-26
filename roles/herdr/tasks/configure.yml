@@ -72,3 +72,43 @@
     - dotfiles_has_user_systemd | bool
     - herdr_manage_service | bool
     - not ansible_check_mode
+
+# herdr's agent hooks report agent state to herdr. Each is installed only when its agent is there: without the agent there is nothing for the hook to report.
+- name: Herdr | Detect the agents
+  ansible.builtin.stat:
+    path: "{{ herdr_integration.binary }}"
+  loop: "{{ herdr_integrations }}"
+  loop_control:
+    loop_var: herdr_integration
+    label: "{{ herdr_integration.name }}"
+  register: herdr_agent_binaries
+
+# `herdr integration install` refuses to run until the agent's config directory exists, and an agent only creates it on its first start. Creating it here lets a fresh machine get the hook in one run. Only the directory is managed; what the agent writes inside it is yours (ADR 0006).
+- name: Herdr | Ensure the agent config directories exist
+  ansible.builtin.file:
+    path: "{{ herdr_agent.herdr_integration.config_dir }}"
+    state: directory
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0700"
+  loop: "{{ herdr_agent_binaries.results | selectattr('stat.exists') | list }}"
+  loop_control:
+    loop_var: herdr_agent
+    label: "{{ herdr_agent.herdr_integration.name }}"
+
+# Keyed on the status line rather than on the hook file existing, so an outdated hook is replaced once a herdr bump ships a newer one.
+- name: Herdr | Query the agent integrations
+  ansible.builtin.command: "{{ herdr_binary_path }} integration status"
+  register: herdr_integration_status
+  changed_when: false
+  check_mode: false
+
+- name: Herdr | Install the agent integrations
+  ansible.builtin.command: "{{ herdr_binary_path }} integration install {{ herdr_agent.herdr_integration.name }}"
+  loop: "{{ herdr_agent_binaries.results | selectattr('stat.exists') | list }}"
+  loop_control:
+    loop_var: herdr_agent
+    label: "{{ herdr_agent.herdr_integration.name }}"
+  changed_when: true
+  when: >-
+    herdr_integration_status.stdout is not search('^' ~ (herdr_agent.herdr_integration.name | regex_escape) ~ ': current', multiline=True)
