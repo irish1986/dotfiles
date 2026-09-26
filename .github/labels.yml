@@ -45,6 +45,9 @@
 - name: ansible
   color: "1a1918"
   description: Ansible Galaxy collections
+- name: tools
+  color: "5319e7"
+  description: Pinned tool versions in profiles and role defaults
 
 # -- Renovate managers ------------------------------------------------------
 - name: renovate/ansible

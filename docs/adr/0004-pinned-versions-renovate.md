@@ -17,4 +17,4 @@ Several roles resolved "latest" from the GitHub API on every run: reruns changed
 ## Consequences
 
 - A rerun is reproducible; a version change is always a reviewed commit.
-- Renovate PRs are the maintenance load. Minor and patch updates automerge once CI is green.
+- Renovate PRs are the maintenance load. Minor and patch updates automerge once CI is green. How Renovate runs and groups them is [0013](0013-self-hosted-renovate.md).

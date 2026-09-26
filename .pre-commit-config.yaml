@@ -105,6 +105,14 @@ repos:
         args:
           - -c
           - .config/.yaml-lint.yml
+  - repo: https://github.com/renovatebot/pre-commit-hooks
+    rev: 44.115.10
+    hooks:
+      # --strict also fails on options Renovate would silently migrate, so a deprecated key shows up here rather than as a dashboard warning.
+      - id: renovate-config-validator
+        name: "renovate | validate config"
+        args:
+          - --strict
   - repo: https://github.com/ansible-community/ansible-lint
     rev: v26.8.0
     hooks:

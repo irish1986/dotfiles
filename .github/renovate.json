@@ -3,14 +3,15 @@
   "customManagers": [
     {
       "customType": "regex",
-      "description": "Versions pinned in profiles and role defaults, each annotated with a `# renovate: datasource=... depName=...` comment on the line above. Versions are stored without a leading v; URL templates add it where upstream tags carry one.",
+      "description": "Versions pinned in profiles and role defaults, each annotated with a `# renovate: datasource=... depName=...` comment on the line above. Versions are stored without a leading v; URL templates add it where upstream tags carry one. A commit pin names the branch it follows instead: `# renovate: datasource=git-refs depName=<url> currentValue=<branch>`.",
       "extractVersionTemplate": "^v?(?<version>.+)$",
       "managerFilePatterns": [
         "/^profiles/.+\\.ya?ml$/",
         "/^roles/.+/defaults/main\\.ya?ml$/"
       ],
       "matchStrings": [
-        "#\\s*renovate:\\s*datasource=(?<datasource>\\S+)\\s+depName=(?<depName>\\S+)\\s*\\n\\s*(?:-\\s+)?[a-z_]*version:\\s*\"?(?<currentValue>[^\"\\s]+)\"?"
+        "#\\s*renovate:\\s*datasource=(?<datasource>\\S+)\\s+depName=(?<depName>\\S+)\\s*\\n\\s*(?:-\\s+)?[a-z_]*version:\\s*\"?(?<currentValue>[^\"\\s]+)\"?",
+        "#\\s*renovate:\\s*datasource=(?<datasource>git-refs)\\s+depName=(?<depName>\\S+)\\s+currentValue=(?<currentValue>\\S+)\\s*\\n\\s*(?:-\\s+)?[a-z_]*version:\\s*\"?(?<currentDigest>[0-9a-f]{40})\"?"
       ]
     }
   ],
@@ -25,8 +26,7 @@
   "extends": [
     "config:recommended",
     ":semanticCommits",
-    ":semanticCommitTypeAll(chore)",
-    ":timezone(America/Toronto)"
+    ":semanticCommitTypeAll(chore)"
   ],
   "labels": [
     "dependencies"
@@ -38,19 +38,29 @@
       ],
       "automerge": true,
       "automergeType": "pr",
+      "description": "Everything but majors merges itself once CI OK is green, after a buffer against yanked or compromised releases.",
       "matchUpdateTypes": [
         "minor",
         "patch",
         "digest",
         "pinDigest"
       ],
+      "minimumReleaseAge": "3 days",
       "platformAutomerge": true
+    },
+    {
+      "description": "A branch head has no release timestamp, so the age buffer above would hold a commit pin pending forever.",
+      "matchDatasources": [
+        "git-refs"
+      ],
+      "minimumReleaseAge": null
     },
     {
       "addLabels": [
         "type/major"
       ],
       "automerge": false,
+      "description": "Majors wait for a human.",
       "matchUpdateTypes": [
         "major"
       ]
@@ -59,6 +69,7 @@
       "addLabels": [
         "github-actions"
       ],
+      "description": "One group per ecosystem. separateMajorMinor (on by default) splits each group into a non-major and a major-* branch, so an ecosystem has at most two PRs open and ecosystems never share one.",
       "groupName": "github actions",
       "matchManagers": [
         "github-actions"
@@ -81,12 +92,27 @@
       "matchManagers": [
         "ansible-galaxy"
       ]
+    },
+    {
+      "addLabels": [
+        "tools"
+      ],
+      "groupName": "pinned tools",
+      "matchManagers": [
+        "custom.regex"
+      ]
+    },
+    {
+      "description": "zsh plugins are cloned at the ref as written, so a leading v on a tag has to survive the bump.",
+      "extractVersion": "^(?<version>.+)$",
+      "matchFileNames": [
+        "roles/zsh/defaults/main.yml"
+      ]
     }
   ],
+  "platformCommit": "enabled",
+  "prHourlyLimit": 0,
   "pre-commit": {
     "enabled": true
-  },
-  "schedule": [
-    "before 6am on monday"
-  ]
+  }
 }
