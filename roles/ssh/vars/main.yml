@@ -3,6 +3,9 @@ ssh_dir: "{{ dotfiles_home }}/.ssh"
 # The Windows home the wsl role resolved through interop (it runs first), which survives a Windows user name that differs from dotfiles_windows_user, a redirected profile and a non-C: profile drive.
 ssh_windows_dir: "{{ wsl_windows_home | default('/mnt/c/Users/' ~ dotfiles_windows_user) }}/.ssh"
 ssh_config_file: "{{ ssh_dir }}/config"
+# sshd_config Includes sshd_config.d/*.conf at its top and, like the client, takes the FIRST value it finds for each keyword. The 10- prefix sorts ahead of cloud-init's 50-cloud-init.conf, which sets PasswordAuthentication yes.
+ssh_server_enabled: "{{ (ssh_server | bool) and not (dotfiles_is_wsl | bool) }}"
+ssh_server_config_dropin: /etc/ssh/sshd_config.d/10-dotfiles.conf
 
 # Paths, so they are computed rather than repeated. %C is the hash of (local host, remote host, port, user): a literal %r@%h:%p blows past the ~104-byte sun_path limit on long hostnames, and the failure looks like an unrelated connection error.
 ssh_control_dir: "{{ ssh_dir }}/sockets"

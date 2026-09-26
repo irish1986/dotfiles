@@ -56,3 +56,22 @@ ssh_config_options:
   Compression: "no"
   ControlMaster: "auto"
   ControlPersist: "10m"
+
+# Install sshd and write its hardened defaults into a drop-in under /etc/ssh/sshd_config.d. Ubuntu Desktop does not ship a server. Never on WSL, whatever this says: with mirrored networking the distro shares the Windows host's ports, Windows already holds 22, and the package's postinst fails to start ssh.socket -- leaving dpkg half-configured.
+#
+# Key-only: logging in depends on authorized_keys, which ssh_import_github_keys fills. With that off and no key installed by hand, the machine is reachable from its own console only.
+ssh_server: true
+ssh_server_packages:
+  - openssh-server
+
+# Rendered verbatim into the drop-in. Quoted for the same reason as ssh_config_options.
+ssh_server_config_options:
+  PermitRootLogin: "no"
+  PubkeyAuthentication: "yes"
+  PasswordAuthentication: "no"
+  KbdInteractiveAuthentication: "no"
+  PermitEmptyPasswords: "no"
+  # A session on this machine has no business reaching back into the client's display or agent.
+  X11Forwarding: "no"
+  AllowAgentForwarding: "no"
+  MaxAuthTries: "3"
