@@ -72,3 +72,34 @@
     - dotfiles_has_user_systemd | bool
     - herdr_manage_service | bool
     - not ansible_check_mode
+
+# herdr's Copilot CLI hook reports agent state to herdr. It is installed only when copilot is there: without copilot there is nothing for the hook to report.
+- name: Herdr | Detect Copilot CLI
+  ansible.builtin.stat:
+    path: "{{ herdr_copilot_binary_path }}"
+  register: herdr_copilot_binary
+
+# `herdr integration install copilot` refuses to run until ~/.copilot exists, and copilot only creates it on its first start. Creating it here lets a fresh machine get the hook in one run. Only the directory is managed; what copilot writes inside it is yours (ADR 0006).
+- name: Herdr | Ensure the Copilot CLI config directory exists
+  ansible.builtin.file:
+    path: "{{ herdr_copilot_config_dir }}"
+    state: directory
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0700"
+  when: herdr_copilot_binary.stat.exists
+
+# Keyed on the status line rather than on the hook file existing, so an outdated hook is replaced once a herdr bump ships a newer one.
+- name: Herdr | Query the Copilot CLI integration
+  ansible.builtin.command: "{{ herdr_binary_path }} integration status"
+  register: herdr_integration_status
+  changed_when: false
+  check_mode: false
+  when: herdr_copilot_binary.stat.exists
+
+- name: Herdr | Install the Copilot CLI integration
+  ansible.builtin.command: "{{ herdr_binary_path }} integration install copilot"
+  changed_when: true
+  when:
+    - herdr_copilot_binary.stat.exists
+    - "herdr_integration_status.stdout is not search('^copilot: current', multiline=True)"

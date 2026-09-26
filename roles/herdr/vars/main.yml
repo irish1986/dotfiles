@@ -13,3 +13,7 @@ herdr_zshenv: "{{ dotfiles_home }}/.zshenv"
 
 herdr_service_name: herdr
 herdr_service_dir: "{{ dotfiles_home }}/.config/systemd/user"
+
+# Installed by the copilot entry in tools_scripts (profiles/base.yml). The tools role runs before this one, so on a first run it is already there.
+herdr_copilot_binary_path: "{{ dotfiles_home }}/.local/bin/copilot"
+herdr_copilot_config_dir: "{{ dotfiles_home }}/.copilot"
