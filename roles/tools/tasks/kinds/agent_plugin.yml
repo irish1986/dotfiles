@@ -1,0 +1,48 @@
+---
+# One agent CLI plugin entry, as tools_agent_plugin. Installed once through the CLI's own plugin command; the CLI owns updates afterwards. Neither CLI reports an existing install through its exit status, so presence is read from `plugin list`.
+
+- name: "Tools | Detect the agent CLI: {{ tools_agent_plugin.cli }}"
+  ansible.builtin.stat:
+    path: "{{ dotfiles_home }}/.local/bin/{{ tools_agent_plugin.cli }}"
+  register: tools_agent_cli
+
+# Missing only in check mode on a fresh machine, where the installer script entry has not really run.
+- name: "Tools | Install the agent plugin: {{ tools_agent_plugin.plugin }}"
+  when: tools_agent_cli.stat.exists
+  environment:
+    PATH: "{{ tools_path }}"
+    NO_COLOR: "1"
+  block:
+    - name: "Tools | Query the installed plugins: {{ tools_agent_plugin.cli }}"
+      ansible.builtin.command:
+        argv: ["{{ tools_agent_plugin.cli }}", plugin, list]
+      register: tools_agent_plugins_installed
+      changed_when: false
+      check_mode: false
+
+    - name: "Tools | Query the plugin marketplaces: {{ tools_agent_plugin.cli }}"
+      ansible.builtin.command:
+        argv: ["{{ tools_agent_plugin.cli }}", plugin, marketplace, list]
+      register: tools_agent_marketplaces
+      changed_when: false
+      check_mode: false
+      when: tools_agent_plugins_installed.stdout is not search(tools_agent_plugin.plugin | regex_escape)
+
+    - name: "Tools | Add the plugin marketplace: {{ tools_agent_plugin.marketplace }}"
+      ansible.builtin.command:
+        argv: ["{{ tools_agent_plugin.cli }}", plugin, marketplace, add, "{{ tools_agent_plugin.marketplace }}"]
+      changed_when: true
+      when:
+        - tools_agent_marketplaces is not skipped
+        - tools_agent_marketplaces.stdout is not search(tools_agent_plugin.marketplace | regex_escape)
+
+    - name: "Tools | Install the plugin: {{ tools_agent_plugin.plugin }}"
+      ansible.builtin.command:
+        argv: ["{{ tools_agent_plugin.cli }}", plugin, install, "{{ tools_agent_plugin.plugin }}"]
+      register: tools_agent_plugin_install
+      changed_when: true
+      # Claude Code exits 0 on a failed install; its output is the only signal.
+      failed_when: >-
+        tools_agent_plugin_install.rc != 0
+        or (tools_agent_plugin_install.stdout ~ tools_agent_plugin_install.stderr) is search('Failed|✘')
+      when: tools_agent_plugins_installed.stdout is not search(tools_agent_plugin.plugin | regex_escape)

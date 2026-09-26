@@ -44,9 +44,16 @@ tools_uv_python: ""
 #   name, version, verify
 tools_uv_tools: []
 
+# Plugins for an agent CLI, installed with `<cli> plugin install` when `<cli> plugin list` does not show them (ADR 0013). The CLI itself comes from a tools_scripts entry; the CLI owns updates.
+#   cli          claude or copilot, found in ~/.local/bin
+#   plugin       <name>@<marketplace>, as the CLI's `plugin list` prints it
+#   marketplace  the marketplace's GitHub owner/repo, added first when the CLI does not list it
+tools_agent_plugins: []
+
 # Config files for tools, copied from roles/tools/files/.
 #   src   relative to roles/tools/files/
-#   dest  relative to $HOME
+#   dest      relative to $HOME
+#   dir_mode  mode of dest's directory, default 0755
 tools_files: []
 
 # The removal list (ADR 0003). Removing an entry above only stops managing it; uninstalling is explicit, here.

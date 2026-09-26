@@ -15,7 +15,7 @@ Out of scope, and removed:
 - Templates for other repositories. They live in their own repositories.
 - Secrets management. Environment secrets are managed by hand, outside the repo. Superseded by [0012](0012-secrets.md): the repo wires the delivery of secrets, never their values.
 - The MkDocs site. `README.md`, this directory and `CONTEXT.md` are the documentation; the role source is the reference.
-- Configuration of Claude Code. The `tools` role installs it; `~/.claude` is managed by hand.
+- Configuration of Claude Code. The `tools` role installs it; `~/.claude` is managed by hand. Superseded by [0013](0013-agent-cli-config.md): the repo owns the agent CLIs' global instructions and plugins, never their settings.
 
 ## Consequences
 
