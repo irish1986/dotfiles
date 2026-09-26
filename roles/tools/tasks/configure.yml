@@ -5,7 +5,7 @@
     state: directory
     owner: "{{ dotfiles_user }}"
     group: "{{ dotfiles_user }}"
-    mode: "0755"
+    mode: "{{ tools_file.dir_mode | default('0755') }}"
   loop: "{{ tools_files }}"
   loop_control:
     loop_var: tools_file
