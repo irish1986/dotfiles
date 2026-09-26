@@ -4,3 +4,10 @@
     name: "{{ ssh_packages }}"
     state: present
   become: true
+
+- name: SSH | Install the server
+  ansible.builtin.apt:
+    name: "{{ ssh_server_packages }}"
+    state: present
+  become: true
+  when: ssh_server_enabled | bool

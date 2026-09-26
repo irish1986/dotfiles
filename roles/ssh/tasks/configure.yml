@@ -36,6 +36,34 @@
             {{ ssh_option.key }} {{ ssh_option.value }}
           {% endfor %}
 
+- name: SSH | Write the server configuration
+  when: ssh_server_enabled | bool
+  become: true
+  block:
+    # sshd -t refuses to run without its privilege separation directory. systemd creates it when the service starts; without systemd (a container) nothing does.
+    - name: SSH | Ensure the privilege separation directory exists
+      ansible.builtin.file:
+        path: /run/sshd
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    # validate parses the drop-in on its own before it is installed: a typo'd keyword here would stop sshd from starting at all.
+    - name: SSH | Write the hardened server defaults
+      ansible.builtin.copy:
+        dest: "{{ ssh_server_config_dropin }}"
+        owner: root
+        group: root
+        mode: "0644"
+        validate: /usr/sbin/sshd -t -f %s
+        content: |
+          # Managed by dotfiles (roles/ssh). Local changes are overwritten.
+          {% for ssh_server_option in ssh_server_config_options | dict2items %}
+          {{ ssh_server_option.key }} {{ ssh_server_option.value }}
+          {% endfor %}
+      notify: SSH | Reload sshd
+
 - name: SSH | Import the GitHub public keys
   ansible.posix.authorized_key:
     user: "{{ dotfiles_user }}"

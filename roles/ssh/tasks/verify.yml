@@ -72,6 +72,36 @@
         success_msg: "the managed defaults are in effect"
         quiet: true
 
+- name: SSH | Verify the server configuration
+  when: ssh_server_enabled | bool
+  block:
+    # `sshd -T` resolves the configuration through every Include, the way sshd itself will read it. Root: it loads the host keys.
+    - name: SSH | Resolve the effective server configuration
+      ansible.builtin.command: /usr/sbin/sshd -T
+      become: true
+      register: ssh_server_effective
+      changed_when: false
+      failed_when: false
+
+    - name: SSH | Assert the server configuration resolves
+      ansible.builtin.assert:
+        that:
+          - ssh_server_effective.rc == 0
+        fail_msg: "sshd does not accept its configuration: {{ ssh_server_effective.stderr | default('no output') }}"
+        success_msg: "the sshd configuration parses"
+        quiet: true
+
+    # The failure mode is the same as the client's: another drop-in that sorts ahead of {{ ssh_server_config_dropin }} claims a keyword first and wins.
+    - name: SSH | Assert the managed server defaults are in effect
+      ansible.builtin.assert:
+        that:
+          - ssh_server_effective.stdout is search('(?im)^passwordauthentication no$')
+          - ssh_server_effective.stdout is search('(?im)^permitrootlogin no$')
+        fail_msg: >-
+          sshd still allows password or root logins. A file in /etc/ssh/sshd_config.d that sorts ahead of {{ ssh_server_config_dropin | basename }}, or a line above the Include in /etc/ssh/sshd_config, sets them first -- sshd takes the first value it finds for a keyword.
+        success_msg: "the managed server defaults are in effect"
+        quiet: true
+
 - name: SSH | Verify the key
   when:
     - ssh_generate_key | bool
