@@ -74,11 +74,26 @@ tools_scripts:
       # /dev/null stops the installer appending to ~/.zshrc, which the zsh role owns; .zshrc loads nvm itself.
       PROFILE: /dev/null
     verify: . {home}/.nvm/nvm.sh && nvm --version
-  # The native installer, not an apt repository: Claude Code updates itself in place, so it is not pinned (ADR 0004). ~/.claude is yours to manage (ADR 0006).
+  # The native installers, not apt repositories: both agent CLIs update themselves in place, so they are not pinned (ADR 0004). What the repo manages of their config is in ADR 0013.
   - name: claude
     url: https://claude.ai/install.sh
     interpreter: bash
     creates: .local/bin/claude
+  - name: copilot
+    url: https://gh.io/copilot-install
+    interpreter: bash
+    creates: .local/bin/copilot
+    env:
+      PREFIX: "{home}/.local"
+
+# The same skills in both agent CLIs.
+tools_agent_plugins:
+  - cli: claude
+    plugin: mattpocock-skills@claude-plugins-official
+    marketplace: anthropics/claude-plugins-official
+  - cli: copilot
+    plugin: mattpocock-skills@mattpocock
+    marketplace: mattpocock/skills
 
 tools_uv_python: "3.14"
 
@@ -92,6 +107,13 @@ tools_files:
     dest: .config/btop/btop.conf
   - src: fastfetch/config.jsonc
     dest: .config/fastfetch/config.jsonc
+  # One set of global instructions for both agent CLIs (ADR 0013). The repo owns both files whole. 0700 is what each CLI creates its directory with: it holds credentials and session history.
+  - src: agents/instructions.md
+    dest: .claude/CLAUDE.md
+    dir_mode: "0700"
+  - src: agents/instructions.md
+    dest: .copilot/copilot-instructions.md
+    dir_mode: "0700"
 
 # Superseded tools, cleaned off machines provisioned before the refactor.
 tools_remove_apt:
