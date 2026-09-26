@@ -79,6 +79,11 @@ tools_scripts:
     url: https://claude.ai/install.sh
     interpreter: bash
     creates: .local/bin/claude
+  # The upstream installer, not the tarball: GitHub Copilot CLI updates itself in place, so it is not pinned (ADR 0004), and tools_binaries takes single files only. tools_path already has ~/.local/bin, so the installer never asks to edit ~/.zprofile. ~/.copilot is yours to manage (ADR 0006).
+  - name: copilot
+    url: https://gh.io/copilot-install
+    interpreter: bash
+    creates: .local/bin/copilot
 
 tools_uv_python: "3.14"
 
