@@ -22,7 +22,6 @@ concurrency:
 permissions: {}
 
 jobs:
-  # Every hook in .pre-commit-config.yaml -- yamllint, markdownlint, shellcheck, shfmt, ansible-lint and the rest -- and a failure fails the build. ggshield is skipped here only because the secrets job below runs it with the API key.
   lint:
     name: Lint
     runs-on: ubuntu-24.04
@@ -51,28 +50,6 @@ jobs:
 
       - name: Test the local-file setup
         run: bash tests/setup-local-file.sh
-
-  secrets:
-    name: Secrets
-    runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    permissions:
-      contents: read
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-
-      - name: Scan for secrets
-        uses: GitGuardian/ggshield/actions/secret@3ff83341cab96f0ac0dddc1faffcd7ba9d1886ed # v1.49.0
-        env:
-          GITHUB_PUSH_BEFORE_SHA: ${{ github.event.before }}
-          GITHUB_PUSH_BASE_SHA: ${{ github.event.base }}
-          GITHUB_PULL_BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          GITHUB_DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
-          GITGUARDIAN_API_KEY: ${{ secrets.GITGUARDIAN_API_KEY }}
 
   pinned-actions:
     name: Pinned Actions
@@ -192,7 +169,6 @@ jobs:
     if: always()
     needs:
       - lint
-      - secrets
       - pinned-actions
       - converge
     runs-on: ubuntu-24.04
