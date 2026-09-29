@@ -1,6 +1,8 @@
 ---
 herdr_binary: herdr
 herdr_binary_path: "{{ herdr_install_dir }}/herdr"
+# config.toml binds new_worktree's key to it by this path, as $HOME/.local/bin/herdr-worktree.
+herdr_worktree_script_path: "{{ herdr_install_dir }}/herdr-worktree"
 
 # Asset names carry the raw uname values -- herdr-linux-x86_64, herdr-linux-aarch64 -- which is exactly what ansible_facts.architecture reports. No dpkg architecture translation, and no amd64/arm64 spelling.
 herdr_target: "linux-{{ ansible_facts.architecture }}"

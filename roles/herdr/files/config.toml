@@ -21,6 +21,18 @@ manifest_check = false
 
 [keys]
 prefix = "ctrl+space"
+# Unbound so its key can go to herdr-worktree below.
+new_worktree = ""
+
+# Creates the worktree in <repo>/.worktree/<branch-slug> instead of one central [worktrees] directory,
+# which cannot be made per-repo. herdr-worktree is installed by roles/herdr beside the herdr binary.
+[[keys.command]]
+key = "prefix+shift+g"
+type = "popup"
+command = "exec \"$HOME/.local/bin/herdr-worktree\""
+description = "new worktree in <repo>/.worktree"
+width = 70
+height = 8
 
 # btop is a base tools_apt package, so the popup works on every machine.
 [[keys.command]]
