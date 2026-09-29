@@ -13,6 +13,23 @@
     success_msg: "{{ herdr_version_check.stdout | trim }}"
     quiet: true
 
+# herdr falls back to its defaults on a config it cannot parse, so a typo or a key a version bump dropped would otherwise pass silently.
+- name: Herdr | Validate config.toml
+  ansible.builtin.command: "{{ herdr_binary_path }} config check"
+  environment:
+    HERDR_CONFIG_PATH: "{{ herdr_config_dir }}/config.toml"
+  register: herdr_config_check
+  changed_when: false
+  failed_when: false
+
+- name: Herdr | Assert config.toml is valid
+  ansible.builtin.assert:
+    that:
+      - herdr_config_check.rc == 0
+    fail_msg: "{{ herdr_config_dir }}/config.toml has issues: {{ herdr_config_check.stdout }}"
+    success_msg: "{{ herdr_config_check.stdout | trim }}"
+    quiet: true
+
 - name: Herdr | Read the shell environment
   ansible.builtin.slurp:
     src: "{{ herdr_zshenv }}"

@@ -7,7 +7,7 @@
     group: "{{ dotfiles_user }}"
     mode: "0755"
 
-# The running server holds its own copy: a changed file takes effect on the next `herdr` start, not immediately. No handler restarts it -- that would kill live panes and any agent running in them to apply a theme.
+# The running server holds its own copy, so a changed file is pushed to it with `herdr server reload-config`, which applies it in place. Never a restart -- that would kill live panes and any agent running in them to apply a theme.
 - name: Herdr | Deploy config.toml
   ansible.builtin.copy:
     src: config.toml
@@ -15,6 +15,7 @@
     owner: "{{ dotfiles_user }}"
     group: "{{ dotfiles_user }}"
     mode: "0644"
+  notify: Herdr | Reload the server config
 
 # ~/.zshenv rather than ~/.zshrc, and a marker block rather than a copy: zsh reads .zshenv first and for every shell, so the exec below lands before the p10k instant prompt, oh-my-zsh and compinit -- a shell that is about to be replaced never pays for them. mode 0600 because ~/.zshenv is where hand-managed environment secrets usually live.
 - name: Herdr | Manage the shell autostart
