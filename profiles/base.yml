@@ -94,6 +94,10 @@ tools_agent_plugins:
     plugin: mattpocock-skills@mattpocock
     marketplace: mattpocock/skills
 
+# A major, so nvm takes its newest release at install time. Majors are Renovate PRs that wait for a human (ADR 0004).
+# renovate: datasource=node-version depName=node
+tools_nvm_node_version: "24"
+
 tools_uv_python: "3.14"
 
 tools_uv_tools:
@@ -106,6 +110,9 @@ tools_files:
     dest: .config/btop/btop.conf
   - src: fastfetch/config.jsonc
     dest: .config/fastfetch/config.jsonc
+  # At the XDG path rather than ~/.npmrc: .zshrc points NPM_CONFIG_USERCONFIG here. The repo owns the file whole, so `npm config set` and `npm login` changes are overwritten on the next run; tokens belong in the environment (see the file).
+  - src: npm/npmrc
+    dest: .config/npm/npmrc
   # One set of global instructions for every agent CLI (ADR 0014); home.yml adds Claude Code's copy. The repo owns each file whole. 0700 is what each CLI creates its directory with: it holds credentials and session history.
   - src: agents/instructions.md
     dest: .copilot/copilot-instructions.md

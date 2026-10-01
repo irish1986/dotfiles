@@ -40,6 +40,9 @@ tools_scripts: []
 # Interpreter uv installs and marks default. Empty leaves the choice to you.
 tools_uv_python: ""
 
+# Node version nvm installs and aliases as default: a major such as "24", or anything `nvm install` takes. Installed when no matching version is present; patch upgrades within it are yours to run. Empty leaves node to you. Needs the nvm entry in tools_scripts.
+tools_nvm_node_version: ""
+
 # Python tools installed with `uv tool install <name>==<version>`.
 #   name, version, verify
 tools_uv_tools: []

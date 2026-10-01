@@ -1,0 +1,45 @@
+---
+# The node that nvm installs and aliases as default, as tools_nvm_node_version. nvm itself comes from an installer script entry, so it exists by the time this runs. nvm is a shell function, so every call sources nvm.sh first, under bash: nvm.sh does not support sh.
+
+- name: Tools | Detect nvm
+  ansible.builtin.stat:
+    path: "{{ tools_nvm_script }}"
+  register: tools_nvm_present
+
+# Missing only in check mode on a fresh machine, where the installer script entry has not really run.
+- name: "Tools | Install node {{ tools_nvm_node_version }}"
+  when: tools_nvm_present.stat.exists
+  environment:
+    NVM_DIR: "{{ tools_nvm_dir }}"
+    PATH: "{{ tools_path }}"
+  block:
+    # "N/A" when no installed version matches. Once one does, a newer patch release is left to `nvm install` by hand, so a second run stays changed=0.
+    - name: "Tools | Query the installed node: {{ tools_nvm_node_version }}"
+      ansible.builtin.shell:
+        cmd: . "$NVM_DIR/nvm.sh" && nvm version {{ tools_nvm_node_version | quote }}
+        executable: /bin/bash
+      register: tools_nvm_installed
+      changed_when: false
+      failed_when: false
+      check_mode: false
+
+    - name: "Tools | Install node {{ tools_nvm_node_version }}"
+      ansible.builtin.shell:
+        cmd: . "$NVM_DIR/nvm.sh" && nvm install --no-progress {{ tools_nvm_node_version | quote }}
+        executable: /bin/bash
+      when: tools_nvm_installed.stdout is not match('^v[0-9]')
+      changed_when: true
+
+    # The alias file holds the name it was given, "24", not the version it resolves to.
+    - name: Tools | Read the default node alias
+      ansible.builtin.slurp:
+        src: "{{ tools_nvm_dir }}/alias/default"
+      register: tools_nvm_default
+      failed_when: false
+
+    - name: "Tools | Alias the default node: {{ tools_nvm_node_version }}"
+      ansible.builtin.shell:
+        cmd: . "$NVM_DIR/nvm.sh" && nvm alias default {{ tools_nvm_node_version | quote }}
+        executable: /bin/bash
+      when: (tools_nvm_default.content | default('') | b64decode | trim) != tools_nvm_node_version
+      changed_when: true

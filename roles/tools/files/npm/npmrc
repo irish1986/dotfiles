@@ -1,0 +1,11 @@
+# npm's user config, deployed by the tools role to ~/.config/npm/npmrc; .zshrc sets NPM_CONFIG_USERCONFIG to it. Edits made on the machine are overwritten on the next run.
+#
+# Registry tokens do not go here: `npm login` would write one into a file the repo owns. Put the token in a secret target (ADR 0012) and reference it from a project's .npmrc instead:
+#   //registry.npmjs.org/:_authToken=${NPM_TOKEN}
+
+# Out of ~/.npm, next to every other tool's cache.
+cache=${HOME}/.cache/npm
+
+# Install output without the funding appeal or the new-version check, which is nvm's job here.
+fund=false
+update-notifier=false
