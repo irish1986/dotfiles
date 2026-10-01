@@ -1,0 +1,12 @@
+---
+# One agent skill entry, as tools_agent_skill: every skill it names is in every agent's skills directory.
+
+- name: "Tools | Find the missing agent skills: {{ tools_agent_skill.source }}"
+  ansible.builtin.include_tasks: "{{ role_path }}/tasks/kinds/agent_skill_detect.yml"
+
+- name: "Tools | Assert the agent skills are installed: {{ tools_agent_skill.source }}"
+  ansible.builtin.assert:
+    that:
+      - tools_agent_skill_missing | length == 0
+    fail_msg: "The skills CLI did not install: {{ tools_agent_skill_missing | join(', ') }}"
+    quiet: true

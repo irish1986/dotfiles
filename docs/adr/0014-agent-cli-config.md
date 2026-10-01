@@ -1,6 +1,7 @@
 # 0014. Agent CLI configuration
 
 Status: accepted, 2026-09-26. Supersedes the Claude Code bullet of [0006](0006-scope.md).
+The Plugins bullet is superseded by [0015](0015-agent-skills.md).
 
 ## Context
 

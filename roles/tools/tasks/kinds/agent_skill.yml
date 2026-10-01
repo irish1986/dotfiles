@@ -1,0 +1,37 @@
+---
+# One agent skill entry, as tools_agent_skill (ADR 0015). Installed with the skills CLI when any of its skills is missing for any agent in tools_agent_skill_agents; `npx skills update -g` owns updates afterwards. npx comes from the nvm node, so the call sources nvm.sh first, under bash, as kinds/nvm.yml does.
+
+- name: "Tools | Detect the nvm node for the skills CLI: {{ tools_agent_skill.source }}"
+  ansible.builtin.stat:
+    path: "{{ tools_nvm_script }}"
+  register: tools_agent_skill_nvm
+
+# Missing only in check mode on a fresh machine, where the nvm entry has not really run.
+- name: "Tools | Install the agent skills: {{ tools_agent_skill.source }}"
+  when: tools_agent_skill_nvm.stat.exists
+  block:
+    - name: "Tools | Find the missing agent skills: {{ tools_agent_skill.source }}"
+      ansible.builtin.include_tasks: "{{ role_path }}/tasks/kinds/agent_skill_detect.yml"
+
+    # --yes twice: npx's to fetch the CLI, the CLI's to skip its prompts. One call for every agent, so the skill is fetched once and linked into each agent's directory.
+    - name: "Tools | Run the skills CLI: {{ tools_agent_skill.source }}"
+      ansible.builtin.shell:
+        cmd: >-
+          . "$NVM_DIR/nvm.sh" &&
+          npx --yes {{ ('skills@' ~ tools_agent_skills_cli_version) | quote }}
+          add {{ tools_agent_skill.source | quote }}
+          --skill {{ tools_agent_skill.skills | default(['*']) | map('quote') | join(' ') }}
+          --global
+          --agent {{ tools_agent_skill_agents | map('quote') | join(' ') }}
+          --yes
+        executable: /bin/bash
+      environment:
+        NVM_DIR: "{{ tools_nvm_dir }}"
+        PATH: "{{ tools_path }}"
+        NO_COLOR: "1"
+        DISABLE_TELEMETRY: "1"
+        NPM_CONFIG_UPDATE_NOTIFIER: "false"
+        # Node keeps its own CA list; this adds the system store, which holds any corporate CA the network role trusted.
+        NODE_EXTRA_CA_CERTS: /etc/ssl/certs/ca-certificates.crt
+      when: tools_agent_skill_missing | length > 0
+      changed_when: true

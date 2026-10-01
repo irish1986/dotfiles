@@ -22,3 +22,11 @@
     PATH: "{{ tools_path }}"
   when: tools_nvm_node_version | length > 0
   changed_when: false
+
+# The skill files are the install: each skill's SKILL.md in every agent's directory.
+- name: Tools | Verify the agent skills
+  ansible.builtin.include_tasks: "{{ role_path }}/tasks/kinds/agent_skill_verify.yml"
+  loop: "{{ tools_agent_skills }}"
+  loop_control:
+    loop_var: tools_agent_skill
+    label: "{{ tools_agent_skill.source }}"

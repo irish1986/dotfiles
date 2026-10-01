@@ -4,6 +4,13 @@ tools_binary_dir: /usr/local/bin
 tools_nvm_dir: "{{ dotfiles_home }}/.nvm"
 tools_nvm_script: "{{ tools_nvm_dir }}/nvm.sh"
 
+# Where the skills CLI puts each agent's global skills, relative to $HOME. Copilot reads the shared ~/.agents/skills, where the CLI keeps every skill; Claude Code gets a symlink into it.
+tools_agent_skill_dirs:
+  github-copilot: .agents/skills
+  claude-code: .claude/skills
+# Which source each installed skill came from, written by the skills CLI.
+tools_agent_skill_lock: "{{ dotfiles_home }}/.agents/.skill-lock.json"
+
 # What a verify command or an installer sees on PATH: where user-scoped installers put their binaries, ahead of the system directories.
 tools_path: "{{ dotfiles_home }}/.local/bin:{{ dotfiles_home }}/.cargo/bin:/usr/local/bin:/usr/bin:/bin"
 
