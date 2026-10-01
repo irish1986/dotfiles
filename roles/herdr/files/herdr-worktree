@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+#
+# herdr-worktree - create a git worktree at <repo>/.worktree/<branch-slug> and open it as a herdr workspace. Installed by roles/herdr and bound to new_worktree's key in config.toml.
+#
+#   herdr-worktree            ask for the branch
+#   herdr-worktree <branch>   no prompt
+#
+# herdr's own new_worktree puts every checkout under one [worktrees] directory; a relative directory is resolved against the server's working directory, not the repo, so a per-repo location is only reachable through `herdr worktree create --path`.
+# An existing local branch is checked out, anything else is created from HEAD -- the same rule as herdr's built-in. Open and delete stay herdr's built-ins: they list worktrees through git, wherever the checkout lives.
+
+set -Eeuo pipefail
+
+readonly HERDR="${HERDR_BIN_PATH:-herdr}"
+# Set by herdr for a popup command: the working directory of the pane that was focused when the key was pressed.
+readonly START_DIR="${HERDR_ACTIVE_PANE_CWD:-$PWD}"
+
+# A popup closes when its command exits, so an error would vanish before it could be read.
+die() {
+  printf 'herdr-worktree: %s\n' "$*" >&2
+  [[ -t 0 ]] && read -rsn1 -p 'press any key to close' _
+  exit 1
+}
+
+# The main checkout, even when started from inside a linked worktree, so .worktree/ never nests inside another worktree.
+common_dir="$(git -C "${START_DIR}" rev-parse --path-format=absolute --git-common-dir 2> /dev/null)" \
+  || die "${START_DIR} is not inside a git repository"
+[[ "$(git -C "${common_dir}" rev-parse --is-bare-repository)" == false ]] \
+  || die "${common_dir} is a bare repository"
+repo_root="$(dirname "${common_dir}")"
+
+branch="${1:-}"
+if [[ -z "${branch}" ]]; then
+  read -rp "new worktree in $(basename "${repo_root}"), branch: " branch
+fi
+[[ -n "${branch}" ]] || exit 0
+git check-ref-format --branch "${branch}" > /dev/null 2>&1 || die "not a valid branch name: ${branch}"
+
+# feat/x -> feat-x, the slug herdr uses for its own checkouts.
+path="${repo_root}/.worktree/${branch//\//-}"
+[[ -e "${path}" ]] && die "${path} already exists"
+
+output="$("${HERDR}" worktree create --cwd "${repo_root}" --branch "${branch}" --path "${path}" --focus 2>&1)" \
+  || die "${output}"
