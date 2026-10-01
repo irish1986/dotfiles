@@ -40,6 +40,13 @@
   loop_control:
     loop_var: tools_remove_path
 
+- name: Tools | Remove the listed agent plugins
+  ansible.builtin.include_tasks: "{{ role_path }}/tasks/kinds/agent_plugin_remove.yml"
+  loop: "{{ tools_remove_agent_plugins }}"
+  loop_control:
+    loop_var: tools_remove_agent_plugin
+    label: "{{ tools_remove_agent_plugin.plugin }} ({{ tools_remove_agent_plugin.cli }})"
+
 # Only packages whose removal takes nothing else with it. A stock install depends on some of these through a metapackage (tmux via byobu -> ubuntu-wsl on WSL, tmux and htop via ubuntu-server), and removing one silently removes the metapackage too; the next upgrade's autoremove then strips everything it was holding, snapd and wsl-pro-service included.
 - name: Tools | Simulate removing the listed apt packages
   ansible.builtin.command:

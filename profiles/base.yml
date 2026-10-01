@@ -88,12 +88,6 @@ tools_scripts:
     interpreter: bash
     creates: .local/bin/copilot
 
-# The same skills in every agent CLI; home.yml adds Claude Code's.
-tools_agent_plugins:
-  - cli: copilot
-    plugin: mattpocock-skills@mattpocock
-    marketplace: mattpocock/skills
-
 # A major, so nvm takes its newest release at install time. Majors are Renovate PRs that wait for a human (ADR 0004).
 # renovate: datasource=node-version depName=node
 tools_nvm_node_version: "24"
@@ -102,6 +96,7 @@ tools_nvm_node_version: "24"
 tools_agent_skills:
   - source: herdrdev/herdr
     skills: [herdr]
+  - source: mattpocock/skills
   # Drives the gh stack extension below.
   - source: github/gh-stack
     skills: [gh-stack]
@@ -147,3 +142,7 @@ tools_remove_paths:
   - .config/tmux
   - .tmux
   - .tmux.conf
+# Skill sets that moved to tools_agent_skills (ADR 0015); home.yml adds Claude Code's.
+tools_remove_agent_plugins:
+  - cli: copilot
+    plugin: mattpocock-skills@mattpocock
