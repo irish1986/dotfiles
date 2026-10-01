@@ -1,4 +1,4 @@
-# npm's user config, deployed by the tools role to ~/.config/npm/npmrc; .zshrc sets NPM_CONFIG_USERCONFIG to it. Edits made on the machine are overwritten on the next run.
+# npm's user config, deployed by the tools role to ~/.config/npm/npmrc; .zshrc sets NPM_CONFIG_USERCONFIG to it. Edits made on the machine are overwritten on the next run. A registry mirror is NPM_CONFIG_REGISTRY in the env file.
 #
 # Registry tokens do not go here: `npm login` would write one into a file the repo owns. Keep the token in the environment and reference it from a project's .npmrc instead:
 #   //registry.npmjs.org/:_authToken=${NPM_TOKEN}
@@ -9,8 +9,3 @@ cache=${HOME}/.cache/npm
 # Install output without the funding appeal or the new-version check, which is nvm's job here.
 fund=false
 update-notifier=false
-{% if tools_npm_registry | length > 0 %}
-
-# The work network's npm mirror (tools_npm_registry in the local file).
-registry={{ tools_npm_registry }}
-{% endif %}

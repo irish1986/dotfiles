@@ -1,7 +1,7 @@
 ---
-# Every machine. The named profile (personal.yml or work.yml) and then the local file are layered on top: scalars and dictionaries are overridden key by key, lists are appended to (docs/adr/0002).
+# Every machine. The named profile (personal.yml or work.yml) and then the local file are layered on top: scalars and dictionaries are overridden key by key, lists are appended to (specs/adr/0002).
 #
-# Adding a tool is adding an entry below; roles/tools/defaults/main.yml documents each kind (docs/adr/0004).
+# Adding a tool is adding an entry below; roles/tools/defaults/main.yml documents each kind (specs/adr/0004).
 
 tools_apt:
   - btop
@@ -40,6 +40,16 @@ tools_debs:
     # renovate: datasource=github-releases depName=fastfetch-cli/fastfetch
     version: "2.68.1"
     url: https://github.com/fastfetch-cli/fastfetch/releases/download/{version}/fastfetch-linux-{arch}.deb
+  # Vulnerabilities in images, filesystems and SBOMs.
+  - name: grype
+    # renovate: datasource=github-releases depName=anchore/grype
+    version: "0.119.0"
+    url: https://github.com/anchore/grype/releases/download/v{version}/grype_{version}_linux_{arch}.deb
+  # SBOMs, which grype scans.
+  - name: syft
+    # renovate: datasource=github-releases depName=anchore/syft
+    version: "1.54.0"
+    url: https://github.com/anchore/syft/releases/download/v{version}/syft_{version}_linux_{arch}.deb
 
 tools_binaries:
   # Token Use: token and cost usage across Claude Code, Copilot and other agents, read from their local session files. ~/.config/tokenuse is rewritten by the app, so it is yours to manage.
@@ -48,9 +58,20 @@ tools_binaries:
     version: "1.2.6"
     url: https://github.com/russmckendrick/tokenuse/releases/download/v{version}/tokenuse-linux-{arch}
     checksum_url: "{url}.sha256"
+  # amd64 only: upstream names the amd64 asset snyk-linux and suffixes the others. Authenticated by SNYK_TOKEN in the env file.
+  - name: snyk
+    # renovate: datasource=github-releases depName=snyk/cli
+    version: "1.1307.4"
+    url: https://github.com/snyk/cli/releases/download/v{version}/snyk-linux
+    checksum_url: "{url}.sha256"
+  # Dockerfile linter. amd64 only: upstream names the assets x86_64 and arm64, which no one placeholder matches. No published checksum.
+  - name: hadolint
+    # renovate: datasource=github-releases depName=hadolint/hadolint
+    version: "2.15.1"
+    url: https://github.com/hadolint/hadolint/releases/download/v{version}/hadolint-linux-x86_64
 
 tools_scripts:
-  # The upstream installer: GitHub Copilot CLI updates itself in place, so it is not pinned (docs/adr/0005). What the repo manages in ~/.copilot is in docs/adr/0008.
+  # The upstream installer: GitHub Copilot CLI updates itself in place, so it is not pinned (specs/adr/0005). What the repo manages in ~/.copilot is in specs/adr/0008.
   - name: copilot
     url: https://gh.io/copilot-install
     interpreter: bash
@@ -58,11 +79,11 @@ tools_scripts:
 
 # renovate: datasource=github-releases depName=nvm-sh/nvm
 tools_nvm_version: "0.40.8"
-# A major, so nvm takes its newest release at install time. Majors are Renovate PRs that wait for a human (docs/adr/0005).
+# A major, so nvm takes its newest release at install time. Majors are Renovate PRs that wait for a human (specs/adr/0005).
 # renovate: datasource=node-version depName=node
 tools_node_version: "24"
 
-# The same skills in every agent CLI (docs/adr/0008); personal.yml adds Claude Code to the agents.
+# The same skills in every agent CLI (specs/adr/0008); personal.yml adds Claude Code to the agents.
 tools_agent_skills:
   - source: herdrdev/herdr
     skills: [herdr]
@@ -89,13 +110,21 @@ tools_uv_tools:
   - name: prek
     # renovate: datasource=pypi depName=prek
     version: "0.5.3"
+  # GitGuardian's secret scanner. Authenticated by GITGUARDIAN_API_KEY in the env file.
+  - name: ggshield
+    # renovate: datasource=pypi depName=ggshield
+    version: "1.55.0"
+  # Static analysis for GitHub Actions workflows.
+  - name: zizmor
+    # renovate: datasource=pypi depName=zizmor
+    version: "1.30.1"
 
 tools_files:
   - src: btop/btop.conf
     dest: .config/btop/btop.conf
   - src: fastfetch/config.jsonc
     dest: .config/fastfetch/config.jsonc
-  # One set of global instructions for every agent CLI (docs/adr/0008); personal.yml adds Claude Code's copy. 0700 is what each CLI creates its directory with: it holds credentials and session history.
+  # One set of global instructions for every agent CLI (specs/adr/0008); personal.yml adds Claude Code's copy. 0700 is what each CLI creates its directory with: it holds credentials and session history.
   - src: agents/instructions.md
     dest: .copilot/copilot-instructions.md
     dir_mode: "0700"

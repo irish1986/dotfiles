@@ -1,6 +1,6 @@
 # Context
 
-An Ansible playbook that sets up one WSL2 distro running Ubuntu 26.04, with the shell and tools that go with it, safe to run again at any time. Why it is shaped this way is in [`docs/adr/`](docs/adr/).
+An Ansible playbook that sets up one WSL2 distro running Ubuntu 26.04, with the shell and tools that go with it, safe to run again at any time. Why it is shaped this way is in [`specs/adr/`](specs/adr/).
 
 ## Language
 
@@ -25,8 +25,12 @@ A committed description of what a kind of machine gets: `base` for every machine
 _Avoid_: home (for personal), role, environment
 
 **Local file**:
-The one never-committed file per machine that names its profile and holds what must not be public or differs per machine: identity, names, package mirrors.
+The one never-committed file per machine that names its profile and holds what must not be public or differs per machine: identity and names. Tokens and corporate URLs go in the env file instead.
 _Avoid_: override file, group_vars, config
+
+**Env file**:
+The gitignored `.env` at the checkout root: tokens and corporate URLs, under each tool's own variable names, exported to every shell and the bootstrap. The repo never reads its values.
+_Avoid_: secrets file, dotenv, local file
 
 **Layer**:
 One of base profile, named profile, local file, applied in that order; a later layer overrides values and appends to lists.
@@ -57,5 +61,5 @@ The root certificate of the work network's TLS-inspecting proxy (Zscaler), expor
 _Avoid_: proxy certificate, zscaler.crt
 
 **Package mirror**:
-An internal registry the work network requires in place of a public one: for Python packages, Python builds or npm packages. Read anonymously.
+An internal registry the work network requires in place of a public one: for Python packages, Python builds or npm packages. Read anonymously; named in the env file.
 _Avoid_: proxy, private repo

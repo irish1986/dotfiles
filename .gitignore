@@ -1,5 +1,5 @@
-.venv/
-/.wip
 .ansible
-.env
 .cache_ggshield
+.env
+.venv/
+.wip/

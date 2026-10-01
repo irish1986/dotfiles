@@ -4,7 +4,7 @@
 #
 #   bash -c "$(curl -fsSL https://raw.githubusercontent.com/irish1986/dotfiles/main/scripts/setup)" -- --profile work
 #
-# The first run creates ~/.config/dotfiles/local.yml and stops so you can edit it. Every later run trusts the corporate CA (work), installs uv and ansible-core through the package mirror the local file names, updates the checkout and runs the playbook. Anything it does not know goes to ansible-playbook:
+# The first run creates ~/.config/dotfiles/local.yml and ~/.dotfiles/.env, and stops so you can edit them. Every later run trusts the corporate CA (work), exports the env file, installs uv and ansible-core through its package mirror, updates the checkout and runs the playbook. Anything it does not know goes to ansible-playbook:
 #
 #   ~/.dotfiles/scripts/setup --tags zsh,git --check --diff
 
@@ -88,24 +88,32 @@ elif ((pull)); then
   git -C "$DOTFILES_DIR" pull --ff-only --autostash --quiet || info "could not fast-forward ${DOTFILES_DIR}; using it as it is"
 fi
 
+# The env file: tokens and corporate URLs, gitignored at the checkout root (specs/adr/0010).
+if [[ ! -f ${DOTFILES_DIR}/.env ]]; then
+  (umask 077 && cp "${DOTFILES_DIR}/.env.sample" "${DOTFILES_DIR}/.env")
+  info "Created ${DOTFILES_DIR}/.env from .env.sample"
+fi
+
 if [[ ! -f $LOCAL_FILE ]]; then
   mkdir -p "$(dirname "$LOCAL_FILE")"
-  (umask 077 && sed "s/^dotfiles_profile: .*/dotfiles_profile: ${profile}/" "${DOTFILES_DIR}/docs/examples/local.yml" > "$LOCAL_FILE")
-  info "Created ${LOCAL_FILE}. Fill in your git identity$([[ $profile == work ]] && printf ' and the package mirrors'), then run ${DOTFILES_DIR}/scripts/setup again."
+  (umask 077 && sed "s/^dotfiles_profile: .*/dotfiles_profile: ${profile}/" "${DOTFILES_DIR}/local.example.yml" > "$LOCAL_FILE")
+  info "Created ${LOCAL_FILE}. Fill in your git identity there$([[ $profile == work ]] && printf ', and the package mirrors in %s/.env' "$DOTFILES_DIR"), then run ${DOTFILES_DIR}/scripts/setup again."
   exit 0
 fi
 [[ "$(local_get dotfiles_profile)" == "$profile" ]] || sed -i "s/^dotfiles_profile:.*/dotfiles_profile: ${profile}/" "$LOCAL_FILE"
 
-# ansible-core from uv, through the PyPI mirror when there is one: the archive's is too old, and PEP 668 rules out pip.
+# Exported for everything below, the playbook run included: uv and npm read their mirrors from it.
+set -a
+# shellcheck disable=SC1091 # created above
+. "${DOTFILES_DIR}/.env"
+set +a
+
+# ansible-core from uv, through UV_DEFAULT_INDEX when the env file sets it: the archive's is too old, and PEP 668 rules out pip.
 if [[ ! -x ${HOME}/.local/bin/uv ]]; then
   info "Installing uv"
   curl -fsSL https://astral.sh/uv/install.sh | env UV_NO_MODIFY_PATH=1 sh -s -- --quiet
 fi
 export PATH="${HOME}/.local/bin:${PATH}"
-mirror="$(local_get tools_pypi_mirror)"
-[[ -z $mirror ]] || export UV_DEFAULT_INDEX="$mirror"
-mirror="$(local_get tools_python_install_mirror)"
-[[ -z $mirror ]] || export UV_PYTHON_INSTALL_MIRROR="$mirror"
 uv tool install --quiet "$ANSIBLE_CORE_SPEC"
 
 cd "$DOTFILES_DIR"

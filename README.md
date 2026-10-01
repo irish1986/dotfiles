@@ -22,7 +22,7 @@ In the distro:
 bash -c "$(curl -fsSL https://raw.githubusercontent.com/irish1986/dotfiles/main/scripts/setup)" -- --profile work   # or personal
 ```
 
-The first run clones the repo to `~/.dotfiles`, creates `~/.config/dotfiles/local.yml` and stops. Fill in your git identity there (and, at work, the package mirrors), then run it again:
+The first run clones the repo to `~/.dotfiles`, creates `~/.config/dotfiles/local.yml` and `~/.dotfiles/.env`, and stops. Fill in your git identity there (and, at work, the package mirrors in `~/.dotfiles/.env`), then run it again:
 
 ```bash
 ~/.dotfiles/scripts/setup
@@ -49,37 +49,43 @@ main.yml            the playbook: loads the layers, then runs the roles in order
 profiles/           base.yml for every machine, plus personal.yml or work.yml
 roles/              certificates, system, zsh, tools, ssh, git, herdr
 scripts/setup       the bootstrap
-docs/examples/      the local file template
-docs/adr/           why it is shaped this way
-CONTEXT.md          the vocabulary
+local.example.yml   the local file template
+.env.sample         the env file template: tokens and corporate URLs
+specs/adr/          why it is shaped this way
+specs/CONTEXT.md    the vocabulary
 ```
 
 Each role is `tasks/main.yml`, `tasks/verify.yml` and the files it uses; `defaults/main.yml` lists what can be changed.
 
 ## Configuration
 
-What a machine gets is layered ([ADR 0002](docs/adr/0002-layered-profiles-as-data.md)); a later layer overrides values and appends to lists:
+What a machine gets is layered ([ADR 0002](specs/adr/0002-layered-profiles-as-data.md)); a later layer overrides values and appends to lists:
 
 1. [`profiles/base.yml`](profiles/base.yml): every machine.
 2. [`profiles/personal.yml`](profiles/personal.yml) or [`profiles/work.yml`](profiles/work.yml): what that kind of machine adds.
-3. `~/.config/dotfiles/local.yml`: the local file. Your identity, the profile name, and anything that must not be public. Never committed; see [`docs/examples/local.yml`](docs/examples/local.yml).
+3. `~/.config/dotfiles/local.yml`: the local file. Your identity, the profile name, and anything that must not be public. Never committed; see [`local.example.yml`](local.example.yml).
 
 ### Work machine
 
-The work network inspects TLS with Zscaler and blocks some public registries ([ADR 0007](docs/adr/0007-work-network.md)):
+The work network inspects TLS with Zscaler and blocks some public registries ([ADR 0007](specs/adr/0007-work-network.md)):
 
 - `zscaler.cer` is trusted before anything downloads, by `scripts/setup` and then by the `certificates` role. A run fails while it is missing. If your Windows user name differs from the Linux one, set `dotfiles_windows_user` in the local file.
-- The package mirrors go in the local file; `scripts/setup` uses them to install ansible-core, and the playbook writes them to uv's and npm's config:
+- The package mirrors go in the env file, `~/.dotfiles/.env` ([`.env.sample`](.env.sample) lists them). `scripts/setup` exports it before installing ansible-core, and every shell exports it, so uv and npm use the mirrors without further configuration.
 
-  ```yaml
-  tools_pypi_mirror: https://artifactory.example.com/api/pypi/pypi/simple
-  tools_python_install_mirror: https://artifactory.example.com/artifactory/github/astral-sh/python-build-standalone/releases/download
-  tools_npm_registry: https://artifactory.example.com/api/npm/npm/
-  ```
+### Tokens and secrets
+
+Tokens and corporate URLs live in one place, the env file `~/.dotfiles/.env` ([ADR 0010](specs/adr/0010-env-file.md)). It is gitignored, mode 0600, created from [`.env.sample`](.env.sample) on the first run, and exported by every shell and by `scripts/setup`. Uncomment what the machine needs and open a new shell.
+
+Every machine gets ggshield, snyk, grype, syft, hadolint and zizmor; ggshield and snyk read their tokens from it:
+
+```bash
+GITGUARDIAN_API_KEY=<token>
+SNYK_TOKEN=<token>
+```
 
 ### Adding a tool
 
-Add an entry to a profile ([ADR 0004](docs/adr/0004-tools-as-lists.md)): `profiles/base.yml` for every machine, `personal.yml` or `work.yml` for one kind. [`roles/tools/defaults/main.yml`](roles/tools/defaults/main.yml) documents each kind. Then run `~/.dotfiles/scripts/setup --tags tools`. Removing an entry stops managing the tool; uninstall it by hand.
+Add an entry to a profile ([ADR 0004](specs/adr/0004-tools-as-lists.md)): `profiles/base.yml` for every machine, `personal.yml` or `work.yml` for one kind. [`roles/tools/defaults/main.yml`](roles/tools/defaults/main.yml) documents each kind. Then run `~/.dotfiles/scripts/setup --tags tools`. Removing an entry stops managing the tool; uninstall it by hand.
 
 ## Local development
 
@@ -88,7 +94,7 @@ prek run --all-files               # every lint hook
 ansible-playbook main.yml --check  # preview, change nothing
 ```
 
-CI converges each profile twice in an `ubuntu:26.04` container; the second run must change nothing ([ADR 0009](docs/adr/0009-ci-converges-twice.md)).
+CI converges each profile twice in an `ubuntu:26.04` container; the second run must change nothing ([ADR 0009](specs/adr/0009-ci-converges-twice.md)).
 
 ## Contributing
 

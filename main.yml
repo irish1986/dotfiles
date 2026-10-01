@@ -1,5 +1,5 @@
 ---
-# Sets up one WSL2 Ubuntu 26.04 distro (docs/adr/0001). Safe to re-run: a second run on an unchanged machine reports changed=0, and CI checks that it does.
+# Sets up one WSL2 Ubuntu 26.04 distro (specs/adr/0001). Safe to re-run: a second run on an unchanged machine reports changed=0, and CI checks that it does.
 - name: Dotfiles
   hosts: localhost
   connection: local
@@ -27,7 +27,7 @@
         quiet: true
       tags: always
 
-    # ── The layers (docs/adr/0002) ────────────────────────────────────────
+    # ── The layers (specs/adr/0002) ────────────────────────────────────────
     # profiles/base.yml, then profiles/<profile>.yml, then the local file. A later layer overrides scalars and dictionaries key by key and appends to lists.
     - name: Dotfiles | Assert the local file exists
       ansible.builtin.assert:

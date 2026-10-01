@@ -5,7 +5,7 @@ ssh_packages:
 ssh_private_key: id_ed25519
 ssh_public_key: id_ed25519.pub
 
-# The machine key (docs/adr/0006): the Windows user's %USERPROFILE%\.ssh key, created there by hand and copied into ~/.ssh on every run. A distro copy that differs is overwritten and kept as a backup.
+# The machine key (specs/adr/0006): the Windows user's %USERPROFILE%\.ssh key, created there by hand and copied into ~/.ssh on every run. A distro copy that differs is overwritten and kept as a backup.
 ssh_windows_dir: "{{ dotfiles_windows_home }}/.ssh"
 
 # Add the key to the GitHub account gh is logged in to, as an authentication and a signing key. Needs the admin:public_key and admin:ssh_signing_key scopes; without them the run says how to grant them and carries on.

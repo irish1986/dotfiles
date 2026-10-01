@@ -1,13 +1,5 @@
 ---
-# Work machines: base.yml plus what is listed here (docs/adr/0002). Corporate URLs and identity go in the local file, never here: this repository is public.
+# Work machines: base.yml plus what is listed here (specs/adr/0002). Corporate URLs and identity go in the local file, never here: this repository is public.
 
-# The Zscaler root certificate, exported on Windows to C:\Users\<you>\zscaler.cer (docs/adr/0007). A run fails until it is there.
+# The Zscaler root certificate, exported on Windows to C:\Users\<you>\zscaler.cer (specs/adr/0007). A run fails until it is there.
 certificates_corporate_ca: zscaler.cer
-
-tools_binaries:
-  # amd64 only: upstream names the amd64 asset snyk-linux and suffixes the others.
-  - name: snyk
-    # renovate: datasource=github-releases depName=snyk/cli
-    version: "1.1307.4"
-    url: https://github.com/snyk/cli/releases/download/v{version}/snyk-linux
-    checksum_url: "{url}.sha256"

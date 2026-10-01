@@ -1,5 +1,5 @@
 ---
-# Personal machines: base.yml plus what is listed here (docs/adr/0002).
+# Personal machines: base.yml plus what is listed here (specs/adr/0002).
 
 tools_apt:
   - build-essential # cc, which cargo links with
@@ -36,7 +36,7 @@ tools_scripts:
       CARGO_HOME: "{home}/.cargo"
       RUSTUP_HOME: "{home}/.rustup"
     verify: cargo --version && rustc --version
-  # Claude Code updates itself in place, so it is not pinned (docs/adr/0005). What the repo manages in ~/.claude is in docs/adr/0008.
+  # Claude Code updates itself in place, so it is not pinned (specs/adr/0005). What the repo manages in ~/.claude is in specs/adr/0008.
   - name: claude
     url: https://claude.ai/install.sh
     interpreter: bash

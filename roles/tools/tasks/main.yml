@@ -1,36 +1,21 @@
 ---
-# ── Package mirrors ───────────────────────────────────────────────────────
-# First: everything below that runs uv or npm reads these.
-- name: Tools | Ensure the config directories exist
+# ── Config for uv and npm ─────────────────────────────────────────────────
+# First: everything below that runs npm reads it. The package mirrors come from the env file, through the environment.
+- name: Tools | Ensure the npm config directory exists
   ansible.builtin.file:
-    path: "{{ dotfiles_home }}/{{ tools_config_dir }}"
+    path: "{{ dotfiles_home }}/.config/npm"
     state: directory
     owner: "{{ dotfiles_user }}"
     group: "{{ dotfiles_user }}"
     mode: "0755"
-  loop:
-    - .config/npm
-    - .config/uv
-  loop_control:
-    loop_var: tools_config_dir
 
 - name: Tools | Deploy the npm config
-  ansible.builtin.template:
-    src: npmrc.j2
+  ansible.builtin.copy:
+    src: npm/npmrc
     dest: "{{ dotfiles_home }}/.config/npm/npmrc"
     owner: "{{ dotfiles_user }}"
     group: "{{ dotfiles_user }}"
     mode: "0644"
-
-# Only with a mirror to name: otherwise the file is yours.
-- name: Tools | Deploy the uv config
-  ansible.builtin.template:
-    src: uv.toml.j2
-    dest: "{{ dotfiles_home }}/.config/uv/uv.toml"
-    owner: "{{ dotfiles_user }}"
-    group: "{{ dotfiles_user }}"
-    mode: "0644"
-  when: tools_pypi_mirror | length > 0 or tools_python_install_mirror | length > 0
 
 # ── apt ───────────────────────────────────────────────────────────────────
 # deb822_repository needs python3-debian, which a minimal image lacks.
@@ -315,6 +300,34 @@
   loop_control:
     loop_var: tools_file
     label: "{{ tools_file.dest }}"
+
+# ── The env file (specs/adr/0010) ─────────────────────────────────────────
+# Tokens and corporate URLs, in the gitignored .env at the checkout root. Only its permissions and its loading are managed here; its values are never read.
+- name: Tools | Check the env file
+  ansible.builtin.stat:
+    path: "{{ tools_env_file }}"
+  register: tools_env_file_stat
+
+- name: Tools | Keep the env file private
+  ansible.builtin.file:
+    path: "{{ tools_env_file }}"
+    mode: "0600"
+  when: tools_env_file_stat.stat.exists
+
+# Above the herdr block, which execs into herdr. set -a exports every assignment in it.
+- name: Tools | Load the env file in every shell
+  ansible.builtin.blockinfile:
+    path: "{{ dotfiles_home }}/.zshenv"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK env file"
+    insertbefore: BOF
+    create: true
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0600"
+    block: |
+      if [[ -r {{ tools_env_file }} ]]; then
+        set -a; . {{ tools_env_file }}; set +a
+      fi
 
 # ── Docker ────────────────────────────────────────────────────────────────
 - name: Tools | Configure docker

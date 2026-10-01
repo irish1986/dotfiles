@@ -8,4 +8,4 @@ Earlier versions also supported 24.04, plain Ubuntu hosts, several distros shari
 
 - **26.04 only.** No release-specific files, no fallback suites for vendors that lag a release. A plain Ubuntu 26.04 container still converges, with the WSL-only tasks skipped, because that is how CI tests the playbook.
 - **The playbook reads Windows and never writes it.** It reads the SSH key and, on a work machine, the corporate CA certificate from the Windows home. Terminal settings, `.wslconfig` and the Nerd Font are one-time steps in the README.
-- **No secrets.** Secret delivery (Infisical) was removed, to be revisited on its own.
+- **No secrets.** Secret delivery (Infisical) was removed, to be revisited on its own. Tokens that tools need live in a gitignored env file (0010).

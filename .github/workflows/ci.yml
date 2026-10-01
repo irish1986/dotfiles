@@ -2,7 +2,7 @@
 name: CI
 run-name: Continuous integration triggered by ${{ github.actor }}
 
-# Self-contained on purpose (docs/adr/0009): every job is defined here, so nothing outside this repository can change or weaken what is checked.
+# Self-contained on purpose (specs/adr/0009): every job is defined here, so nothing outside this repository can change or weaken what is checked.
 on: # yamllint disable-line rule:truthy
   push:
     branches:
@@ -108,6 +108,10 @@ jobs:
             /home/tester/.config/dotfiles/local.yml
           # Where work.yml looks for the corporate CA: the Windows home of a user named tester.
           install -D -m 0644 "${GITHUB_WORKSPACE}/dotfiles/tests/fixtures/zscaler.cer" /mnt/c/Users/tester/zscaler.cer
+          # The work run's env file names the public registries as its mirrors, so uv and npm go through the env-file path for real.
+          if [[ $PROFILE == work ]]; then
+            install -o tester -g tester -m 0600 "${GITHUB_WORKSPACE}/dotfiles/tests/fixtures/env-work" "${GITHUB_WORKSPACE}/dotfiles/.env"
+          fi
 
       # --skip-tags update omits a full apt upgrade: it is slow, and it is not what this job is testing.
       - name: Converge

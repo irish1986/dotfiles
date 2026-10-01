@@ -1,3 +1,3 @@
 ---
-# The corporate CA (docs/adr/0007): the root certificate of the work network's TLS-inspecting proxy, exported on Windows. A file name is looked up in the Windows home; an absolute path is used as it is. PEM or DER, any extension. Empty on a personal machine: the role then only points tools at the system store.
+# The corporate CA (specs/adr/0007): the root certificate of the work network's TLS-inspecting proxy, exported on Windows. A file name is looked up in the Windows home; an absolute path is used as it is. PEM or DER, any extension. Empty on a personal machine: the role then only points tools at the system store.
 certificates_corporate_ca: ""

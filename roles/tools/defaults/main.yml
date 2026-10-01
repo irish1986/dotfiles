@@ -1,5 +1,5 @@
 ---
-# Tool entries, set in the profiles rather than here (docs/adr/0004). Every list is appended to layer by layer, so base.yml, the named profile and the local file each add their own.
+# Tool entries, set in the profiles rather than here (specs/adr/0004). Every list is appended to layer by layer, so base.yml, the named profile and the local file each add their own.
 #
 # Placeholders, substituted wherever an entry takes a URL, arguments, environment or a verify command:
 #   {version}   the entry's version
@@ -8,7 +8,7 @@
 #   {codename}  Ubuntu codename: resolute
 #   {home}      the login user's home directory
 #
-# Every entry that installs from a release carries a version, annotated for Renovate on the line above it (docs/adr/0005):
+# Every entry that installs from a release carries a version, annotated for Renovate on the line above it (specs/adr/0005):
 #   # renovate: datasource=github-releases depName=<owner>/<repo>
 
 # Package names from the Ubuntu archive. Upgraded by the system role, not pinned.
@@ -46,7 +46,7 @@ tools_uv_tools: []
 tools_nvm_version: ""
 tools_node_version: ""
 
-# Agent skills, installed globally with the skills CLI (`npx skills add`) for every agent in tools_agent_skill_agents (docs/adr/0008). Installed when a skill is missing from an agent's skills directory; `npx skills update -g` is yours to run. Needs node.
+# Agent skills, installed globally with the skills CLI (`npx skills add`) for every agent in tools_agent_skill_agents (specs/adr/0008). Installed when a skill is missing from an agent's skills directory; `npx skills update -g` is yours to run. Needs node.
 #   source  what `skills add` takes: a GitHub owner/repo
 #   skills  skill names from that source, default ['*'] for all of them
 tools_agent_skills: []
@@ -64,15 +64,6 @@ tools_gh_extensions: []
 #   dir_mode  mode of dest's directory, default 0755
 tools_files: []
 
-# ── Package mirrors (docs/adr/0007) ───────────────────────────────────────
-# Internal registries the work network requires instead of the public ones, set in the local file. Read anonymously. All empty leaves uv and npm on the public registries.
-# uv's default index, in place of PyPI.
-tools_pypi_mirror: ""
-# Where uv downloads Python builds, in place of GitHub.
-tools_python_install_mirror: ""
-# npm's registry, in place of registry.npmjs.org.
-tools_npm_registry: ""
-
 # ── Docker daemon, when tools_apt_repos has an entry named docker ─────────
 # Left unset so Docker uses /var/lib/docker: on WSL /home and /var share one ext4.vhdx anyway.
 tools_docker_data_root: ""
@@ -82,6 +73,8 @@ tools_docker_experimental: true
 tools_docker_buildkit: true
 
 # ── Paths ─────────────────────────────────────────────────────────────────
+# The env file: tokens and corporate URLs, gitignored at the checkout root (specs/adr/0010).
+tools_env_file: "{{ playbook_dir }}/.env"
 tools_binary_dir: /usr/local/bin
 tools_nvm_dir: "{{ dotfiles_home }}/.nvm"
 # What an installer or a verify command sees on PATH: the user-scoped install directories first.
