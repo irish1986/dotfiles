@@ -1,104 +1,176 @@
 # Manual setup
 
-Everything `scripts/setup` does for the `home` profile, done by hand on a fresh Ubuntu 26.04 WSL distro, with a timing log so the two can be compared. The `work` profile's additions are in [Appendix A](#appendix-a--work-profile); the automated run to compare against is in [Appendix B](#appendix-b--the-automated-run).
+What `scripts/setup` does, done without Ansible: one block to paste per step, on a fresh Ubuntu 26.04 WSL distro, for the `home` or the `work` profile. For the automated route, see the README's [Quick start](../README.md#quick-start).
 
-> **Snapshot.** Written against commit `f0e1387ff171bf293fdd163885096553c5b0a0e5`, and not kept in sync. Versions are hardcoded as they were at that commit; the roles and profiles are the source of truth (ADR [0003](adr/0003-data-driven-tools.md), [0004](adr/0004-pinned-versions-renovate.md)). Step 0 checks out that commit so the files you copy match the text.
+> **Snapshot.** Written against commit `f0e1387ff171bf293fdd163885096553c5b0a0e5`, and not kept in sync. Step 0 checks out that commit so the files the blocks copy match the versions they install. The roles and profiles are the source of truth (ADR [0003](adr/0003-data-driven-tools.md), [0004](adr/0004-pinned-versions-renovate.md)).
 
-## How to use this
+## How the blocks work
 
-- Sections follow the playbook's role order (`dotfiles_role_order` in [`main.yml`](../main.yml)). Each one names the role it replaces, gives the commands, and ends with the check that role's `verify.yml` runs.
-- Each section starts with `mark start <id>` and ends with `mark end <id>`. `mark` appends a timestamp to `~/manual-setup-timing.log`, and the [summary](#summary) turns the log into minutes.
-- Copy files from the checkout; do not retype them. Templates are given here already rendered, with the defaults the playbook would use.
-- Do not take a break inside a section. If you have to, note it in the summary table and subtract it.
-- Not reproduced, because a fresh machine has nothing for them to do: the clean-up lists (`tools_remove_apt`, `tools_remove_paths`, `tools_remove_agent_plugins`), the pre-deb822 docker clean-up, the `--rotate-ssh-key` path, and the multi-distro `wsl_global_owner` handling.
+- Paste each block whole, in order. Each one writes its commands to `/tmp/step.sh` and runs them with bash, so it works the same from bash or zsh.
+- A block stops at the first error and leaves your terminal open. Fix the cause and paste the same block again: every block is safe to re-run.
+- A block ends with the checks the role's `verify.yml` makes, and prints `✓ <step> done` only when they pass.
+- Steps 1 (network) and part of 7 apply to one profile only. The blocks decide that from the profile you give in step 0.
 
-## Before you start (not timed)
+## Before you start
 
 - Windows 11 with WSL 2.7.6 or later (`wsl --version` in PowerShell; `wsl --update` if older), and Windows Terminal.
-- A GitHub account, and a browser to approve `gh auth login`.
-- Your git name and email, and your GitHub login.
-- Optional: an SSH key at `%USERPROFILE%\.ssh\id_ed25519`. Step 7 creates one if it is missing ([ADR 0011](adr/0011-copy-the-windows-ssh-key.md)).
+- A GitHub account, and a browser to approve `gh auth login` in step 8.
+- Work machines: the corporate CA exported from Windows as a PEM file, such as `C:\Users\<you>\corp-root-ca.crt`, and the proxy URL. If the proxy blocks the distro download itself, set it in Windows first.
 
-Create the throwaway distro from PowerShell, and set up its user when it asks:
+From PowerShell, create the distro and set up its user when it asks:
 
 ```powershell
-wsl --list --online                                  # confirm the name: Ubuntu-26.04
-wsl --install Ubuntu-26.04 --name dotfiles-manual
+wsl --install Ubuntu-26.04 --name dotfiles
 ```
-
-When you are done with it: `wsl --unregister dotfiles-manual`.
 
 ## 0. Bootstrap
 
-Replaces the first half of `scripts/setup`: base packages, the checkout, and the values the local file would hold. Start the clock as soon as you are at the distro's first prompt.
-
-Write the session file. Edit the first three lines before sourcing it:
+Asks for the profile, your git identity and GitHub login (and the proxy and CA on work), and writes them to `~/manual-setup.env`, which every later block reads. On work it trusts the CA and points apt at the proxy before anything downloads. Then it clones the repository at the pinned commit.
 
 ```bash
-cat > ~/manual-setup.env << 'EOF'
-export GIT_NAME='Your Name'
-export GIT_EMAIL='you@example.com'
-export GH_LOGIN='your-github-login'
+cat > /tmp/step.sh << 'STEP'
+set -euo pipefail
+env_file=~/manual-setup.env
+if [ -f "$env_file" ]; then . "$env_file"; fi
+ask() { local reply; read -rp "$1 [$2]: " reply; printf '%s' "${reply:-$2}"; }
+
+profile=$(ask 'Profile (home or work)' "${PROFILE:-home}")
+case $profile in home | work) ;; *) echo "profile must be home or work" >&2; exit 1 ;; esac
+name=$(ask 'Git name' "${GIT_NAME:-$(git config --global user.name || true)}")
+email=$(ask 'Git email' "${GIT_EMAIL:-$(git config --global user.email || true)}")
+login=$(ask 'GitHub login' "${GH_LOGIN:-}")
+proxy='' no_proxy_list='' ca=''
+if [ "$profile" = work ]; then
+  proxy=$(ask 'Proxy URL, such as http://proxy.example.com:8080 (empty for none)' "${PROXY:-}")
+  no_proxy_list=$(ask 'Hosts that skip the proxy' "${NO_PROXY_LIST:-localhost,127.0.0.1,::1}")
+  ca=$(ask 'Corporate CA in PEM, such as /mnt/c/Users/you/corp-root-ca.crt (empty for none)' "${CA:-}")
+fi
+if [ -z "$name" ] || [ -z "$email" ] || [ -z "$login" ]; then
+  echo "the git name, git email and GitHub login are all needed" >&2; exit 1
+fi
+
+{
+  printf 'export PROFILE=%q GIT_NAME=%q GIT_EMAIL=%q GH_LOGIN=%q\n' "$profile" "$name" "$email" "$login"
+  printf 'export PROXY=%q NO_PROXY_LIST=%q CA=%q\n' "$proxy" "$no_proxy_list" "$ca"
+  cat << 'EOF'
+export DOTFILES="$HOME/.dotfiles"
 export HOST_NAME="$(hostname -s)"
 export ARCH="$(dpkg --print-architecture)"
 export CODENAME="$(. /etc/os-release && echo "$VERSION_CODENAME")"
 export WINHOME="$(wslpath -u "$(cd /mnt/c && /mnt/c/Windows/System32/cmd.exe /d /c 'echo %USERPROFILE%' | tr -d '\r\n')")"
-export DOTFILES="$HOME/.dotfiles"
 export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
-mark() { printf '%s %s %s %s\n' "$(date +%s)" "$(date +%T)" "$1" "$2" | tee -a "$HOME/manual-setup-timing.log"; }
+if [ -n "$PROXY" ]; then
+  export http_proxy="$PROXY" https_proxy="$PROXY" no_proxy="$NO_PROXY_LIST"
+  export HTTP_PROXY="$PROXY" HTTPS_PROXY="$PROXY" NO_PROXY="$NO_PROXY_LIST"
+fi
+if [ -n "$CA" ]; then
+  export SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt
+fi
+
+# put_block NAME top|bottom FILE MODE < content: write a marked block into FILE, replacing an earlier copy.
+# The markers are the playbook's, so a later playbook run on this distro finds the block instead of adding another.
+put_block() {
+  local name=$1 where=$2 file=$3 mode=$4 body rest=''
+  body=$(printf '# BEGIN ANSIBLE MANAGED BLOCK %s\n%s\n# END ANSIBLE MANAGED BLOCK %s' "$name" "$(cat)" "$name")
+  if [ -f "$file" ]; then
+    rest=$(sed "/^# BEGIN ANSIBLE MANAGED BLOCK $name\$/,/^# END ANSIBLE MANAGED BLOCK $name\$/d" "$file")
+  fi
+  if [ "$where" = top ]; then
+    printf '%s\n' "$body" ${rest:+"$rest"} > "$file.new"
+  else
+    printf '%s\n' ${rest:+"$rest"} "$body" > "$file.new"
+  fi
+  mv "$file.new" "$file" && chmod "$mode" "$file"
+}
 EOF
-nano ~/manual-setup.env
-. ~/manual-setup.env && mark start 0-bootstrap
-```
+} > "$env_file"
+. "$env_file"
+[ -d "$WINHOME" ] || { echo "could not find the Windows profile ($WINHOME)" >&2; exit 1; }
 
-Every later section starts by sourcing this file again, so it survives restarts and the switch to zsh.
+if [ -n "$CA" ]; then
+  sudo install -d -m 0755 /usr/local/share/ca-certificates/dotfiles
+  sudo install -m 0644 "$CA" "/usr/local/share/ca-certificates/dotfiles/$(basename "$CA" | sed -E 's/\.(pem|crt|cer)$//').crt"
+  sudo update-ca-certificates --fresh
+fi
+if [ -n "$PROXY" ]; then
+  printf 'Acquire::http::Proxy "%s";\nAcquire::https::Proxy "%s";\n' "$PROXY" "$PROXY" | sudo tee /etc/apt/apt.conf.d/95dotfiles-proxy > /dev/null
+fi
 
-```bash
 sudo apt-get update
-sudo apt-get install -y ca-certificates curl git
-
-git clone https://github.com/irish1986/dotfiles.git "$DOTFILES"
-git -C "$DOTFILES" switch --detach f0e1387ff171bf293fdd163885096553c5b0a0e5
+sudo apt-get install -y ca-certificates curl git python3
+[ -d "$DOTFILES/.git" ] || git clone https://github.com/irish1986/dotfiles.git "$DOTFILES"
+git -C "$DOTFILES" switch -q --detach f0e1387ff171bf293fdd163885096553c5b0a0e5
 git -C "$DOTFILES" remote set-url origin git@github.com:irish1986/dotfiles.git
+
+echo "Windows profile: $WINHOME"
+echo "✓ 0 bootstrap done"
+STEP
+bash /tmp/step.sh
 ```
 
-Check: `echo "$WINHOME"` prints your Windows profile, such as `/mnt/c/Users/you`, and `ls "$WINHOME"` lists it.
+## 1. Network (work only)
+
+Replaces `roles/network`: the proxy and CA for every shell, the docker daemon and git. Step 0 already did apt and the CA. On home it does nothing.
 
 ```bash
-mark end 0-bootstrap
+cat > /tmp/step.sh << 'STEP'
+set -euo pipefail
+. ~/manual-setup.env
+if [ "$PROFILE" != work ]; then echo "✓ 1 network skipped (home)"; exit 0; fi
+
+{
+  if [ -n "$PROXY" ]; then
+    printf 'export http_proxy="%s" https_proxy="%s" no_proxy="%s"\n' "$PROXY" "$PROXY" "$NO_PROXY_LIST"
+    echo 'export HTTP_PROXY="$http_proxy" HTTPS_PROXY="$https_proxy" NO_PROXY="$no_proxy"'
+  fi
+  if [ -n "$CA" ]; then
+    echo 'export SSL_CERT_FILE="/etc/ssl/certs/ca-certificates.crt" REQUESTS_CA_BUNDLE="/etc/ssl/certs/ca-certificates.crt" NODE_EXTRA_CA_CERTS="/etc/ssl/certs/ca-certificates.crt"'
+  fi
+} | put_block network top ~/.zshenv 0600
+
+if [ -n "$PROXY" ]; then
+  # Picked up when docker is installed in step 7.
+  sudo install -d -m 0755 /etc/systemd/system/docker.service.d
+  printf '[Service]\nEnvironment="HTTP_PROXY=%s"\nEnvironment="HTTPS_PROXY=%s"\nEnvironment="NO_PROXY=%s"\n' "$PROXY" "$PROXY" "$NO_PROXY_LIST" \
+    | sudo tee /etc/systemd/system/docker.service.d/dotfiles-proxy.conf > /dev/null
+  git config --file ~/.gitconfig http.proxy "$PROXY"
+fi
+
+# verify
+if [ -n "$CA" ]; then ls "/etc/ssl/certs/$(basename "$CA" | sed -E 's/\.(pem|crt|cer)$//').pem"; fi
+if [ -n "$PROXY" ]; then [ "$(git config --file ~/.gitconfig http.proxy)" = "$PROXY" ]; fi
+echo "✓ 1 network done"
+STEP
+bash /tmp/step.sh
 ```
 
-## 1. Update
+## 2. Update
 
-Replaces `roles/update`: upgrade everything, then unattended upgrades.
+Replaces `roles/update`: upgrade everything, and unattended upgrades with automatic reboots off, since WSL cannot reboot itself. From here on apt installs no recommended packages.
 
 ```bash
-. ~/manual-setup.env && mark start 1-update
+cat > /tmp/step.sh << 'STEP'
+set -euo pipefail
+. ~/manual-setup.env
 
 sudo apt-get update
 sudo DEBIAN_FRONTEND=noninteractive apt-get -y full-upgrade
-sudo apt-get -y autoremove && sudo apt-get autoclean
+sudo apt-get -y autoremove
+sudo apt-get autoclean
 sudo apt-get install -y unattended-upgrades
-```
 
-The three apt configuration files. From here on apt installs no recommended packages, as it does in the playbook's runs:
-
-```bash
 sudo tee /etc/apt/apt.conf.d/2norecommends > /dev/null << 'EOF'
 APT::Get::Install-Recommends "false";
 APT::Get::Install-Suggests "false";
 APT::Install-Recommends "false";
 APT::Install-Suggests "false";
 EOF
-
 sudo tee /etc/apt/apt.conf.d/10periodic > /dev/null << 'EOF'
 APT::Periodic::AutocleanInterval "7";
 APT::Periodic::Download-Upgradeable-Packages "1";
 APT::Periodic::Unattended-Upgrade "1";
 APT::Periodic::Update-Package-Lists "1";
 EOF
-
-# WSL cannot be rebooted from inside, so automatic reboots are off.
 sudo tee /etc/apt/apt.conf.d/50unattended-upgrades > /dev/null << 'EOF'
 Unattended-Upgrade::Allowed-Origins {
     "${distro_id}:${distro_codename}-security";
@@ -113,62 +185,65 @@ Unattended-Upgrade::Remove-New-Unused-Dependencies "true";
 Unattended-Upgrade::Remove-Unused-Dependencies "true";
 Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";
 EOF
+if [ -d /run/systemd/system ]; then
+  sudo systemctl enable unattended-upgrades
+  sudo systemctl restart unattended-upgrades
+fi
 
-sudo systemctl enable unattended-upgrades && sudo systemctl restart unattended-upgrades
+# verify
+held=$(apt-mark showhold)
+if [ -n "$held" ]; then echo "held, so not upgraded: $held"; fi
+[ -z "$(sudo dpkg --audit)" ]
+echo "✓ 2 update done"
+STEP
+bash /tmp/step.sh
 ```
 
-If `/var/run/reboot-required` exists, the restart at the end of step 3 takes care of it.
+## 3. System
 
-Verify: both commands print nothing.
-
-```bash
-apt-mark showhold
-sudo dpkg --audit
-mark end 1-update
-```
-
-## 2. System
-
-Replaces `roles/system`: base packages and the Nerd Font files. On WSL the hostname belongs to `wsl.conf` (step 3), and there is no guest agent.
+Replaces `roles/system`: base packages and the Hack Nerd Font files, which step 4 installs on Windows. On WSL, `wsl.conf` sets the hostname.
 
 ```bash
-. ~/manual-setup.env && mark start 2-system
+cat > /tmp/step.sh << 'STEP'
+set -euo pipefail
+. ~/manual-setup.env
 
-sudo apt-get install -y apt-transport-https bind9-dnsutils ca-certificates curl git make nano wget unzip
+packages="apt-transport-https bind9-dnsutils ca-certificates curl git make nano wget"
+sudo apt-get install -y $packages unzip
 
-mkdir -p ~/.local/share/fonts && chmod 0755 ~/.local/share/fonts
-curl -fsSLo /tmp/Hack.zip https://github.com/ryanoasis/nerd-fonts/releases/download/v3.5.1/Hack.zip
-unzip -o /tmp/Hack.zip -d ~/.local/share/fonts -x LICENSE LICENSE.txt README.md
-rm /tmp/Hack.zip
-```
+mkdir -p ~/.local/share/fonts
+chmod 0755 ~/.local/share/fonts
+if [ ! -f ~/.local/share/fonts/HackNerdFont-Regular.ttf ]; then
+  curl -fsSLo /tmp/Hack.zip https://github.com/ryanoasis/nerd-fonts/releases/download/v3.5.1/Hack.zip
+  unzip -o -q /tmp/Hack.zip -d ~/.local/share/fonts -x LICENSE LICENSE.txt README.md
+  rm /tmp/Hack.zip
+fi
 
-Verify:
-
-```bash
-dpkg-query -W -f='${Package} ${Status}\n' apt-transport-https bind9-dnsutils ca-certificates curl git make nano wget
+# verify
+for p in $packages; do dpkg-query -W -f='${Status}\n' "$p" | grep -q 'ok installed'; done
 ls ~/.local/share/fonts/HackNerdFont-Regular.ttf
-mark end 2-system
+echo "✓ 3 system done"
+STEP
+bash /tmp/step.sh
 ```
 
-## 3. WSL
+## 4. WSL
 
-Replaces `roles/wsl`: `wsl.conf`, the clipboard bridge, and the Windows-side state: `.wslconfig`, the Windows font install, and Windows Terminal settings.
+Replaces `roles/wsl`, on both sides:
 
-```bash
-. ~/manual-setup.env && mark start 3-wsl
-```
+- In the distro: `wsl.conf` and the win32yank clipboard bridge.
+- On Windows: the `.wslconfig` keys, the fonts installed for your Windows user, and the Windows Terminal settings.
 
-### Interop
-
-Every Windows-side step below needs it:
+`.wslconfig` gets `memory=48GB`, sized for a 64 GB workstation. On a smaller machine, run `export WSL_MEMORY=16GB` first, with the size you want. Every other key in the file is left alone, and a backup is kept as `.wslconfig.bak`.
 
 ```bash
-(cd /mnt/c && /mnt/c/Windows/System32/cmd.exe /c ver)
-```
+cat > /tmp/step.sh << 'STEP'
+set -euo pipefail
+. ~/manual-setup.env
+cmd=/mnt/c/Windows/System32/cmd.exe
+powershell=/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe
+(cd /mnt/c && "$cmd" /c ver)   # interop works
 
-### wsl.conf
-
-```bash
 sudo tee /etc/wsl.conf > /dev/null << EOF
 [boot]
 systemd = true
@@ -191,358 +266,312 @@ generateResolvConf = true
 [user]
 default = $USER
 EOF
-cat /etc/wsl.conf
-```
 
-### Clipboard bridge
-
-```bash
+# Clipboard bridge
 mkdir -p ~/.local/bin ~/.local/opt/win32yank-0.1.1
-curl -fsSLo /tmp/win32yank.zip https://github.com/equalsraf/win32yank/releases/download/v0.1.1/win32yank-x64.zip
-unzip -o /tmp/win32yank.zip win32yank.exe -d ~/.local/opt/win32yank-0.1.1
+if [ ! -f ~/.local/opt/win32yank-0.1.1/win32yank.exe ]; then
+  curl -fsSLo /tmp/win32yank.zip https://github.com/equalsraf/win32yank/releases/download/v0.1.1/win32yank-x64.zip
+  unzip -o -q /tmp/win32yank.zip win32yank.exe -d ~/.local/opt/win32yank-0.1.1
+  rm /tmp/win32yank.zip
+fi
 chmod 0755 ~/.local/opt/win32yank-0.1.1/win32yank.exe
 ln -sfn ~/.local/opt/win32yank-0.1.1/win32yank.exe ~/.local/bin/win32yank.exe
-rm /tmp/win32yank.zip
-```
 
-### .wslconfig
-
-The playbook sets these keys one by one and leaves every other key in the file alone. `processors` is half the host's logical CPUs, rounded up:
-
-```bash
-host_cpus=$(cd /mnt/c && /mnt/c/Windows/System32/cmd.exe /d /c 'echo %NUMBER_OF_PROCESSORS%' | tr -d '\r')
-echo "processors=$(( (host_cpus + 1) / 2 ))"
-cp "$WINHOME/.wslconfig" "$WINHOME/.wslconfig.bak" 2> /dev/null || true
-notepad.exe "$(wslpath -w "$WINHOME/.wslconfig")"
-```
-
-Make the file contain these keys. Add any that are missing, change any that differ, keep everything else, and save. Notepad offers to create the file if it does not exist.
-
-```ini
-[wsl2]
-memory=48GB
-processors=<the number printed above>
-swap=8GB
-networkingMode=mirrored
-dnsTunneling=true
-firewall=true
-guiApplications=true
-nestedVirtualization=true
-
-[experimental]
-autoMemoryReclaim=gradual
-sparseVhd=true
-```
-
-`48GB` is the default, sized for a 64 GB workstation. Use whatever `wsl_config_memory` your local file would set.
-
-### Windows fonts
-
-A per-user install: no administrator rights needed. It must come before the Terminal settings, which name the font.
-
-```bash
-mkdir -p "$WINHOME/Downloads/HackNerdFont"
-cp ~/.local/share/fonts/*.ttf "$WINHOME/Downloads/HackNerdFont/"
-explorer.exe "$(wslpath -w "$WINHOME/Downloads/HackNerdFont")" || true
-```
-
-In the Explorer window, select every `.ttf` file, right-click, and choose **Install**, not "Install for all users". Then delete the folder.
-
-### Windows Terminal
-
-Open Terminal's **Settings** and select **Open JSON file** at the bottom left. Merge these keys into the top level of the file, and into `profiles.defaults`. Leave `profiles.list`, `actions`, `schemes` and `themes` alone:
-
-```json
-{
-    "copyOnSelect": false,
-    "copyFormatting": "none",
-    "firstWindowPreference": "defaultProfile",
-    "launchMode": "focus",
-    "showTabsInTitlebar": false,
-    "centerOnLaunch": false,
-    "initialCols": 95,
-    "initialRows": 53,
-    "initialPosition": "0,0",
-    "profiles": {
-        "defaults": {
-            "colorScheme": "Campbell",
-            "opacity": 85,
-            "padding": "2",
-            "scrollbarState": "hidden",
-            "font": {
-                "face": "Hack Nerd Font",
-                "size": 12
-            }
-        }
-    }
+# .wslconfig: processors is half the host's logical CPUs, rounded up.
+host_cpus=$(cd /mnt/c && "$cmd" /d /c 'echo %NUMBER_OF_PROCESSORS%' | tr -d '\r\n')
+wslconfig="$WINHOME/.wslconfig"
+if [ -f "$wslconfig" ] && [ ! -f "$wslconfig.bak" ]; then cp "$wslconfig" "$wslconfig.bak"; fi
+python3 - "$wslconfig" "${WSL_MEMORY:-48GB}" "$(( (host_cpus + 1) / 2 ))" << 'PY'
+import re, sys
+path, memory, processors = sys.argv[1:]
+want = {
+    'wsl2': [('memory', memory), ('processors', processors), ('swap', '8GB'), ('networkingMode', 'mirrored'),
+             ('dnsTunneling', 'true'), ('firewall', 'true'), ('guiApplications', 'true'), ('nestedVirtualization', 'true')],
+    'experimental': [('autoMemoryReclaim', 'gradual'), ('sparseVhd', 'true')],
 }
+try:
+    lines = open(path, encoding='utf-8-sig').read().splitlines()
+except FileNotFoundError:
+    lines = []
+for section, keys in want.items():
+    for key, value in keys:
+        start = next((i for i, line in enumerate(lines) if line.strip().lower() == f'[{section.lower()}]'), None)
+        if start is None:
+            if lines and lines[-1].strip():
+                lines.append('')
+            lines.append(f'[{section}]')
+            start = len(lines) - 1
+        end = next((i for i in range(start + 1, len(lines)) if lines[i].strip().startswith('[')), len(lines))
+        hit = next((i for i in range(start + 1, end) if re.match(rf'\s*{key}\s*=', lines[i], re.I)), None)
+        if hit is not None:
+            lines[hit] = f'{key}={value}'
+        else:
+            last = max(i for i in range(start, end) if lines[i].strip())
+            lines.insert(last + 1, f'{key}={value}')
+open(path, 'w', encoding='utf-8').write('\n'.join(lines) + '\n')
+PY
+
+# Fonts, for this Windows user only: copied into its font folder, then registered under HKCU.
+fontdir="$WINHOME/AppData/Local/Microsoft/Windows/Fonts"
+mkdir -p "$fontdir"
+for f in ~/.local/share/fonts/*.ttf; do
+  [ -e "$fontdir/${f##*/}" ] || cp "$f" "$fontdir/"
+done
+cat > /tmp/fonts.ps1 << 'PS1'
+$ErrorActionPreference = 'Stop'
+Add-Type -AssemblyName PresentationCore
+$dest = Join-Path $env:LOCALAPPDATA 'Microsoft\Windows\Fonts'
+$reg = 'HKCU:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts'
+if (-not (Test-Path $reg)) { New-Item -Path $reg -Force | Out-Null }
+foreach ($f in Get-ChildItem -Path $dest -Filter 'Hack*NerdFont*.ttf') { $gt = New-Object Windows.Media.GlyphTypeface ([Uri]$f.FullName); $name = ((($gt.Win32FamilyNames.Values | Select-Object -First 1) + ' ' + ($gt.Win32FaceNames.Values | Select-Object -First 1)).Trim() -replace '\s+', ' ') + ' (TrueType)'; New-ItemProperty -Path $reg -Name $name -Value $f.FullName -PropertyType String -Force | Out-Null }
+Write-Output 'fonts registered'
+
+PS1
+(cd /mnt/c && "$powershell" -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command - < /tmp/fonts.ps1)
+rm /tmp/fonts.ps1
+
+# Windows Terminal: merged into the global settings and profiles.defaults; profiles.list, actions and themes are left alone.
+python3 - "$WINHOME" << 'PY'
+import json, os, sys
+home = sys.argv[1]
+candidates = [
+    f'{home}/AppData/Local/Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState/settings.json',
+    f'{home}/AppData/Local/Packages/Microsoft.WindowsTerminalPreview_8wekyb3d8bbwe/LocalState/settings.json',
+    f'{home}/AppData/Local/Microsoft/Windows Terminal/settings.json',
+]
+path = next((p for p in candidates if os.path.exists(p)), None)
+if path is None:
+    print('warning: no Windows Terminal settings.json found; open Terminal once and paste this step again')
+    sys.exit(0)
+try:
+    current = json.load(open(path, encoding='utf-8-sig'))
+except ValueError:
+    print(f'warning: {path} has comments or is not plain JSON; merge the settings by hand (see roles/wsl/defaults/main.yml)')
+    sys.exit(0)
+want = {
+    'copyOnSelect': False, 'copyFormatting': 'none', 'firstWindowPreference': 'defaultProfile',
+    'launchMode': 'focus', 'showTabsInTitlebar': False, 'centerOnLaunch': False,
+    'initialCols': 95, 'initialRows': 53, 'initialPosition': '0,0',
+    'profiles': {'defaults': {'colorScheme': 'Campbell', 'opacity': 85, 'padding': '2', 'scrollbarState': 'hidden',
+                              'font': {'face': 'Hack Nerd Font', 'size': 12}}},
+}
+def merge(into, new):
+    for key, value in new.items():
+        if isinstance(value, dict) and isinstance(into.get(key), dict):
+            merge(into[key], value)
+        else:
+            into[key] = value
+    return into
+merged = merge(json.loads(json.dumps(current)), want)
+if merged != current:
+    open(path, 'w', encoding='utf-8').write(json.dumps(merged, indent=4, ensure_ascii=False) + '\n')
+print('Terminal settings up to date')
+PY
+
+# verify
+[ -f /etc/wsl.conf ]
+ls "$fontdir/HackNerdFont-Regular.ttf"
+saved=$(win32yank.exe -o --lf || true)
+printf probe | win32yank.exe -i --crlf
+[ "$(win32yank.exe -o --lf)" = probe ]
+printf '%s' "$saved" | win32yank.exe -i --crlf
+echo "✓ 4 wsl done"
+echo
+echo "Now restart WSL: close every Windows Terminal window, then in PowerShell run"
+echo "    wsl --shutdown"
+echo "    wsl -d ${WSL_DISTRO_NAME:-dotfiles}"
+STEP
+bash /tmp/step.sh
 ```
 
-Save. The playbook does not change the default profile.
+**Restart now.** Close every Windows Terminal window, run `wsl --shutdown` in PowerShell, then reopen the distro. `wsl.conf` applies when the distro starts and `.wslconfig` when the WSL VM boots, and Windows Terminal only sees the new fonts after a restart. Step 5 refuses to run until the restart has happened.
 
-### Restart
+## 5. Zsh
 
-`wsl.conf` applies when the distro restarts, and `.wslconfig` when the whole WSL VM restarts. Fonts need a fresh Terminal. Close every Windows Terminal window, then from PowerShell:
-
-```powershell
-wsl --shutdown
-wsl -d dotfiles-manual
-```
-
-Verify, back in the distro:
+Replaces `roles/zsh`: packages, oh-my-zsh, the pinned plugins and the shell dotfiles. It starts by checking that the restart after step 4 happened.
 
 ```bash
+cat > /tmp/step.sh << 'STEP'
+set -euo pipefail
 . ~/manual-setup.env
-cat /etc/wsl.conf > /dev/null && echo "wsl.conf present"
-hostname                                   # = HOST_NAME
-grep ' /mnt/c ' /proc/mounts               # options include metadata,umask=22,fmask=11
-systemctl is-system-running                # running or degraded, not "offline"
-printf probe | win32yank.exe -i --crlf && win32yank.exe -o --lf; echo   # prints: probe
-mark end 3-wsl
-```
-
-## 4. Zsh
-
-Replaces `roles/zsh`: packages, oh-my-zsh, pinned plugins and the shell dotfiles.
-
-```bash
-. ~/manual-setup.env && mark start 4-zsh
+mounts=$(grep ' /mnt/c ' /proc/mounts || true)
+if [ ! -d /run/systemd/system ] || [[ $mounts != *metadata* ]]; then
+  echo "WSL is not running with the new wsl.conf yet: run 'wsl --shutdown' in PowerShell, reopen, and paste this again" >&2; exit 1
+fi
 
 sudo apt-get install -y bat eza fzf git jq trash-cli tree whois yq zoxide zsh
 
-curl -fsSLo /tmp/omz-install.sh https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh
-ZSH="$HOME/.oh-my-zsh" sh /tmp/omz-install.sh --unattended --keep-zshrc
-rm /tmp/omz-install.sh
-```
+if [ ! -d ~/.oh-my-zsh ]; then
+  curl -fsSLo /tmp/omz-install.sh https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh
+  ZSH="$HOME/.oh-my-zsh" sh /tmp/omz-install.sh --unattended --keep-zshrc
+  rm /tmp/omz-install.sh
+fi
 
-The plugins, each at its pinned version. Tags clone shallow; commit pins need a full clone:
+# plugin NAME themes|plugins REPO TAG-OR-COMMIT
+plugin() {
+  local dest="$HOME/.oh-my-zsh/custom/$2/$1"
+  if [ -d "$dest" ]; then return 0; fi
+  if [[ $4 =~ ^[0-9a-f]{40}$ ]]; then
+    git clone -q "$3" "$dest" && git -C "$dest" checkout -q "$4"
+  else
+    git clone -q --depth 1 --branch "$4" "$3" "$dest"
+  fi
+}
+plugin powerlevel10k themes https://github.com/romkatv/powerlevel10k.git v1.20.0
+plugin you-should-use plugins https://github.com/MichaelAquilina/zsh-you-should-use.git 1.9.0
+plugin zsh-autosuggestions plugins https://github.com/zsh-users/zsh-autosuggestions v0.7.1
+plugin zsh-bat plugins https://github.com/fdellwing/zsh-bat.git 467337613c1c220c0d01d69b19d2892935f43e9f
+plugin zsh-completions plugins https://github.com/zsh-users/zsh-completions 67921bc12502c1e7b0f156533fbac2cb51f6943d
+plugin zsh-eza plugins https://github.com/z-shell/zsh-eza 79484190e314c0e5bdbcc3e610300589606c45f0
+plugin zsh-syntax-highlighting plugins https://github.com/zsh-users/zsh-syntax-highlighting.git 0.8.0
 
-```bash
-C=~/.oh-my-zsh/custom
-git clone -q --depth 1 --branch v1.20.0 https://github.com/romkatv/powerlevel10k.git "$C/themes/powerlevel10k"
-git clone -q --depth 1 --branch 1.9.0 https://github.com/MichaelAquilina/zsh-you-should-use.git "$C/plugins/you-should-use"
-git clone -q --depth 1 --branch v0.7.1 https://github.com/zsh-users/zsh-autosuggestions "$C/plugins/zsh-autosuggestions"
-git clone -q --depth 1 --branch 0.8.0 https://github.com/zsh-users/zsh-syntax-highlighting.git "$C/plugins/zsh-syntax-highlighting"
-git clone -q https://github.com/fdellwing/zsh-bat.git "$C/plugins/zsh-bat" \
-  && git -C "$C/plugins/zsh-bat" checkout -q 467337613c1c220c0d01d69b19d2892935f43e9f
-git clone -q https://github.com/zsh-users/zsh-completions "$C/plugins/zsh-completions" \
-  && git -C "$C/plugins/zsh-completions" checkout -q 67921bc12502c1e7b0f156533fbac2cb51f6943d
-git clone -q https://github.com/z-shell/zsh-eza "$C/plugins/zsh-eza" \
-  && git -C "$C/plugins/zsh-eza" checkout -q 79484190e314c0e5bdbcc3e610300589606c45f0
-```
+# Skip Ubuntu's system-wide compinit; oh-my-zsh runs its own. About a second off every startup.
+echo 'skip_global_compinit=1' | put_block zsh top ~/.zshenv 0600
 
-`~/.zshenv` skips Ubuntu's system-wide `compinit`, which costs about a second of every startup. The block goes at the top of the file. The markers are the playbook's, so a later playbook run on this distro recognises the block instead of adding a second copy.
-
-```bash
-{ printf '%s\n' '# BEGIN ANSIBLE MANAGED BLOCK zsh' 'skip_global_compinit=1' '# END ANSIBLE MANAGED BLOCK zsh'
-  cat ~/.zshenv 2> /dev/null; } > ~/.zshenv.new && mv ~/.zshenv.new ~/.zshenv && chmod 0600 ~/.zshenv
-```
-
-The dotfiles. `.p10k` is renamed to `.p10k.zsh`:
-
-```bash
 install -m 0644 "$DOTFILES/roles/zsh/files/.zshrc" ~/.zshrc
 install -m 0644 "$DOTFILES/roles/zsh/files/.zshaliases" ~/.zshaliases
 install -m 0644 "$DOTFILES/roles/zsh/files/.zshfunc" ~/.zshfunc
 install -m 0644 "$DOTFILES/roles/zsh/files/.p10k" ~/.p10k.zsh
-```
 
-Verify:
-
-```bash
+# verify
 zsh --version
-ls ~/.zshrc ~/.zshaliases ~/.zshfunc ~/.p10k.zsh
-ls ~/.oh-my-zsh/custom/themes/powerlevel10k/powerlevel10k.zsh-theme
-mark end 4-zsh
+ls ~/.zshrc ~/.zshaliases ~/.zshfunc ~/.p10k.zsh ~/.oh-my-zsh/custom/themes/powerlevel10k/powerlevel10k.zsh-theme > /dev/null
+echo "✓ 5 zsh done"
+STEP
+bash /tmp/step.sh
 ```
 
-## 5. User
+## 6. User
 
-Replaces `roles/user`: passwordless sudo, groups, login shell and home directory modes.
+Replaces `roles/user`: passwordless sudo, the sudo and docker groups, zsh as the login shell, and the home directory modes. The groups and the shell apply to new terminals.
 
 ```bash
-. ~/manual-setup.env && mark start 5-user
+cat > /tmp/step.sh << 'STEP'
+set -euo pipefail
+. ~/manual-setup.env
 
-sudo grep -q '^%sudo' /etc/sudoers && echo "%sudo rule present"   # Ubuntu ships it
-
+sudo grep -q '^%sudo' /etc/sudoers
 printf '%s\n' '# Managed by the dotfiles playbook (roles/user). Do not edit.' "$USER ALL=(ALL) NOPASSWD: ALL" > /tmp/90-dotfiles
-sudo visudo -cf /tmp/90-dotfiles && sudo install -m 0440 -o root -g root /tmp/90-dotfiles /etc/sudoers.d/90-dotfiles
+sudo visudo -cf /tmp/90-dotfiles
+sudo install -m 0440 -o root -g root /tmp/90-dotfiles /etc/sudoers.d/90-dotfiles
 rm /tmp/90-dotfiles
 
-# docker is created now so that joining it works before docker is installed.
 sudo groupadd -f docker
 sudo usermod -aG sudo,docker "$USER"
-
 sudo chsh -s /usr/bin/zsh "$USER"
 
 mkdir -p ~/.cache ~/.config ~/.local/bin ~/.local/share ~/.local/state
 chmod 0700 ~/.cache ~/.local/share ~/.local/state
 chmod 0755 ~/.config ~/.local/bin
-```
 
-Verify:
-
-```bash
+# verify
 sudo visudo -cf /etc/sudoers.d/90-dotfiles
-getent passwd "$USER" | cut -d: -f7        # /usr/bin/zsh
-id -nG "$USER"                             # includes sudo and docker
-stat -c '%a %n' ~/.cache ~/.config ~/.local/bin ~/.local/share ~/.local/state
-mark end 5-user
+[ "$(getent passwd "$USER" | cut -d: -f7)" = /usr/bin/zsh ]
+[[ " $(id -nG "$USER") " == *" docker "* && " $(id -nG "$USER") " == *" sudo "* ]]
+echo "✓ 6 user done"
+STEP
+bash /tmp/step.sh
 ```
 
-The new groups and login shell apply to new terminals. You can stay in this one.
+## 7. Tools
 
-## 6. Tools
+Replaces `roles/tools`, the longest step: apt packages and repositories, release downloads, installer scripts, node, the agent skills, the gh extension, Python, config files and the docker daemon. Home and work differ here:
 
-Replaces `roles/tools`, the biggest step: apt packages and repositories, release downloads, installer scripts, node, agent skills, the gh extension, Python tools, config files and docker.
-
-```bash
-. ~/manual-setup.env && mark start 6-tools
-```
-
-### Apt packages
+- Home adds `build-essential`, Tailscale, Infisical, Hugo, rustup, Claude Code and Claude Code's copy of the skills and instructions.
+- Work adds snyk.
 
 ```bash
-sudo apt-get install -y btop libssl-dev python3 python3-pip python3-venv build-essential
-```
+cat > /tmp/step.sh << 'STEP'
+set -euo pipefail
+. ~/manual-setup.env
+home() { [ "$PROFILE" = home ]; }
 
-### Apt repositories
+apt_packages="btop libssl-dev python3 python3-pip python3-venv"
+if home; then apt_packages="$apt_packages build-essential"; fi
+sudo apt-get install -y $apt_packages
 
-Each repository is a deb822 `.sources` file with its own key. Docker and Tailscale publish one suite per Ubuntu release, so the playbook first checks that this release's suite exists and falls back to `noble` if it does not. Both had a `resolute` suite when this was written; check before you start:
-
-```bash
-for u in https://download.docker.com/linux/ubuntu https://pkgs.tailscale.com/stable/ubuntu; do
-  printf '%s %s\n' "$(curl -s -o /dev/null -w '%{http_code}' -I "$u/dists/$CODENAME/Release")" "$u"
-done   # 200 for both: carry on. Anything else: run CODENAME=noble before the next block
-```
-
-```bash
+# Apt repositories, as deb822 .sources files. Docker and Tailscale publish one suite per Ubuntu release and can lag a new one: fall back to noble then.
+suite() { if [ "$(curl -s -o /dev/null -w '%{http_code}' -I "$1/dists/$CODENAME/Release")" = 200 ]; then echo "$CODENAME"; else echo noble; fi; }
+# repo NAME URI SUITE COMPONENT KEY-URL KEY-EXTENSION
+repo() {
+  curl -fsSL "$5" | sudo tee "/etc/apt/keyrings/$1.$6" > /dev/null
+  printf 'Types: deb\nURIs: %s\nSuites: %s\nComponents: %s\nArchitectures: %s\nSigned-By: /etc/apt/keyrings/%s.%s\n' \
+    "$2" "$3" "$4" "$ARCH" "$1" "$6" | sudo tee "/etc/apt/sources.list.d/$1.sources" > /dev/null
+}
 sudo install -d -m 0755 /etc/apt/keyrings
-
-# gh. The key is binary.
-sudo curl -fsSLo /etc/apt/keyrings/github-cli.gpg https://cli.github.com/packages/githubcli-archive-keyring.gpg
-sudo tee /etc/apt/sources.list.d/github-cli.sources > /dev/null << EOF
-Types: deb
-URIs: https://cli.github.com/packages
-Suites: stable
-Components: main
-Architectures: $ARCH
-Signed-By: /etc/apt/keyrings/github-cli.gpg
-EOF
-
-# docker. The key is ASCII-armored.
-sudo curl -fsSLo /etc/apt/keyrings/docker.asc https://download.docker.com/linux/ubuntu/gpg
-sudo tee /etc/apt/sources.list.d/docker.sources > /dev/null << EOF
-Types: deb
-URIs: https://download.docker.com/linux/ubuntu
-Suites: $CODENAME
-Components: stable
-Architectures: $ARCH
-Signed-By: /etc/apt/keyrings/docker.asc
-EOF
-
-# tailscale. One key per release.
-sudo curl -fsSLo /etc/apt/keyrings/tailscale.asc "https://pkgs.tailscale.com/stable/ubuntu/$CODENAME.asc"
-sudo tee /etc/apt/sources.list.d/tailscale.sources > /dev/null << EOF
-Types: deb
-URIs: https://pkgs.tailscale.com/stable/ubuntu
-Suites: $CODENAME
-Components: main
-Architectures: $ARCH
-Signed-By: /etc/apt/keyrings/tailscale.asc
-EOF
-
-# infisical. Used by the secrets role.
-sudo curl -fsSLo /etc/apt/keyrings/infisical.asc https://artifacts-cli.infisical.com/infisical.gpg
-sudo tee /etc/apt/sources.list.d/infisical.sources > /dev/null << EOF
-Types: deb
-URIs: https://artifacts-cli.infisical.com/deb
-Suites: stable
-Components: main
-Architectures: $ARCH
-Signed-By: /etc/apt/keyrings/infisical.asc
-EOF
-
+repo github-cli https://cli.github.com/packages stable main https://cli.github.com/packages/githubcli-archive-keyring.gpg gpg
+s=$(suite https://download.docker.com/linux/ubuntu)
+repo docker https://download.docker.com/linux/ubuntu "$s" stable https://download.docker.com/linux/ubuntu/gpg asc
+repo_packages="gh containerd.io docker-buildx-plugin docker-ce docker-ce-cli docker-compose-plugin"
+if home; then
+  s=$(suite https://pkgs.tailscale.com/stable/ubuntu)
+  repo tailscale https://pkgs.tailscale.com/stable/ubuntu "$s" main "https://pkgs.tailscale.com/stable/ubuntu/$s.asc" asc
+  repo infisical https://artifacts-cli.infisical.com/deb stable main https://artifacts-cli.infisical.com/infisical.gpg asc
+  repo_packages="$repo_packages tailscale infisical"
+fi
 sudo apt-get update
-sudo apt-get install -y gh containerd.io docker-buildx-plugin docker-ce docker-ce-cli docker-compose-plugin tailscale infisical
-```
+sudo apt-get install -y $repo_packages
 
-### Release downloads
-
-```bash
 # .deb releases
-curl -fsSLo /tmp/fastfetch.deb "https://github.com/fastfetch-cli/fastfetch/releases/download/2.68.1/fastfetch-linux-$ARCH.deb"
-curl -fsSLo /tmp/hugo.deb "https://github.com/gohugoio/hugo/releases/download/v0.166.0/hugo_extended_0.166.0_linux-$ARCH.deb"
-sudo apt-get install -y /tmp/fastfetch.deb /tmp/hugo.deb
-rm /tmp/fastfetch.deb /tmp/hugo.deb
+deb() { curl -fsSLo "/tmp/$1.deb" "$2" && sudo apt-get install -y "/tmp/$1.deb" && rm "/tmp/$1.deb"; }
+deb fastfetch "https://github.com/fastfetch-cli/fastfetch/releases/download/2.68.1/fastfetch-linux-$ARCH.deb"
+if home; then deb hugo "https://github.com/gohugoio/hugo/releases/download/v0.166.0/hugo_extended_0.166.0_linux-$ARCH.deb"; fi
 
-# A single binary, checked against its published sha256
-url="https://github.com/russmckendrick/tokenuse/releases/download/v1.2.6/tokenuse-linux-$ARCH"
-curl -fsSLo /tmp/tokenuse "$url"
-echo "$(curl -fsSL "$url.sha256" | awk '{print $1}')  /tmp/tokenuse" | sha256sum -c -
-sudo install -m 0755 -o root -g root /tmp/tokenuse /usr/local/bin/tokenuse && rm /tmp/tokenuse
-```
+# Single binaries, checked against their published sha256
+bin() {
+  curl -fsSLo "/tmp/$1" "$2"
+  echo "$(curl -fsSL "$2.sha256" | awk '{print $1}')  /tmp/$1" | sha256sum -c -
+  sudo install -m 0755 -o root -g root "/tmp/$1" "/usr/local/bin/$1" && rm "/tmp/$1"
+}
+bin tokenuse "https://github.com/russmckendrick/tokenuse/releases/download/v1.2.6/tokenuse-linux-$ARCH"
+if [ "$PROFILE" = work ]; then bin snyk https://github.com/snyk/cli/releases/download/v1.1307.4/snyk-linux; fi
 
-### Installer scripts
+# Installer scripts, run once; each tool updates itself afterwards.
+[ -x ~/.local/bin/uv ] || curl -LsSf https://astral.sh/uv/install.sh | env UV_NO_MODIFY_PATH=1 sh
+# PROFILE=/dev/null keeps nvm out of ~/.zshrc, which loads it itself.
+[ -s ~/.nvm/nvm.sh ] || curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.8/install.sh | env NVM_DIR="$HOME/.nvm" PROFILE=/dev/null bash
+[ -x ~/.local/bin/copilot ] || curl -fsSL https://gh.io/copilot-install | bash
+if home; then
+  [ -x ~/.cargo/bin/rustup ] || curl -fsSL https://sh.rustup.rs | env CARGO_HOME="$HOME/.cargo" RUSTUP_HOME="$HOME/.rustup" \
+    sh -s -- -y --no-modify-path --profile default --default-toolchain stable
+  [ -x ~/.local/bin/claude ] || curl -fsSL https://claude.ai/install.sh | bash
+fi
 
-Each one runs once. After that, the tool updates itself.
+# Node 24 from nvm. nvm.sh does not run under set -eu.
+export NVM_DIR="$HOME/.nvm"
+set +eu
+. "$NVM_DIR/nvm.sh"
+nvm install --no-progress 24 && nvm alias default 24
+rc=$?
+set -eu
+[ "$rc" = 0 ]
 
-```bash
-# uv
-curl -LsSf https://astral.sh/uv/install.sh | env UV_NO_MODIFY_PATH=1 sh
-
-# nvm. PROFILE=/dev/null keeps it out of ~/.zshrc, which already loads it.
-curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.8/install.sh | env NVM_DIR="$HOME/.nvm" PROFILE=/dev/null bash
-
-# GitHub Copilot CLI
-curl -fsSL https://gh.io/copilot-install | bash
-
-# rustup (home)
-curl -fsSL https://sh.rustup.rs | env CARGO_HOME="$HOME/.cargo" RUSTUP_HOME="$HOME/.rustup" \
-  sh -s -- -y --no-modify-path --profile default --default-toolchain stable
-
-# Claude Code (home)
-curl -fsSL https://claude.ai/install.sh | bash
-```
-
-### Node and the agent skills
-
-```bash
-. ~/.nvm/nvm.sh
-nvm install --no-progress 24
-nvm alias default 24
-
-# The same skills for Copilot and Claude Code (ADR 0015). Each --yes skips a different prompt: npx's, then the skills CLI's.
+# The same agent skills in every agent CLI (ADR 0015).
+agents="github-copilot"
+if home; then agents="$agents claude-code"; fi
 export DISABLE_TELEMETRY=1 NPM_CONFIG_UPDATE_NOTIFIER=false
-npx --yes skills@1.7.0 add herdrdev/herdr --skill herdr --global --agent github-copilot claude-code --yes
-npx --yes skills@1.7.0 add mattpocock/skills --skill '*' --global --agent github-copilot claude-code --yes
-npx --yes skills@1.7.0 add github/gh-stack --skill gh-stack --global --agent github-copilot claude-code --yes
-```
+npx --yes skills@1.7.0 add herdrdev/herdr --skill herdr --global --agent $agents --yes
+npx --yes skills@1.7.0 add mattpocock/skills --skill '*' --global --agent $agents --yes
+npx --yes skills@1.7.0 add github/gh-stack --skill gh-stack --global --agent $agents --yes
 
-### gh extension and Python
-
-```bash
-gh extension install github/gh-stack
+[ -d ~/.local/share/gh/extensions/gh-stack ] || gh extension install github/gh-stack
 
 uv python install 3.14 --default
 uv tool install --force prek==0.5.3
-```
 
-### Config files
-
-```bash
+# Config files
 F="$DOTFILES/roles/tools/files"
 install -D -m 0644 "$F/btop/btop.conf" ~/.config/btop/btop.conf
 install -D -m 0644 "$F/fastfetch/config.jsonc" ~/.config/fastfetch/config.jsonc
 install -D -m 0644 "$F/npm/npmrc" ~/.config/npm/npmrc
-mkdir -p ~/.copilot ~/.claude && chmod 0700 ~/.copilot ~/.claude
+mkdir -p ~/.copilot && chmod 0700 ~/.copilot
 install -m 0644 "$F/agents/instructions.md" ~/.copilot/copilot-instructions.md
-install -m 0644 "$F/agents/instructions.md" ~/.claude/CLAUDE.md
-```
+if home; then
+  mkdir -p ~/.claude && chmod 0700 ~/.claude
+  install -m 0644 "$F/agents/instructions.md" ~/.claude/CLAUDE.md
+fi
 
-### Docker daemon
-
-```bash
+# Docker daemon
 cat > /tmp/daemon.json << 'EOF'
 {
   "default-address-pools": [
@@ -557,43 +586,51 @@ cat > /tmp/daemon.json << 'EOF'
   }
 }
 EOF
-sudo dockerd --validate --config-file /tmp/daemon.json \
-  && sudo install -D -m 0644 -o root -g root /tmp/daemon.json /etc/docker/daemon.json
+sudo dockerd --validate --config-file /tmp/daemon.json
+sudo install -D -m 0644 -o root -g root /tmp/daemon.json /etc/docker/daemon.json
 rm /tmp/daemon.json
-sudo systemctl enable docker && sudo systemctl restart docker
+sudo systemctl daemon-reload
+sudo systemctl enable docker
+sudo systemctl restart docker
+
+# verify
+gh --version && docker --version && fastfetch --version && tokenuse --version
+uv --version && copilot --version && prek --version && gh stack --version
+node --version && npm --version
+ls ~/.agents/skills/herdr/SKILL.md ~/.agents/skills/gh-stack/SKILL.md
+if home; then
+  tailscale version && infisical --version && hugo version && claude --version
+  cargo --version && rustc --version
+  ls ~/.claude/skills/herdr/SKILL.md ~/.claude/skills/gh-stack/SKILL.md
+else
+  snyk --version
+fi
+echo "✓ 7 tools done"
+STEP
+bash /tmp/step.sh
 ```
 
-Verify: every command must succeed.
+## 8. SSH
+
+Replaces `roles/ssh`. WSL gets no SSH server. The step:
+
+- writes hardened client defaults into `~/.ssh/config`;
+- imports your GitHub keys into `authorized_keys`;
+- copies in the machine key, the one in your Windows profile, and creates it there first if it is missing ([ADR 0011](adr/0011-copy-the-windows-ssh-key.md));
+- registers the key on GitHub to authenticate and to sign.
+
+It stops once for `gh auth login`: open the URL it prints and enter the code.
 
 ```bash
-gh --version && docker --version && tailscale version && infisical --version
-fastfetch --version && hugo version && tokenuse --version
-uv --version && copilot --version && claude --version
-(. ~/.nvm/nvm.sh && nvm --version && node --version && npm --version)
-cargo --version && rustc --version
-prek --version && gh stack --version
-ls ~/.agents/skills/*/SKILL.md ~/.claude/skills/*/SKILL.md
-mark end 6-tools
-```
-
-## 7. SSH
-
-Replaces `roles/ssh`: client config, authorized keys, the machine key (made on Windows and copied in, [ADR 0011](adr/0011-copy-the-windows-ssh-key.md)), and registering it on GitHub. WSL gets no SSH server.
-
-```bash
-. ~/manual-setup.env && mark start 7-ssh
+cat > /tmp/step.sh << 'STEP'
+set -euo pipefail
+. ~/manual-setup.env
 
 sudo apt-get install -y openssh-client
-mkdir -p ~/.ssh/sockets && chmod 0700 ~/.ssh ~/.ssh/sockets
-```
+mkdir -p ~/.ssh/sockets
+chmod 0700 ~/.ssh ~/.ssh/sockets
 
-### Client config
-
-A `Host *` block of hardened defaults at the end of `~/.ssh/config`:
-
-```bash
-cat >> ~/.ssh/config << EOF
-# BEGIN ANSIBLE MANAGED BLOCK defaults
+put_block defaults bottom ~/.ssh/config 0600 << EOF
 Host *
   KexAlgorithms curve25519-sha256@libssh.org,curve25519-sha256,diffie-hellman-group-exchange-sha256
   Ciphers chacha20-poly1305@openssh.com,aes256-gcm@openssh.com,aes128-gcm@openssh.com,aes256-ctr
@@ -619,85 +656,67 @@ Host *
   ControlPersist 10m
   IdentityFile $HOME/.ssh/id_ed25519
   ControlPath $HOME/.ssh/sockets/%C
-# END ANSIBLE MANAGED BLOCK defaults
 EOF
-chmod 0600 ~/.ssh/config
-ssh -G -F ~/.ssh/config example.com > /dev/null && echo "config parses"
-```
+ssh -G -F ~/.ssh/config example.com > /dev/null
 
-### Authorized keys
-
-The keys published on your GitHub profile:
-
-```bash
-curl -fsSL "https://github.com/$GH_LOGIN.keys" >> ~/.ssh/authorized_keys
+touch ~/.ssh/authorized_keys
 chmod 0600 ~/.ssh/authorized_keys
-```
+curl -fsSL "https://github.com/$GH_LOGIN.keys" | while read -r key; do
+  grep -qxF "$key" ~/.ssh/authorized_keys || echo "$key" >> ~/.ssh/authorized_keys
+done
 
-### The key
-
-If Windows has no key yet, create it there, without a passphrase, as the playbook does:
-
-```bash
+# The machine key lives in the Windows profile; created there, without a passphrase, if missing.
 if [ ! -f "$WINHOME/.ssh/id_ed25519" ]; then
   mkdir -p "$WINHOME/.ssh"
   (cd /mnt/c && /mnt/c/Windows/System32/OpenSSH/ssh-keygen.exe -q -t ed25519 -N "" \
     -C "$USER@$HOST_NAME" -f "$(wslpath -w "$WINHOME/.ssh")\\id_ed25519")
 fi
-
 install -m 0600 "$WINHOME/.ssh/id_ed25519" ~/.ssh/id_ed25519
 install -m 0644 "$WINHOME/.ssh/id_ed25519.pub" ~/.ssh/id_ed25519.pub
-```
 
-### GitHub
-
-Log gh in with the two scopes it needs to manage SSH keys. `--skip-ssh-key` stops gh from uploading a key of its own; the next step does that:
-
-```bash
-gh auth login --hostname github.com --git-protocol ssh --web --skip-ssh-key \
-  --scopes admin:public_key,admin:ssh_signing_key
-```
-
-Register the key twice, once to authenticate and once to sign, skipping either one that GitHub already has:
-
-```bash
+# gh needs two extra scopes to manage SSH keys. --skip-ssh-key: the key is added below, as two types.
+scopes=admin:public_key,admin:ssh_signing_key
+if ! gh auth status --hostname github.com > /dev/null 2>&1; then
+  gh auth login --hostname github.com --git-protocol ssh --web --skip-ssh-key --scopes "$scopes"
+elif [[ $(gh auth status --hostname github.com 2>&1) != *admin:ssh_signing_key* ]]; then
+  gh auth refresh --hostname github.com --scopes "$scopes"
+fi
 pub=$(cut -d' ' -f1,2 ~/.ssh/id_ed25519.pub)
-gh api user/keys --jq '.[].key' | grep -qxF "$pub" \
-  || gh ssh-key add ~/.ssh/id_ed25519.pub --title "$USER@$HOST_NAME" --type authentication
-gh api user/ssh_signing_keys --jq '.[].key' | grep -qxF "$pub" \
-  || gh ssh-key add ~/.ssh/id_ed25519.pub --title "$USER@$HOST_NAME" --type signing
-```
+auth_keys=$(gh api user/keys --jq '.[].key')
+signing_keys=$(gh api user/ssh_signing_keys --jq '.[].key')
+grep -qxF "$pub" <<< "$auth_keys" || gh ssh-key add ~/.ssh/id_ed25519.pub --title "$USER@$HOST_NAME" --type authentication
+grep -qxF "$pub" <<< "$signing_keys" || gh ssh-key add ~/.ssh/id_ed25519.pub --title "$USER@$HOST_NAME" --type signing
 
-Verify:
-
-```bash
+# verify
 ssh -V
-stat -c '%a %n' ~/.ssh ~/.ssh/config ~/.ssh/id_ed25519   # 700, 600, 600
-ssh -G example.com | grep -i '^ciphers'                  # the list above
-diff <(cut -d' ' -f1,2 "$WINHOME/.ssh/id_ed25519.pub") <(cut -d' ' -f1,2 ~/.ssh/id_ed25519.pub) && echo "matches the Windows key"
-ssh -T git@github.com                                    # answer yes to the host key; "Hi <login>! You've successfully authenticated"
-mark end 7-ssh
+[ "$(stat -c %a ~/.ssh)" = 700 ] && [ "$(stat -c %a ~/.ssh/config)" = 600 ] && [ "$(stat -c %a ~/.ssh/id_ed25519)" = 600 ]
+[[ $(ssh -G example.com) == *$'\n'"ciphers chacha20-poly1305@openssh.com,"* ]]
+[ "$pub" = "$(cut -d' ' -f1,2 "$WINHOME/.ssh/id_ed25519.pub")" ]
+out=$(ssh -n -T -o StrictHostKeyChecking=accept-new git@github.com 2>&1 || true)
+echo "$out"
+grep -q 'successfully authenticated' <<< "$out"
+echo "✓ 8 ssh done"
+STEP
+bash /tmp/step.sh
 ```
 
-## 8. Git
+## 9. Git
 
-Replaces `roles/git`: packages, global gitignore, identity, SSH commit signing, and gh's config and aliases.
+Replaces `roles/git`: packages, the global gitignore, `~/git/<login>`, your identity, SSH commit signing, and gh's settings and aliases. It ends by making a signed commit in a throwaway repository.
 
 ```bash
-. ~/manual-setup.env && mark start 8-git
+cat > /tmp/step.sh << 'STEP'
+set -euo pipefail
+. ~/manual-setup.env
 
 sudo apt-get install -y git git-lfs git-filter-repo
 install -m 0644 "$DOTFILES/roles/git/files/.gitignore" ~/.gitignore
-mkdir -p ~/git/"$GH_LOGIN" && chmod 0700 ~/git/"$GH_LOGIN"
+mkdir -p ~/git/"$GH_LOGIN"
+chmod 0700 ~/git/"$GH_LOGIN"
 
-# Who may sign: your email and the machine key.
-printf '%s\n' "# BEGIN ANSIBLE MANAGED BLOCK $GIT_EMAIL" "$GIT_EMAIL $(cat ~/.ssh/id_ed25519.pub)" "# END ANSIBLE MANAGED BLOCK $GIT_EMAIL" >> ~/.ssh/allowed_signers
-chmod 0644 ~/.ssh/allowed_signers
-```
+# Who may sign as you: your email and the machine key.
+echo "$GIT_EMAIL $(cat ~/.ssh/id_ed25519.pub)" | put_block "$GIT_EMAIL" bottom ~/.ssh/allowed_signers 0644
 
-The git configuration, in `~/.gitconfig`:
-
-```bash
 g() { git config --file ~/.gitconfig "$@"; }
 g advice.diverging false
 g branch.sort -committerdate
@@ -732,67 +751,66 @@ g gpg.ssh.allowedSignersFile "$HOME/.ssh/allowed_signers"
 g user.email "$GIT_EMAIL"
 g user.name "$GIT_NAME"
 g user.signingkey "$HOME/.ssh/id_ed25519.pub"
-```
 
-gh:
-
-```bash
 gh config set git_protocol ssh
 gh config set editor 'code --wait'
 gh config set prompt enabled
 gh alias set co 'pr checkout' --clobber
 gh alias set pv 'pr view' --clobber
 gh alias set st status --clobber
-```
 
-Verify. The last line makes a signed commit in a throwaway repository:
-
-```bash
+# verify
 git --version
-git config --file ~/.gitconfig user.email                # = GIT_EMAIL
-d=$(mktemp -d) && git -C "$d" init -q && git -C "$d" commit -q --allow-empty -m probe \
-  && git -C "$d" log --show-signature -1 | grep -i 'good "git" signature'; rm -rf "$d"
-mark end 8-git
+[ "$(git config --file ~/.gitconfig user.email)" = "$GIT_EMAIL" ]
+d=$(mktemp -d)
+git -C "$d" init -q
+git -C "$d" commit -q --allow-empty -m probe
+sig=$(git -C "$d" log --show-signature -1)
+rm -rf "$d"
+grep -qi 'good "git" signature' <<< "$sig"
+echo "✓ 9 git done"
+STEP
+bash /tmp/step.sh
 ```
 
-## 9. Secrets
+## 10. Secrets
 
-Replaces `roles/secrets` as it runs when the local file names no secrets source: it installs the sync script and nothing more. The Infisical CLI came with step 6. Wiring a source and targets is left out on purpose; README's **Secrets** section covers it.
-
-```bash
-. ~/manual-setup.env && mark start 9-secrets
-
-install -m 0755 "$DOTFILES/roles/secrets/files/dotfiles-secrets" ~/.local/bin/dotfiles-secrets
-```
-
-Verify:
+Replaces `roles/secrets` as it runs when the local file names no secrets source: it installs the sync script and nothing more. On home, the Infisical CLI came with step 7. Wiring a source and targets is in the README's **Secrets** section.
 
 ```bash
+cat > /tmp/step.sh << 'STEP'
+set -euo pipefail
+. ~/manual-setup.env
+
+install -D -m 0755 "$DOTFILES/roles/secrets/files/dotfiles-secrets" ~/.local/bin/dotfiles-secrets
+
+# verify
 dotfiles-secrets path
-infisical --version
-mark end 9-secrets
+if [ "$PROFILE" = home ]; then infisical --version; fi
+echo "✓ 10 secrets done"
+STEP
+bash /tmp/step.sh
 ```
 
-## 10. Herdr
+## 11. Herdr
 
-Replaces `roles/herdr`: the binary, its config, a systemd user service, the agent integrations, and the autostart that execs every new login shell into herdr.
+Replaces `roles/herdr`: the binary, its config, a systemd user service (enabled, not started), the integrations for the agent CLIs that are installed, and the autostart that takes every new login shell into herdr.
 
 ```bash
-. ~/manual-setup.env && mark start 10-herdr
+cat > /tmp/step.sh << 'STEP'
+set -euo pipefail
+. ~/manual-setup.env
 
-curl -fsSLo ~/.local/bin/herdr "https://github.com/herdrdev/herdr/releases/download/v0.9.1/herdr-linux-$(uname -m)"
+installed=$(~/.local/bin/herdr --version 2> /dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || true)
+if [ "$installed" != 0.9.1 ]; then
+  curl -fsSLo ~/.local/bin/herdr "https://github.com/herdrdev/herdr/releases/download/v0.9.1/herdr-linux-$(uname -m)"
+fi
 chmod 0755 ~/.local/bin/herdr
-
 install -D -m 0644 "$DOTFILES/roles/herdr/files/config.toml" ~/.config/herdr/config.toml
 install -m 0755 "$DOTFILES/roles/herdr/files/herdr-worktree" ~/.local/bin/herdr-worktree
 
-# Keep the user manager running with no session open, so the herdr server outlives the terminal.
+# The user manager keeps running with no session open, so the herdr server outlives the terminal.
 sudo loginctl enable-linger "$USER"
-```
-
-The user service, enabled but not started, as the playbook leaves it:
-
-```bash
 mkdir -p ~/.config/systemd/user
 cat > ~/.config/systemd/user/herdr.service << EOF
 [Unit]
@@ -811,206 +829,52 @@ RestartSec=5
 [Install]
 WantedBy=default.target
 EOF
-systemctl --user daemon-reload
-systemctl --user enable herdr
-```
+user_manager=no
+if [ -e "/run/user/$(id -u)/systemd/private" ]; then user_manager=yes; fi
+if [ "$user_manager" = yes ]; then
+  systemctl --user daemon-reload
+  systemctl --user enable herdr
+else
+  echo "warning: the systemd user manager is not running (a known WSL first-boot issue); run 'wsl --terminate ${WSL_DISTRO_NAME:-dotfiles}' in PowerShell, reopen, and paste this again"
+fi
 
-The agent integrations:
+for agent in claude copilot; do
+  if [ -x ~/.local/bin/$agent ]; then herdr integration install "$agent"; fi
+done
 
-```bash
-herdr integration status
-herdr integration install claude
-herdr integration install copilot
-```
-
-The autostart, at the end of `~/.zshenv`:
-
-```bash
-cat >> ~/.zshenv << EOF
-# BEGIN ANSIBLE MANAGED BLOCK herdr
+put_block herdr bottom ~/.zshenv 0600 << EOF
 [[ ":\$PATH:" == *":$HOME/.local/bin:"* ]] || export PATH="$HOME/.local/bin:\$PATH"
 if [[ -o login && -o interactive && -z \$HERDR_ENV \\
       && \${HERDR_AUTOSTART:-1} != 0 && -x $HOME/.local/bin/herdr ]]; then
   exec $HOME/.local/bin/herdr
 fi
-# END ANSIBLE MANAGED BLOCK herdr
 EOF
-cat ~/.zshenv
-```
 
-Verify:
-
-```bash
+# verify
 herdr --version
 HERDR_CONFIG_PATH=~/.config/herdr/config.toml herdr config check
-grep -c 'ANSIBLE MANAGED BLOCK herdr' ~/.zshenv          # 2
-systemctl --user is-enabled herdr                        # enabled
-mark end 10-herdr
+grep -q "exec $HOME/.local/bin/herdr" ~/.zshenv
+zsh -n ~/.zshenv
+if [ "$user_manager" = yes ]; then [ "$(systemctl --user is-enabled herdr)" = enabled ]; fi
+echo "✓ 11 herdr done"
+STEP
+bash /tmp/step.sh
 ```
 
-## 11. First login
+## 12. First login
 
-The machine is done when a new terminal works. Open a new tab on the distro in Windows Terminal (or `wsl -d dotfiles-manual` from PowerShell). It should start zsh, enter herdr, and show the powerlevel10k prompt in the Hack Nerd Font with no broken glyphs. Inside it:
+Open a new tab on the distro in Windows Terminal. It should start zsh, go straight into herdr, and show the powerlevel10k prompt in the Hack Nerd Font with no broken glyphs. In that tab:
 
 ```bash
-. ~/manual-setup.env && mark start 11-login
-id -nG | grep -w docker && docker run --rm hello-world
+cat > /tmp/step.sh << 'STEP'
+set -euo pipefail
+[[ " $(id -nG) " == *" docker "* ]]
+docker run --rm hello-world
 fastfetch
-mark end 11-login
+rm -f /tmp/step.sh
+echo "✓ 12 first login done: the machine is set up"
+STEP
+bash /tmp/step.sh
 ```
 
-If something is broken here, fix it and leave the fix inside the timed section: the automated run has to pass the same test.
-
-## Summary
-
-Turn the log into minutes per section:
-
-```bash
-awk '$3=="start"{s[$4]=$1} $3=="end"{printf "%-12s %6.1f min\n", $4, ($1-s[$4])/60; t+=$1-s[$4]} END{printf "%-12s %6.1f min\n", "total", t/60}' ~/manual-setup-timing.log
-```
-
-Then fill in:
-
-| Section | Minutes | Hands-on or waiting? | Notes (mistakes, lookups, breaks) |
-| --- | --- | --- | --- |
-| 0 Bootstrap | | | |
-| 1 Update | | | |
-| 2 System | | | |
-| 3 WSL | | | |
-| 4 Zsh | | | |
-| 5 User | | | |
-| 6 Tools | | | |
-| 7 SSH | | | |
-| 8 Git | | | |
-| 9 Secrets | | | |
-| 10 Herdr | | | |
-| 11 First login | | | |
-| **Manual total** | | | |
-| **Automated total** ([B](#appendix-b--the-automated-run)) | | | |
-
-"Hands-on" is time spent reading and typing; "waiting" is downloads and installs. A run where you sat watching apt counts as waiting. The automated run turns most hands-on time into waiting, and that difference is what you are measuring.
-
-## Appendix A — work profile
-
-What [`profiles/work.yml`](../profiles/work.yml) changes compared with home. Time it on its own distro (`--name dotfiles-work`), following the main steps with these changes, and log it as `A-network` plus the step rows it touches.
-
-### Leave out the home-only parts
-
-- Step 6: `build-essential`; the tailscale and infisical repositories and packages; hugo; rustup; Claude Code; `~/.claude/CLAUDE.md`. Install the skills with `--agent github-copilot` only.
-- Step 9: `infisical --version` in the check.
-- Step 10: `herdr integration install claude`.
-
-### Before step 0
-
-Behind the proxy, the bootstrap needs the proxy and the CA before anything downloads:
-
-```bash
-export https_proxy=http://proxy.example.com:8080 http_proxy=http://proxy.example.com:8080
-sudo cp /mnt/c/Users/<you>/corp-root-ca.crt /usr/local/share/ca-certificates/ && sudo update-ca-certificates
-```
-
-### Network, before step 1
-
-Replaces `roles/network`, which runs first. Use your real values in place of the placeholders:
-
-```bash
-. ~/manual-setup.env && mark start A-network
-PROXY=http://proxy.example.com:8080
-NO_PROXY_LIST=localhost,127.0.0.1,::1
-CA=/mnt/c/Users/<you>/corp-root-ca.crt     # PEM
-
-# The CA, under its own directory, with .crt as update-ca-certificates requires.
-sudo install -d -m 0755 /usr/local/share/ca-certificates/dotfiles
-sudo install -m 0644 "$CA" "/usr/local/share/ca-certificates/dotfiles/$(basename "${CA%.*}").crt"
-sudo update-ca-certificates --fresh
-
-# Every shell: the proxy and the CA bundle. At the top of ~/.zshenv.
-{ cat << EOF
-# BEGIN ANSIBLE MANAGED BLOCK network
-export http_proxy="$PROXY" https_proxy="$PROXY" no_proxy="$NO_PROXY_LIST"
-export HTTP_PROXY="\$http_proxy" HTTPS_PROXY="\$https_proxy" NO_PROXY="\$no_proxy"
-export SSL_CERT_FILE="/etc/ssl/certs/ca-certificates.crt" REQUESTS_CA_BUNDLE="/etc/ssl/certs/ca-certificates.crt" NODE_EXTRA_CA_CERTS="/etc/ssl/certs/ca-certificates.crt"
-# END ANSIBLE MANAGED BLOCK network
-EOF
-  cat ~/.zshenv 2> /dev/null; } > ~/.zshenv.new && mv ~/.zshenv.new ~/.zshenv && chmod 0600 ~/.zshenv
-
-# apt
-printf 'Acquire::http::Proxy "%s";\nAcquire::https::Proxy "%s";\n' "$PROXY" "$PROXY" \
-  | sudo tee /etc/apt/apt.conf.d/95dotfiles-proxy > /dev/null
-
-# The docker daemon. The drop-in can go in before docker is installed.
-sudo install -d -m 0755 /etc/systemd/system/docker.service.d
-printf '[Service]\nEnvironment="HTTP_PROXY=%s"\nEnvironment="HTTPS_PROXY=%s"\nEnvironment="NO_PROXY=%s"\n' "$PROXY" "$PROXY" "$NO_PROXY_LIST" \
-  | sudo tee /etc/systemd/system/docker.service.d/dotfiles-proxy.conf > /dev/null
-sudo systemctl daemon-reload
-
-# git
-git config --file ~/.gitconfig http.proxy "$PROXY"
-```
-
-Also add `export SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt` and the two proxy variables to `~/manual-setup.env`. Until zsh takes over, they are what keeps the bash session's curl, npx and uv going through the proxy.
-
-Verify:
-
-```bash
-ls "/etc/ssl/certs/$(basename "${CA%.*}").pem"
-git config --file ~/.gitconfig http.proxy                # = PROXY
-mark end A-network
-```
-
-### Snyk, in step 6
-
-After the other release downloads. amd64 only:
-
-```bash
-url=https://github.com/snyk/cli/releases/download/v1.1307.4/snyk-linux
-curl -fsSLo /tmp/snyk "$url"
-echo "$(curl -fsSL "$url.sha256" | awk '{print $1}')  /tmp/snyk" | sha256sum -c -
-sudo install -m 0755 -o root -g root /tmp/snyk /usr/local/bin/snyk && rm /tmp/snyk
-snyk --version
-```
-
-## Appendix B — the automated run
-
-The same machine from `scripts/setup`, on a second fresh distro, pinned to the same commit.
-
-Windows-side state is shared between distros: `.wslconfig`, the fonts, the Terminal settings, the Windows SSH key and the GitHub key registration are already done by the manual run. The automated run finds them in place and skips them, so it is a few seconds faster than it would be on a really fresh machine. That bias is small next to the time those steps took by hand. For a strict comparison, undo them before this run: restore `.wslconfig.bak`, uninstall the Hack Nerd Font in **Settings > Personalization > Fonts**, and revert `settings.json`.
-
-From PowerShell:
-
-```powershell
-wsl --install Ubuntu-26.04 --name dotfiles-auto
-```
-
-In the new distro, start the clock and run:
-
-```bash
-date +%T | tee ~/auto-start
-git clone https://github.com/irish1986/dotfiles.git ~/.dotfiles
-git -C ~/.dotfiles switch --detach f0e1387ff171bf293fdd163885096553c5b0a0e5
-ANSIBLE_CALLBACKS_ENABLED=ansible.posix.profile_tasks ~/.dotfiles/scripts/setup --no-pull --profile home
-```
-
-It asks for your git name, email and GitHub login, then the sudo password, then **Proceed? [y/N]**. At the end, `profile_tasks` prints the slowest tasks and the run's total time. Then do what the run's messages ask:
-
-1. `wsl --shutdown` from PowerShell, since `wsl.conf` and `.wslconfig` changed, and reopen with `wsl -d dotfiles-auto`. Restart Windows Terminal for the fonts.
-2. Log gh in and grant the key scopes. The first run skipped the GitHub key because gh was not logged in yet:
-
-   ```bash
-   gh auth login --hostname github.com --git-protocol ssh --web --skip-ssh-key \
-     --scopes admin:public_key,admin:ssh_signing_key
-   ```
-
-3. Re-run, to finish what needed systemd or gh:
-
-   ```bash
-   ANSIBLE_CALLBACKS_ENABLED=ansible.posix.profile_tasks ~/.dotfiles/scripts/setup --no-pull --yes
-   ```
-
-4. Do the [first login](#11-first-login) check in a new tab, then stop the clock:
-
-   ```bash
-   echo "start $(cat ~/auto-start)  end $(date +%T)"
-   ```
-
-Record the wall-clock time from start to finish, restarts and prompts included, as **Automated total**. Note separately how long you were actually needed: the prompts, the restart, and `gh auth login`. That is the automated run's hands-on time.
+`~/manual-setup.env` can go now, or stay for re-running a block later.
