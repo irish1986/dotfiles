@@ -11,12 +11,15 @@ tools_agent_skill_dirs:
 # Which source each installed skill came from, written by the skills CLI.
 tools_agent_skill_lock: "{{ dotfiles_home }}/.agents/.skill-lock.json"
 
+# Where gh keeps an extension, one directory per name. `gh extension list` needs a login, so this is how a run sees an install.
+tools_gh_extension_dir: "{{ dotfiles_home }}/.local/share/gh/extensions"
+
 # What a verify command or an installer sees on PATH: where user-scoped installers put their binaries, ahead of the system directories.
 tools_path: "{{ dotfiles_home }}/.local/bin:{{ dotfiles_home }}/.cargo/bin:/usr/local/bin:/usr/bin:/bin"
 
 # Every entry with something to verify. apt repositories only when they say how; a plain apt package is verified by apt itself.
 tools_verifiable: >-
-  {{ tools_debs + tools_binaries + tools_scripts + tools_uv_tools
+  {{ tools_debs + tools_binaries + tools_scripts + tools_uv_tools + tools_gh_extensions
      + (tools_apt_repos | selectattr('verify', 'defined') | list) }}
 
 # The docker daemon configuration (tasks/docker.yml) follows the docker repository entry: removing the entry stops managing both.

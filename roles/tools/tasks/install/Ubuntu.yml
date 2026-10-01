@@ -95,6 +95,18 @@
     loop_var: tools_agent_skill
     label: "{{ tools_agent_skill.source }}"
 
+# After the apt packages, which install gh. Without a login: `gh extension install` needs none, unlike `gh extension list`.
+- name: Tools | Install the gh extensions
+  ansible.builtin.command:
+    argv: [gh, extension, install, "{{ tools_gh_extension.repo }}"]
+    creates: "{{ tools_gh_extension_dir }}/{{ tools_gh_extension.name }}"
+  environment:
+    PATH: "{{ tools_path }}"
+  loop: "{{ tools_gh_extensions }}"
+  loop_control:
+    loop_var: tools_gh_extension
+    label: "{{ tools_gh_extension.repo }}"
+
 - name: Tools | Install the uv interpreter and tools
   ansible.builtin.include_tasks: "{{ role_path }}/tasks/kinds/uv.yml"
   when: tools_uv_python | length > 0 or tools_uv_tools | length > 0

@@ -25,3 +25,7 @@ Uninstalling is explicit: `tools_remove_apt` and `tools_remove_paths`. Deleting 
 - Docker is a `tools_apt_repos` entry in `profiles/base.yml`. Its daemon configuration (`daemon.json`, the service) is the one tool-specific task file in the `tools` role, `tasks/docker.yml`, applied when an entry named `docker` is present. The full `docker` role is gone.
 - Apt repositories are configured only by the `tools` role (`tasks/kinds/apt_repo.yml`). The `apt_repo` helper role is gone.
 - The Nerd Fonts moved from their own `fonts` role into `system`. The `wsl` role still registers them with Windows.
+
+## Amendment, 2026-10-01
+
+- Two more kinds: agent skills (`tools_agent_skills`, ADR 0015) and GitHub CLI extensions (`tools_gh_extensions`), each installed once and updated by its own tool (`npx skills update -g`, `gh extension upgrade`).
