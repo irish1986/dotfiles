@@ -75,6 +75,26 @@
   ansible.builtin.include_tasks: "{{ role_path }}/tasks/kinds/nvm.yml"
   when: tools_nvm_node_version | length > 0
 
+# After the nvm node, which runs the skills CLI.
+- name: Tools | Assert the agent skills have a node and agents
+  ansible.builtin.assert:
+    that:
+      - tools_nvm_node_version | length > 0
+      - tools_agent_skills_cli_version | length > 0
+      - tools_agent_skill_agents | length > 0
+      - tools_agent_skill_agents | difference(tools_agent_skill_dirs.keys()) | length == 0
+    fail_msg: >-
+      tools_agent_skills needs tools_nvm_node_version, tools_agent_skills_cli_version and tools_agent_skill_agents, and every agent in tools_agent_skill_dirs ({{ tools_agent_skill_dirs.keys() | join(', ') }}).
+    quiet: true
+  when: tools_agent_skills | length > 0
+
+- name: Tools | Install the agent skills
+  ansible.builtin.include_tasks: "{{ role_path }}/tasks/kinds/agent_skill.yml"
+  loop: "{{ tools_agent_skills }}"
+  loop_control:
+    loop_var: tools_agent_skill
+    label: "{{ tools_agent_skill.source }}"
+
 - name: Tools | Install the uv interpreter and tools
   ansible.builtin.include_tasks: "{{ role_path }}/tasks/kinds/uv.yml"
   when: tools_uv_python | length > 0 or tools_uv_tools | length > 0

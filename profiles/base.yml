@@ -98,6 +98,15 @@ tools_agent_plugins:
 # renovate: datasource=node-version depName=node
 tools_nvm_node_version: "24"
 
+# The same skills in every agent CLI, installed with the skills CLI (ADR 0015); home.yml adds Claude Code to the agents.
+tools_agent_skills:
+  - source: herdrdev/herdr
+    skills: [herdr]
+tools_agent_skill_agents:
+  - github-copilot
+# renovate: datasource=npm depName=skills
+tools_agent_skills_cli_version: "1.7.0"
+
 tools_uv_python: "3.14"
 
 tools_uv_tools:

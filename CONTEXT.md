@@ -18,9 +18,11 @@ Decisions behind this shape are recorded in [`docs/adr/`](docs/adr/).
 
 **Full role** — a role under `roles/` with its own install, configure and verify phases. Reserved for things with real configuration: zsh, git, ssh, herdr, wsl, network, secrets, and the system-level roles (update, system, user).
 
-**Tool entry** — one item in a `tools_*` list in a profile, installed by the `tools` role: an apt package, an apt repository, a `.deb`, a release binary, an installer script or a uv tool. Adding a tool means adding a tool entry, not a role. The `tools` role is the only thing that adds an apt repository; docker is one such entry, whose daemon configuration the `tools` role applies alongside it.
+**Tool entry** — one item in a `tools_*` list in a profile, installed by the `tools` role: an apt package, an apt repository, a `.deb`, a release binary, an installer script, a uv tool or an agent skill. Adding a tool means adding a tool entry, not a role. The `tools` role is the only thing that adds an apt repository; docker is one such entry, whose daemon configuration the `tools` role applies alongside it.
 
 **Verify** — the last phase of every full role, and the `verify` command of a tool entry. It asserts that the thing installed actually works, so a run cannot quietly do nothing.
+
+**Agent skill** — a `SKILL.md` folder that Claude Code and Copilot CLI load as a skill, listed in `tools_agent_skills` and installed globally with the skills CLI (`npx skills add`) for every agent in `tools_agent_skill_agents` (ADR 0015). Installed once; `npx skills update -g` updates it.
 
 **Removal list** — `tools_remove_apt` and `tools_remove_paths`. Deleting a tool entry only stops managing it; uninstalling is explicit, by adding it here.
 

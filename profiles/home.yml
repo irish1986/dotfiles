@@ -60,6 +60,10 @@ tools_agent_plugins:
     plugin: mattpocock-skills@claude-plugins-official
     marketplace: anthropics/claude-plugins-official
 
+# Claude Code's share of the agent skills in base.yml (ADR 0015).
+tools_agent_skill_agents:
+  - claude-code
+
 tools_files:
   - src: agents/instructions.md
     dest: .claude/CLAUDE.md
