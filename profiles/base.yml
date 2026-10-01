@@ -1,23 +1,11 @@
 ---
-# Every machine. The named profile (home.yml or work.yml) and then the local file are layered on top: scalars and dictionaries are overridden key by key, lists are appended to. See docs/adr/0002-profiles-and-local-file.md.
+# Every machine. The named profile (personal.yml or work.yml) and then the local file are layered on top: scalars and dictionaries are overridden key by key, lists are appended to (docs/adr/0002).
 #
-# Adding a tool is adding an entry below; roles/tools/defaults/main.yml documents each kind (ADR 0003).
-
-# Which roles run. The order here does not matter: main.yml runs roles in a fixed order (dotfiles_role_order), so a profile that appends a role still gets it at the right point.
-dotfiles_roles:
-  - update
-  - system
-  - wsl
-  - zsh
-  - user
-  - tools
-  - git
-  - ssh
-  - secrets # installs only, until the local file names a source and targets (ADR 0012)
-  - herdr
+# Adding a tool is adding an entry below; roles/tools/defaults/main.yml documents each kind (docs/adr/0004).
 
 tools_apt:
   - btop
+  - libfreetype6 # tokenuse links it
   # The distro interpreter and its build headers. Interpreters for projects come from uv.
   - libssl-dev
   - python3
@@ -25,20 +13,18 @@ tools_apt:
   - python3-venv
 
 tools_apt_repos:
-  # The archive's gh lags upstream by years. Named github-cli so machines that had the old github role reuse its .sources file.
+  # The archive's gh lags upstream by years.
   - name: github-cli
     uri: https://cli.github.com/packages
     key_url: https://cli.github.com/packages/githubcli-archive-keyring.gpg
     suite: stable
-    probe: false
     packages:
       - gh
     verify: gh --version
-  # download.docker.com publishes one suite per codename and lags new releases. The entry named docker also brings the daemon configuration (roles/tools/tasks/docker.yml).
+  # The entry named docker also brings the daemon configuration.
   - name: docker
     uri: https://download.docker.com/linux/ubuntu
     key_url: https://download.docker.com/linux/ubuntu/gpg
-    suite_fallback: noble
     components:
       - stable
     packages:
@@ -50,14 +36,13 @@ tools_apt_repos:
     verify: docker --version
 
 tools_debs:
-  # Not in the 24.04 archive.
   - name: fastfetch
     # renovate: datasource=github-releases depName=fastfetch-cli/fastfetch
     version: "2.68.1"
     url: https://github.com/fastfetch-cli/fastfetch/releases/download/{version}/fastfetch-linux-{arch}.deb
 
 tools_binaries:
-  # Token Use: token and cost usage across Claude Code, Copilot and other agents, read from their local session files. The TUI only; ~/.config/tokenuse is rewritten by the app, so it is yours to manage.
+  # Token Use: token and cost usage across Claude Code, Copilot and other agents, read from their local session files. ~/.config/tokenuse is rewritten by the app, so it is yours to manage.
   - name: tokenuse
     # renovate: datasource=github-releases depName=russmckendrick/tokenuse
     version: "1.2.6"
@@ -65,34 +50,19 @@ tools_binaries:
     checksum_url: "{url}.sha256"
 
 tools_scripts:
-  # Also installed by scripts/setup before the first run; this entry covers a bare `ansible-playbook main.yml`.
-  - name: uv
-    url: https://astral.sh/uv/install.sh
-    creates: .local/bin/uv
-    env:
-      UV_NO_MODIFY_PATH: "1"
-  - name: nvm
-    # renovate: datasource=github-releases depName=nvm-sh/nvm
-    version: "0.40.8"
-    url: https://raw.githubusercontent.com/nvm-sh/nvm/v{version}/install.sh
-    interpreter: bash
-    creates: .nvm/nvm.sh
-    env:
-      NVM_DIR: "{home}/.nvm"
-      # /dev/null stops the installer appending to ~/.zshrc, which the zsh role owns; .zshrc loads nvm itself.
-      PROFILE: /dev/null
-    verify: . {home}/.nvm/nvm.sh && nvm --version
-  # The upstream installer, not the tarball: GitHub Copilot CLI updates itself in place, so it is not pinned (ADR 0004), and tools_binaries takes single files only. tools_path already has ~/.local/bin, so the installer never asks to edit ~/.zprofile. What the repo manages in ~/.copilot is in ADR 0014.
+  # The upstream installer: GitHub Copilot CLI updates itself in place, so it is not pinned (docs/adr/0005). What the repo manages in ~/.copilot is in docs/adr/0008.
   - name: copilot
     url: https://gh.io/copilot-install
     interpreter: bash
     creates: .local/bin/copilot
 
-# A major, so nvm takes its newest release at install time. Majors are Renovate PRs that wait for a human (ADR 0004).
+# renovate: datasource=github-releases depName=nvm-sh/nvm
+tools_nvm_version: "0.40.8"
+# A major, so nvm takes its newest release at install time. Majors are Renovate PRs that wait for a human (docs/adr/0005).
 # renovate: datasource=node-version depName=node
-tools_nvm_node_version: "24"
+tools_node_version: "24"
 
-# The same skills in every agent CLI, installed with the skills CLI (ADR 0015); home.yml adds Claude Code to the agents.
+# The same skills in every agent CLI (docs/adr/0008); personal.yml adds Claude Code to the agents.
 tools_agent_skills:
   - source: herdrdev/herdr
     skills: [herdr]
@@ -105,8 +75,10 @@ tools_agent_skill_agents:
 # renovate: datasource=npm depName=skills
 tools_agent_skills_cli_version: "1.7.0"
 
-# Stacked pull requests; the gh-stack agent skill drives it.
 tools_gh_extensions:
+  - name: gh-aw
+    repo: github/gh-aw
+    verify: gh aw --version
   - name: gh-stack
     repo: github/gh-stack
     verify: gh stack --version
@@ -123,26 +95,7 @@ tools_files:
     dest: .config/btop/btop.conf
   - src: fastfetch/config.jsonc
     dest: .config/fastfetch/config.jsonc
-  # At the XDG path rather than ~/.npmrc: .zshrc points NPM_CONFIG_USERCONFIG here. The repo owns the file whole, so `npm config set` and `npm login` changes are overwritten on the next run; tokens belong in the environment (see the file).
-  - src: npm/npmrc
-    dest: .config/npm/npmrc
-  # One set of global instructions for every agent CLI (ADR 0014); home.yml adds Claude Code's copy. The repo owns each file whole. 0700 is what each CLI creates its directory with: it holds credentials and session history.
+  # One set of global instructions for every agent CLI (docs/adr/0008); personal.yml adds Claude Code's copy. 0700 is what each CLI creates its directory with: it holds credentials and session history.
   - src: agents/instructions.md
     dest: .copilot/copilot-instructions.md
     dir_mode: "0700"
-
-# Superseded tools, cleaned off machines provisioned before the refactor.
-tools_remove_apt:
-  - htop # btop
-  - neofetch # fastfetch; archived upstream
-  - tmux # herdr (ADR 0005)
-tools_remove_paths:
-  - .copilot/skills/gh-stack # a hand install; the skills CLI's copy is in ~/.agents/skills (ADR 0015)
-  - .config/neofetch
-  - .config/tmux
-  - .tmux
-  - .tmux.conf
-# Skill sets that moved to tools_agent_skills (ADR 0015); home.yml adds Claude Code's.
-tools_remove_agent_plugins:
-  - cli: copilot
-    plugin: mattpocock-skills@mattpocock

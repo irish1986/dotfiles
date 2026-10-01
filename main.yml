@@ -1,84 +1,127 @@
 ---
-- name: DotFiles
+# Sets up one WSL2 Ubuntu 26.04 distro (docs/adr/0001). Safe to re-run: a second run on an unchanged machine reports changed=0, and CI checks that it does.
+- name: Dotfiles
   hosts: localhost
   connection: local
   gather_facts: true
 
-  # The run's own downloads -- get_url, uri, installer scripts, uv -- go through the corporate proxy when the local file sets one (roles/network). Evaluated per task, so it is empty until the layers are loaded and empty on a machine without a proxy.
-  environment: "{{ dotfiles_proxy_environment }}"
+  # Every tool the run starts reads the system trust store, which holds the corporate CA on a work machine (roles/certificates). uv and node ship their own CA lists otherwise.
+  environment:
+    SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt
+    REQUESTS_CA_BUNDLE: /etc/ssl/certs/ca-certificates.crt
+    NODE_EXTRA_CA_CERTS: /etc/ssl/certs/ca-certificates.crt
 
   vars:
-    dotfiles_supported_versions:
-      - "24.04"
-      - "26.04"
-    dotfiles_min_ansible_version: "2.16"
-
-    # Outside the checkout on purpose: it can never be committed, and it survives a re-clone. DOTFILES_LOCAL_FILE or -e dotfiles_local_file=... point a run at another one, which is how CI supplies its fixtures.
+    # Outside the checkout, so it can never be committed. DOTFILES_LOCAL_FILE points a run at another one.
     dotfiles_local_file: >-
       {{ lookup('ansible.builtin.env', 'DOTFILES_LOCAL_FILE')
          | default(lookup('ansible.builtin.env', 'HOME') ~ '/.config/dotfiles/local.yml', true) }}
 
-    dotfiles_proxy_environment: >-
-      {{ {} if (network_proxy | default('')) | length == 0 else
-         dict(['http_proxy', 'https_proxy', 'HTTP_PROXY', 'HTTPS_PROXY'] | zip([network_proxy] * 4))
-         | combine({'no_proxy': network_no_proxy | default('localhost,127.0.0.1,::1'),
-                    'NO_PROXY': network_no_proxy | default('localhost,127.0.0.1,::1')}) }}
-
-    # The order roles run in. The layers decide *which* roles run (dotfiles_roles); this decides *when*, so a profile that appends a role cannot run it too early or too late.
-    dotfiles_role_order:
-      - network # first: a proxy and its CA have to be in place before anything downloads
-      - update # apt upgrade first, so everything below installs current
-      - system # hostname, base packages, Nerd Fonts -- before wsl: the Windows font install reads ~/.local/share/fonts
-      - wsl # before zsh: .p10k.zsh renders as mojibake without a Nerd Font
-      - zsh
-      - user # after zsh: the login shell must exist before it is set
-      - tools # before git: git configures gh, which tools installs
-      - ssh # before git: it creates or copies the key (ADR 0011), and git only enables signing when the key is there
-      - git
-      - secrets # before herdr: its .zshenv block must sit above herdr's exec (ADR 0012)
-      - herdr # last: its autostart execs into the herdr binary
-
   pre_tasks:
-    # First: everything after it reads variables the layers set.
-    - name: DotFiles | Load the profile layers
-      ansible.builtin.import_tasks: pre_tasks/profile.yml
-      tags:
-        - always
+    - name: Dotfiles | Assert Ubuntu 26.04
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.distribution == 'Ubuntu'
+          - ansible_facts.distribution_version == '26.04'
+        fail_msg: This playbook sets up Ubuntu 26.04 only; this is {{ ansible_facts.distribution }} {{ ansible_facts.distribution_version }}.
+        quiet: true
+      tags: always
 
-    - name: DotFiles | Resolve environment facts
-      ansible.builtin.import_tasks: pre_tasks/facts.yml
-      tags:
-        - always
+    # ── The layers (docs/adr/0002) ────────────────────────────────────────
+    # profiles/base.yml, then profiles/<profile>.yml, then the local file. A later layer overrides scalars and dictionaries key by key and appends to lists.
+    - name: Dotfiles | Assert the local file exists
+      ansible.builtin.assert:
+        that:
+          - dotfiles_local_file is file
+        fail_msg: "{{ dotfiles_local_file }} does not exist. Run scripts/setup --profile <personal|work> to create it."
+        quiet: true
+      tags: always
 
-    - name: DotFiles | Validate the role selection
-      ansible.builtin.import_tasks: pre_tasks/validate.yml
-      tags:
-        - always
+    - name: Dotfiles | Read the local file
+      ansible.builtin.include_vars:
+        file: "{{ dotfiles_local_file }}"
+        name: dotfiles_layer_local
+      tags: always
 
-    # Opt-out, not opt-in: the default is to ask. A run that converges the machine without being asked should be something you turned on -- via dotfiles_confirm in the local file, `scripts/setup --yes`, or -e -- rather than the default. Skipped under --check, which changes nothing and so has nothing to approve.
-    - name: DotFiles | Confirm the run plan
-      ansible.builtin.import_tasks: pre_tasks/confirm.yml
-      when:
-        - dotfiles_confirm | default(true) | bool
-        - not ansible_check_mode
-      tags:
-        - always
+    - name: Dotfiles | Assert the profile exists
+      ansible.builtin.assert:
+        that:
+          - dotfiles_layer_local.dotfiles_profile | default('') in ['personal', 'work']
+        fail_msg: "dotfiles_profile in {{ dotfiles_local_file }} is '{{ dotfiles_layer_local.dotfiles_profile | default('') }}'; set it to personal or work."
+        quiet: true
+      tags: always
 
-  tasks:
-    # dotfiles_role_order filtered by the layers' dotfiles_roles. --tags filters that selection for a single run; it does not replace it.
-    #
-    # There is deliberately no rescue: here. The previous version caught every failure from every role, printed a debug message, and then reported "Playbook ran without any issue" from a post_task -- so the play was structurally incapable of reporting failure. PLAY RECAP and the profile_tasks callback report the truth.
-    #
-    # The name is static on purpose. A task header is templated once, before the loop starts iterating, so interpolating dotfiles_role here rendered as `<< error 1 - 'dotfiles_role' is undefined >>` and printed a template-error warning on every run. loop_control.label below already names each role in the per-item output.
-    - name: DotFiles | Role
-      ansible.builtin.include_role:
-        name: "{{ dotfiles_role }}"
-        apply:
-          tags:
-            - "{{ dotfiles_role }}"
-      loop: "{{ dotfiles_role_order | select('in', dotfiles_roles) | list }}"
+    - name: Dotfiles | Read the profiles
+      ansible.builtin.include_vars:
+        file: "{{ playbook_dir }}/profiles/{{ dotfiles_layer.file }}.yml"
+        name: "{{ dotfiles_layer.name }}"
+      loop:
+        - { name: dotfiles_layer_base, file: base }
+        - { name: dotfiles_layer_profile, file: "{{ dotfiles_layer_local.dotfiles_profile }}" }
       loop_control:
-        loop_var: dotfiles_role
-        label: "{{ dotfiles_role }}"
-      tags:
-        - always
+        loop_var: dotfiles_layer
+        label: "{{ dotfiles_layer.file }}"
+      tags: always
+
+    - name: Dotfiles | Apply the layers
+      ansible.builtin.set_fact:
+        "{{ dotfiles_layer.key }}": "{{ dotfiles_layer.value }}"
+      loop: >-
+        {{ dotfiles_layer_base
+           | combine(dotfiles_layer_profile, dotfiles_layer_local, recursive=true, list_merge='append_rp')
+           | dict2items }}
+      loop_control:
+        loop_var: dotfiles_layer
+        label: "{{ dotfiles_layer.key }}"
+      tags: always
+
+    # ── Facts every role reads ────────────────────────────────────────────
+    - name: Dotfiles | Detect a container
+      ansible.builtin.stat:
+        path: /.dockerenv
+      register: dotfiles_dockerenv
+      tags: always
+
+    - name: Dotfiles | Detect systemd
+      ansible.builtin.stat:
+        path: "{{ dotfiles_systemd_path }}"
+      register: dotfiles_systemd
+      loop:
+        # Present only when systemd is PID 1.
+        - /run/systemd/system
+        # The user's own manager, which can be dead while PID 1 is fine: on WSL's first boot user@<uid>.service often fails (microsoft/WSL#8842) until the distro restarts.
+        - /run/user/{{ ansible_facts.user_uid }}/systemd/private
+      loop_control:
+        loop_var: dotfiles_systemd_path
+      tags: always
+
+    - name: Dotfiles | Resolve the machine facts
+      ansible.builtin.set_fact:
+        dotfiles_user: "{{ lookup('ansible.builtin.env', 'USER') }}"
+        dotfiles_home: "{{ lookup('ansible.builtin.env', 'HOME') }}"
+        dotfiles_hostname: "{{ dotfiles_hostname | default(ansible_facts.hostname, true) }}"
+        dotfiles_windows_home: /mnt/c/Users/{{ dotfiles_windows_user | default(lookup('ansible.builtin.env', 'USER'), true) }}
+        # A container on a WSL host runs on the same "microsoft" kernel, so the kernel alone is not enough.
+        dotfiles_is_wsl: "{{ ansible_facts.kernel is search('(?i)microsoft') and not dotfiles_dockerenv.stat.exists }}"
+        dotfiles_has_systemd: "{{ dotfiles_systemd.results[0].stat.exists }}"
+        dotfiles_has_user_systemd: "{{ dotfiles_systemd.results[1].stat.exists }}"
+        dotfiles_dpkg_architecture: "{{ {'x86_64': 'amd64', 'aarch64': 'arm64'}[ansible_facts.architecture] }}"
+      tags: always
+
+    - name: Dotfiles | Show the run
+      ansible.builtin.debug:
+        msg: >-
+          profile={{ dotfiles_profile }} user={{ dotfiles_user }} wsl={{ dotfiles_is_wsl }}
+          systemd={{ dotfiles_has_systemd }} windows_home={{ dotfiles_windows_home }}
+      tags: always
+
+  # The order matters: the corporate CA before any download, zsh before the login shell is set to it, tools (gh) before ssh and git.
+  roles:
+    - { role: certificates, tags: certificates }
+    - { role: system, tags: system }
+    - { role: zsh, tags: zsh }
+    - { role: tools, tags: tools }
+    - { role: ssh, tags: ssh }
+    - { role: git, tags: git }
+    # Last: its autostart execs into the herdr binary.
+    - { role: herdr, tags: herdr }

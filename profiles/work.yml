@@ -1,8 +1,8 @@
 ---
-# Work machines: base.yml plus what is listed here. Identity and corporate network values belong in the local file, never here: this repository is public. See docs/adr/0002-profiles-and-local-file.md.
+# Work machines: base.yml plus what is listed here (docs/adr/0002). Corporate URLs and identity go in the local file, never here: this repository is public.
 
-dotfiles_roles:
-  - network # the proxy and CA values go in the local file
+# The Zscaler root certificate, exported on Windows to C:\Users\<you>\zscaler.cer (docs/adr/0007). A run fails until it is there.
+certificates_corporate_ca: zscaler.cer
 
 tools_binaries:
   # amd64 only: upstream names the amd64 asset snyk-linux and suffixes the others.

@@ -2,7 +2,7 @@
 git_packages:
   - git
   - git-lfs
-  # Replaces the deleted bfg role: same job, no JRE, and packaged from 24.04.
+  # Rewrites history, as bfg does, without a JRE.
   - git-filter-repo
 
 # Identity, set in the local file. Left empty, the role skips user.*, commit signing and the allowed signer, and warns.
@@ -14,39 +14,39 @@ git_signing_key: id_ed25519.pub
 # Directory created for checkouts, under ~/git/<login>.
 git_manage_project_dir: true
 
-# Written verbatim into ~/.gitconfig. A layer (profile or local file) overrides or extends it key by key.
+# Written into ~/.gitconfig key by key, as strings: what `git config --get` reads back. A layer (profile or local file) overrides or extends it.
 git_config:
-  advice.diverging: false
+  advice.diverging: "false"
   branch.sort: -committerdate
   color.ui: auto
   column.ui: auto
-  commit.gpgsign: true
-  commit.verbose: true
+  commit.gpgsign: "true"
+  commit.verbose: "true"
   # false, not input: this is a Linux checkout even when the host is Windows.
-  core.autocrlf: false
+  core.autocrlf: "false"
   core.editor: code --wait
   diff.algorithm: histogram
   diff.colorMoved: zebra
-  fetch.all: true
-  fetch.prune: true
-  fetch.pruneTags: true
-  fetch.writeCommitGraph: true
+  fetch.all: "true"
+  fetch.prune: "true"
+  fetch.pruneTags: "true"
+  fetch.writeCommitGraph: "true"
   gpg.format: ssh
   help.autocorrect: prompt
   init.defaultBranch: main
-  log.abbrevCommit: true
-  pull.rebase: true
-  push.autoSetupRemote: true
+  log.abbrevCommit: "true"
+  pull.rebase: "true"
+  push.autoSetupRemote: "true"
   push.default: simple
-  push.followTags: true
-  rebase.autoStash: true
-  rerere.autoupdate: true
-  rerere.enabled: true
-  status.short: true
-  tag.gpgsign: true
+  push.followTags: "true"
+  rebase.autoStash: "true"
+  rerere.autoupdate: "true"
+  rerere.enabled: "true"
+  status.short: "true"
+  tag.gpgsign: "true"
   tag.sort: version:refname
 
-# gh, which the tools role installs from base.yml. Written through `gh config set`, the same way git_config goes through git_config: gh rewrites config.yml itself, maintaining a `version` key of its own, so a template would fight it on every run. Skipped when gh is not installed.
+# gh, which the tools role installs. Written through `gh config set`: gh rewrites config.yml itself, so a template would fight it on every run.
 git_gh_config_dir: "{{ dotfiles_home }}/.config/gh"
 git_gh_config:
   git_protocol: ssh
@@ -57,3 +57,10 @@ git_gh_aliases:
   co: pr checkout
   pv: pr view
   st: status
+
+# ── Paths ─────────────────────────────────────────────────────────────────
+git_config_file: "{{ dotfiles_home }}/.gitconfig"
+git_ignore_file: "{{ dotfiles_home }}/.gitignore"
+git_signing_key_path: "{{ dotfiles_home }}/.ssh/{{ git_signing_key }}"
+git_allowed_signers: "{{ dotfiles_home }}/.ssh/allowed_signers"
+git_project_dir: "{{ dotfiles_home }}/git/{{ git_user_login }}"

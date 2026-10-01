@@ -1,36 +1,47 @@
 ---
 system_packages:
-  - apt-transport-https
   - bind9-dnsutils
   - ca-certificates
   - curl
   - git
   - make
   - nano
+  - openssl
+  - unzip
   - wget
 
-system_manage_hostname: true
-# The Debian convention for a host without a static address: its own name resolves on the loopback, not on 127.0.0.1.
-system_loopback_address: 127.0.1.1
+# unattended-upgrades holds the dpkg lock right after boot, so every apt task waits for it rather than failing.
+system_apt_lock_timeout: 600
 
-# Installed only on a virtualised guest that is not WSL.
-system_guest_agent_packages:
-  - qemu-guest-agent
+system_sudoers_file: /etc/sudoers.d/90-dotfiles
+# Created when missing, so the membership lands on the first run: docker's postinst only adds the group when it is absent.
+system_groups:
+  - sudo
+  - docker
 
-# ── Nerd Fonts ────────────────────────────────────────────────────────────
-# Unpacked to system_fonts_dir on every host. Off WSL they are registered with fontconfig; on WSL the terminal is Windows Terminal, so the wsl role copies them from there and registers them with Windows instead.
-# Asset names, not a family label. The previous value was fonts.nf: Nerd, which built .../Nerd.zip -- an asset that has never existed in a Nerd Fonts release.
-system_nerd_fonts:
-  - Hack
+# Relative to $HOME. The modes are what Ubuntu already creates, except .local/state, which holds logs and shell history.
+system_directories:
+  - { path: .cache, mode: "0700" }
+  - { path: .config, mode: "0755" }
+  - { path: .local/bin, mode: "0755" }
+  - { path: .local/share, mode: "0700" }
+  - { path: .local/state, mode: "0700" }
 
-# Pinned (ADR 0004). A bump downloads nothing on a machine that already has the fonts: the creates: guard in the install task keys on the file, not the version.
-# renovate: datasource=github-releases depName=ryanoasis/nerd-fonts
-system_fonts_version: "3.5.1"
-system_fonts_dir: "{{ dotfiles_home }}/.local/share/fonts"
+# ── /etc/wsl.conf ─────────────────────────────────────────────────────────
+system_wsl_systemd: true
+# metadata stops every file under /mnt/c reporting mode 0777. fmask=11 keeps the owner execute bit, which every .exe under /mnt/c needs.
+system_wsl_automount_enabled: true
+system_wsl_automount_root: /mnt/
+system_wsl_automount_options: "metadata,umask=22,fmask=11"
+system_wsl_automount_mount_fstab: true
+system_wsl_interop_enabled: true
+system_wsl_interop_append_windows_path: true
+# On WSL the hostname lives here: the hostname module's change does not survive a wsl --shutdown.
+system_wsl_network_hostname: "{{ dotfiles_hostname }}"
+system_wsl_network_generate_hosts: true
+system_wsl_network_generate_resolv_conf: true
+system_wsl_default_user: "{{ dotfiles_user }}"
 
-# unarchive shells out to unzip for .zip assets, and a minimal image does not carry it.
-system_fonts_dependencies:
-  - unzip
-# Off WSL only: fc-cache and fc-list live in fontconfig.
-system_fonts_linux_dependencies:
-  - fontconfig
+# win32yank, the clipboard bridge: `powershell Get-Clipboard` appends CRLF even with -Raw.
+# renovate: datasource=github-releases depName=equalsraf/win32yank
+system_win32yank_version: "0.1.1"

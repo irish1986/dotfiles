@@ -1,51 +1,204 @@
 ---
-# Orchestrator only: no module calls other than include_vars / include_tasks.
+- name: Herdr | Assert the architecture is published
+  ansible.builtin.assert:
+    that:
+      - ansible_facts.architecture in ['x86_64', 'aarch64']
+    fail_msg: >-
+      herdr publishes linux-x86_64 and linux-aarch64 only; this host is {{ ansible_facts.architecture }}.
+    quiet: true
 
-- name: Herdr | Load release specific variables
-  ansible.builtin.include_vars: "{{ herdr_vars_file }}"
-  loop: "{{ query('ansible.builtin.first_found', herdr_vars_lookup) }}"
+- name: Herdr | Resolve the release to install
+  when: herdr_version | length == 0
+  block:
+    - name: Herdr | Query the release manifest
+      ansible.builtin.uri:
+        url: "{{ herdr_manifest_url }}"
+      register: herdr_manifest
+      changed_when: false
+      check_mode: false
+
+    # The manifest carries the asset URL as well as the version, so the latest path never has to guess a filename upstream might rename.
+    - name: Herdr | Register the latest release
+      ansible.builtin.set_fact:
+        herdr_resolved_version: "{{ herdr_manifest.json.version | regex_replace('^v', '') }}"
+        herdr_resolved_url: "{{ herdr_manifest.json.assets[herdr_target] }}"
+
+- name: Herdr | Register the pinned release
+  ansible.builtin.set_fact:
+    herdr_resolved_version: "{{ herdr_version | regex_replace('^v', '') }}"
+    herdr_resolved_url: "{{ herdr_download_base }}/v{{ herdr_version | regex_replace('^v', '') }}/herdr-{{ herdr_target }}"
+  when: herdr_version | length > 0
+
+- name: Herdr | Ensure the install directory exists
+  ansible.builtin.file:
+    path: "{{ herdr_install_dir }}"
+    state: directory
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0755"
+
+- name: Herdr | Query the installed version
+  ansible.builtin.command: "{{ herdr_binary_path }} --version"
+  register: herdr_installed
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+# Version-guarded rather than "does the binary exist", so a converged machine re-fetches nothing and a moved manifest actually lands. get_url stages to a temporary file and only then moves it into place, so an interrupted download never leaves a partial binary on PATH.
+- name: Herdr | Install the binary
+  ansible.builtin.get_url:
+    url: "{{ herdr_resolved_url }}"
+    dest: "{{ herdr_binary_path }}"
+    checksum: "{{ ('sha256:' ~ herdr_checksum) if herdr_checksum | length > 0 else omit }}"
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0755"
+  when: >-
+    (herdr_installed.stdout | default('') | regex_search('[0-9]+\.[0-9]+\.[0-9]+') | default('', true))
+    != herdr_resolved_version
+
+# /var/lib/systemd/linger/<user> is the on-disk form of linger, so stat is both the idempotency check and one that works without a live login session -- `loginctl show-user` needs one.
+- name: Herdr | Check whether the user manager lingers
+  ansible.builtin.stat:
+    path: "/var/lib/systemd/linger/{{ dotfiles_user }}"
+  register: herdr_linger_marker
+  when: dotfiles_has_systemd | bool and herdr_manage_service | bool and herdr_linger | bool
+
+# Without this the user manager stops at logout and the server unit only ever starts on first login, so nothing would restore session.json at boot.
+- name: Herdr | Enable linger for the user manager
+  ansible.builtin.command: "loginctl enable-linger {{ dotfiles_user }}"
+  become: true
+  changed_when: true
+  when:
+    - dotfiles_has_systemd | bool
+    - herdr_manage_service | bool
+    - herdr_linger | bool
+    - not herdr_linger_marker.stat.exists
+
+- name: Herdr | Ensure the config directory exists
+  ansible.builtin.file:
+    path: "{{ herdr_config_dir }}"
+    state: directory
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0755"
+
+# The running server holds its own copy, so a changed file is pushed to it with `herdr server reload-config`, which applies it in place. Never a restart -- that would kill live panes and any agent running in them to apply a theme.
+- name: Herdr | Deploy config.toml
+  ansible.builtin.copy:
+    src: config.toml
+    dest: "{{ herdr_config_dir }}/config.toml"
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0644"
+  notify: Herdr | Reload the server config
+
+- name: Herdr | Install herdr-worktree
+  ansible.builtin.copy:
+    src: herdr-worktree
+    dest: "{{ herdr_worktree_script_path }}"
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0755"
+
+# ~/.zshenv rather than ~/.zshrc, and a marker block rather than a copy: zsh reads .zshenv first and for every shell, so the exec below lands before the p10k instant prompt, oh-my-zsh and compinit -- a shell that is about to be replaced never pays for them. mode 0600 because ~/.zshenv is where hand-managed environment secrets usually live.
+- name: Herdr | Manage the shell autostart
+  ansible.builtin.blockinfile:
+    path: "{{ herdr_zshenv }}"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK herdr"
+    state: "{{ herdr_autostart | ternary('present', 'absent') }}"
+    create: true
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0600"
+    block: |
+      # {{ herdr_install_dir }} otherwise reaches PATH only via uv's env file, which .zshrc sources -- interactive-only, and later than the exec below needs it.
+      [[ ":$PATH:" == *":{{ herdr_install_dir }}:"* ]] || export PATH="{{ herdr_install_dir }}:$PATH"
+
+      # Replace the login shell with the persistent herdr client, so a terminal window opens straight into the session.
+      #   -o login       only the shell login(1)/wsl.exe starts. herdr's own pane shells are non-login on Linux ([terminal] shell_mode = "auto"), so they never re-enter this.
+      #   -o interactive never fires for `zsh -c` in scripts, ansible, or editor tooling.
+      #   HERDR_ENV      second belt: exported into every herdr-managed process, the equivalent of tmux's $TMUX.
+      #   -x             a no-op before herdr is installed.
+      # Escape hatch when the client is wedged: HERDR_AUTOSTART=0 zsh -l
+      if [[ -o login && -o interactive && -z $HERDR_ENV \
+            && ${HERDR_AUTOSTART:-1} != 0 && -x {{ herdr_binary_path }} ]]; then
+        exec {{ herdr_binary_path }}
+      fi
+
+- name: Herdr | Ensure the user unit directory exists
+  ansible.builtin.file:
+    path: "{{ herdr_service_dir }}"
+    state: directory
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0755"
+  when: dotfiles_has_systemd | bool and herdr_manage_service | bool
+
+# Notifies a daemon-reload and nothing more. There is deliberately no restart handler: restarting the server kills every live pane and any agent running inside it, which is the same reason config.toml above has none. Picking up a changed unit is a manual, deliberate act.
+- name: Herdr | Deploy the server unit
+  ansible.builtin.template:
+    src: herdr.service.j2
+    dest: "{{ herdr_service_dir }}/herdr.service"
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0644"
+  notify: Herdr | Reload the user daemon
+  when: dotfiles_has_systemd | bool and herdr_manage_service | bool
+
+# Enabled, deliberately not started. A server is usually already running by the time the playbook reaches here -- the one that spawned this very shell -- and `state: started` against it would either collide on herdr.sock or adopt and restart it, killing every live pane. The unit takes over at the next boot, which is the only moment there is nothing to lose. Same reasoning as the missing restart handler.
+- name: Herdr | Enable the server unit
+  ansible.builtin.systemd_service:
+    name: herdr
+    scope: user
+    enabled: true
+    daemon_reload: true
+  when:
+    - dotfiles_has_user_systemd | bool
+    - herdr_manage_service | bool
+    - not ansible_check_mode
+
+# herdr's agent hooks report agent state to herdr. Each is installed only when its agent is there: without the agent there is nothing for the hook to report.
+- name: Herdr | Detect the agents
+  ansible.builtin.stat:
+    path: "{{ herdr_integration.binary }}"
+  loop: "{{ herdr_integrations }}"
   loop_control:
-    loop_var: herdr_vars_file
-  vars:
-    herdr_vars_lookup:
-      files:
-        - "{{ ansible_facts.distribution }}-{{ ansible_facts.distribution_major_version }}.yml"
-        - "{{ ansible_facts.distribution }}.yml"
-        - "{{ ansible_facts.os_family }}.yml"
-      paths:
-        - "{{ role_path }}/vars"
-      skip: true
-  tags:
-    - herdr
-    - shell
+    loop_var: herdr_integration
+    label: "{{ herdr_integration.name }}"
+  register: herdr_agent_binaries
 
-- name: Herdr | Install
-  ansible.builtin.include_tasks: "{{ herdr_install_tasks }}"
-  vars:
-    herdr_install_tasks: "{{ lookup('ansible.builtin.first_found', herdr_install_lookup) }}"
-    herdr_install_lookup:
-      files:
-        - "{{ ansible_facts.distribution }}-{{ ansible_facts.distribution_major_version }}.yml"
-        - "{{ ansible_facts.distribution }}.yml"
-        - "{{ ansible_facts.os_family }}.yml"
-      paths:
-        - "{{ role_path }}/tasks/install"
-  tags:
-    - herdr
-    - shell
-    - install
+# `herdr integration install` refuses to run until the agent's config directory exists, and an agent only creates it on its first start. Creating it here lets a fresh machine get the hook in one run. Only the directory is managed; what the agent writes inside it is yours.
+- name: Herdr | Ensure the agent config directories exist
+  ansible.builtin.file:
+    path: "{{ herdr_agent.herdr_integration.config_dir }}"
+    state: directory
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0700"
+  loop: "{{ herdr_agent_binaries.results | selectattr('stat.exists') | list }}"
+  loop_control:
+    loop_var: herdr_agent
+    label: "{{ herdr_agent.herdr_integration.name }}"
 
-- name: Herdr | Configure
-  ansible.builtin.include_tasks: "{{ role_path }}/tasks/configure.yml"
-  tags:
-    - herdr
-    - shell
-    - configure
+# Keyed on the status line rather than on the hook file existing, so an outdated hook is replaced once a herdr bump ships a newer one.
+- name: Herdr | Query the agent integrations
+  ansible.builtin.command: "{{ herdr_binary_path }} integration status"
+  register: herdr_integration_status
+  changed_when: false
+  check_mode: false
+
+- name: Herdr | Install the agent integrations
+  ansible.builtin.command: "{{ herdr_binary_path }} integration install {{ herdr_agent.herdr_integration.name }}"
+  loop: "{{ herdr_agent_binaries.results | selectattr('stat.exists') | list }}"
+  loop_control:
+    loop_var: herdr_agent
+    label: "{{ herdr_agent.herdr_integration.name }}"
+  changed_when: true
+  when: >-
+    herdr_integration_status.stdout is not search('^' ~ (herdr_agent.herdr_integration.name | regex_escape) ~ ': current', multiline=True)
 
 - name: Herdr | Verify
-  ansible.builtin.include_tasks: "{{ role_path }}/tasks/verify.yml"
+  ansible.builtin.import_tasks: verify.yml
   when: not ansible_check_mode
-  tags:
-    - herdr
-    - shell
-    - verify
+  tags: verify

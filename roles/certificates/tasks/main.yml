@@ -1,0 +1,68 @@
+---
+# First role of the run: once the corporate proxy inspects TLS, every download after this point fails until its CA is trusted. scripts/setup trusts the same file before the run starts, so on a work machine this normally reports no change.
+
+- name: Certificates | Trust the corporate CA
+  when: certificates_corporate_ca | length > 0
+  vars:
+    certificates_source: >-
+      {{ certificates_corporate_ca if certificates_corporate_ca is match('/')
+         else dotfiles_windows_home ~ '/' ~ certificates_corporate_ca }}
+    # update-ca-certificates only reads *.crt.
+    certificates_dest: /usr/local/share/ca-certificates/{{ certificates_corporate_ca | basename | splitext | first }}.crt
+  block:
+    - name: Certificates | Check the exported certificate
+      ansible.builtin.stat:
+        path: "{{ certificates_source }}"
+      register: certificates_source_stat
+
+    - name: Certificates | Assert the certificate was exported
+      ansible.builtin.assert:
+        that:
+          - certificates_source_stat.stat.exists
+        fail_msg: >-
+          {{ certificates_source }} is missing. Export the corporate root certificate on Windows (certmgr.msc, Trusted Root Certification Authorities, right-click > All Tasks > Export) to that path, then re-run.
+        quiet: true
+
+    # Windows exports DER unless asked for Base-64, whatever the extension says, and update-ca-certificates accepts PEM only. Read-only, so it runs in check mode too.
+    - name: Certificates | Convert the certificate to PEM
+      ansible.builtin.shell:
+        cmd: openssl x509 -in {{ certificates_source | quote }} 2>/dev/null || openssl x509 -inform DER -in {{ certificates_source | quote }}
+      register: certificates_pem
+      changed_when: false
+      check_mode: false
+
+    - name: Certificates | Install the certificate
+      ansible.builtin.copy:
+        content: "{{ certificates_pem.stdout }}\n"
+        dest: "{{ certificates_dest }}"
+        owner: root
+        group: root
+        mode: "0644"
+      become: true
+      register: certificates_installed
+
+    # A task, not a handler: the rest of this run downloads through the proxy.
+    - name: Certificates | Rebuild the system trust store
+      ansible.builtin.command: update-ca-certificates
+      become: true
+      changed_when: true
+      when: certificates_installed is changed
+
+# At the top of ~/.zshenv, above the herdr block that execs into herdr. Tools that ship their own CA list (uv, node, requests) read the system store instead, which is what holds the corporate CA.
+- name: Certificates | Point tools at the system trust store
+  ansible.builtin.blockinfile:
+    path: "{{ dotfiles_home }}/.zshenv"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK certificates"
+    insertbefore: BOF
+    create: true
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0600"
+    block: |
+      export SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+      export REQUESTS_CA_BUNDLE="$SSL_CERT_FILE" NODE_EXTRA_CA_CERTS="$SSL_CERT_FILE"
+
+- name: Certificates | Verify
+  ansible.builtin.import_tasks: verify.yml
+  when: not ansible_check_mode
+  tags: verify

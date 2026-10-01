@@ -1,6 +1,0 @@
----
-- name: Git | Install packages
-  ansible.builtin.apt:
-    name: "{{ git_packages }}"
-    state: present
-  become: true

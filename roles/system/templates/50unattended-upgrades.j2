@@ -1,0 +1,14 @@
+// Managed by the dotfiles playbook (roles/system). Do not edit.
+Unattended-Upgrade::Allowed-Origins {
+    "${distro_id}:${distro_codename}-security";
+    "${distro_id}:${distro_codename}-updates";
+    "${distro_id}:${distro_codename}";
+    "${distro_id}ESM:${distro_codename}-infra-security";
+    "${distro_id}ESMApps:${distro_codename}-apps-security";
+};
+Unattended-Upgrade::AutoFixInterruptedDpkg "true";
+// A reboot would stop the distro under whatever is running in it; restart it yourself with `wsl --terminate`.
+Unattended-Upgrade::Automatic-Reboot "false";
+Unattended-Upgrade::Remove-New-Unused-Dependencies "true";
+Unattended-Upgrade::Remove-Unused-Dependencies "true";
+Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";

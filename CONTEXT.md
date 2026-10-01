@@ -1,37 +1,61 @@
 # Context
 
-An Ansible playbook that provisions a Windows 11 + WSL2 Ubuntu workstation (and plain Ubuntu, which is how CI tests it), and the shell and tool configuration that goes with it. It is re-run whenever a tool is added or changed, so every run must be safe to repeat.
+An Ansible playbook that sets up one WSL2 distro running Ubuntu 26.04, with the shell and tools that go with it, safe to run again at any time. Why it is shaped this way is in [`docs/adr/`](docs/adr/).
 
-Decisions behind this shape are recorded in [`docs/adr/`](docs/adr/).
+## Language
 
-## Glossary
+### Running it
 
-**Run** — one `ansible-playbook main.yml` execution, usually started by `scripts/setup`. A second run on an unchanged machine must report `changed=0`; CI asserts it.
+**Run**:
+One execution of the playbook. A second run on an unchanged machine changes nothing.
+_Avoid_: deploy, apply
 
-**Bootstrap** — `scripts/setup`. Takes a bare Ubuntu to the point where a run can start (base packages, uv, ansible-core, the checkout, collections, the local file), asking for the profile, git identity and GitHub login when the local file lacks them, then starts one.
+**Bootstrap**:
+What takes a bare distro to the point where a run can start, then starts one; on a work machine it trusts the corporate CA before anything else. It asks no questions.
+_Avoid_: installer, setup wizard
 
-**Profile** — a committed file under `profiles/` describing what a kind of machine gets. `base` applies to every machine; exactly one named profile (`home` or `work`) is layered on top of it.
+**Verify**:
+The checks at the end of every role, and the check on each tool entry, asserting that what was installed actually works.
+_Avoid_: test, smoke test
 
-**Local file** — `~/.config/dotfiles/local.yml`. Never committed. Holds what must not be public or differs per machine: `dotfiles_profile`, git identity, hostname, Windows user name, and network values such as the proxy and CA certificates.
+### What a machine gets
 
-**Layer** — one of base profile, named profile, local file, applied in that order. A later layer overrides scalars and dictionaries key by key and appends to lists. Avoid "override file" or "group_vars" for this; group_vars are not used for machine configuration.
+**Profile**:
+A committed description of what a kind of machine gets: `base` for every machine, plus exactly one of `personal` or `work`. A profile supplies values; it never chooses roles.
+_Avoid_: home (for personal), role, environment
 
-**Full role** — a role under `roles/` with its own install, configure and verify phases. Reserved for things with real configuration: zsh, git, ssh, herdr, wsl, network, secrets, and the system-level roles (update, system, user).
+**Local file**:
+The one never-committed file per machine that names its profile and holds what must not be public or differs per machine: identity, names, package mirrors.
+_Avoid_: override file, group_vars, config
 
-**Tool entry** — one item in a `tools_*` list in a profile, installed by the `tools` role: an apt package, an apt repository, a `.deb`, a release binary, an installer script, a uv tool, a gh extension or an agent skill. Adding a tool means adding a tool entry, not a role. The `tools` role is the only thing that adds an apt repository; docker is one such entry, whose daemon configuration the `tools` role applies alongside it.
+**Layer**:
+One of base profile, named profile, local file, applied in that order; a later layer overrides values and appends to lists.
 
-**Verify** — the last phase of every full role, and the `verify` command of a tool entry. It asserts that the thing installed actually works, so a run cannot quietly do nothing.
+**Role**:
+One area of the machine that runs on every machine, in a fixed order: certificates, system, zsh, tools, ssh, git, herdr. A role with nothing to do does nothing.
+_Avoid_: module, component
 
-**Agent skill** — a `SKILL.md` folder that Claude Code and Copilot CLI load as a skill, listed in `tools_agent_skills` and installed globally with the skills CLI (`npx skills add`) for every agent in `tools_agent_skill_agents` (ADR 0015). Installed once; `npx skills update -g` updates it.
+**Tool entry**:
+One item in a profile's tool lists. Adding a tool means adding a tool entry, not a role.
+_Avoid_: package (unless it is an apt package)
 
-**Removal list** — `tools_remove_apt`, `tools_remove_paths` and `tools_remove_agent_plugins`. Deleting a tool entry only stops managing it; uninstalling is explicit, by adding it here.
+**Agent skill**:
+A skill folder that every agent CLI on the machine loads, installed once for all of them.
+_Avoid_: plugin
 
-**Windows side** — files on the Windows host (`.wslconfig`, Windows Terminal settings, per-user fonts) that the `wsl` role manages through WSL interop, plus the SSH key that the `ssh` role manages. Every Windows-side task is skipped off WSL. It belongs to the Windows user, not to a distro, so on a host with several distros only the **global owner** writes it.
+### Windows and the work network
 
-**Global owner** — the one distro, named by `wsl_global_owner` in every distro's local file, that writes the Windows side, except the SSH key, which any distro may create or rotate. The others only compare `.wslconfig` against their own settings and warn on drift. Unset, every distro writes it, which is only safe with a single distro.
+**Windows side**:
+What a run reads from the Windows host through WSL: the machine key and, on a work machine, the corporate CA. A run never writes to Windows.
 
-**Secret source** — where a machine's secrets come from, named by `secrets_source` in the local file: `infisical` (a machine identity reaching Infisical Cloud) or `local` (hand-written files in `~/.config/dotfiles/secrets/`). Never guessed, and never a fallback for the other (ADR 0012).
+**Machine key**:
+The one SSH key a machine has: the Windows user's key, created by hand on Windows and copied into the distro on every run.
+_Avoid_: distro key, GitHub key
 
-**Secret target** — a place `dotfiles-secrets sync` writes secrets to: the `shell` cache in RAM that every zsh sources, or a project `.env` file that git ignores. Listed in `secrets_targets` in the local file.
+**Corporate CA**:
+The root certificate of the work network's TLS-inspecting proxy (Zscaler), exported on Windows. The distro trusts it before anything is downloaded.
+_Avoid_: proxy certificate, zscaler.crt
 
-**Machine key** — the one SSH key a machine has (ADR 0011). On WSL it is the Windows user's key, copied into every distro's `~/.ssh` on each run. Elsewhere it is the host's own `~/.ssh/id_ed25519`. Rotated with `scripts/setup --rotate-ssh-key`.
+**Package mirror**:
+An internal registry the work network requires in place of a public one: for Python packages, Python builds or npm packages. Read anonymously.
+_Avoid_: proxy, private repo

@@ -1,51 +1,64 @@
 ---
-# Orchestrator only: no module calls other than include_vars / include_tasks.
+- name: ZSH | Install packages
+  ansible.builtin.apt:
+    name: "{{ zsh_packages }}"
+    state: present
+  become: true
 
-- name: ZSH | Load release specific variables
-  ansible.builtin.include_vars: "{{ zsh_vars_file }}"
-  loop: "{{ query('ansible.builtin.first_found', zsh_vars_lookup) }}"
+- name: ZSH | Set the login shell
+  ansible.builtin.user:
+    name: "{{ dotfiles_user }}"
+    shell: "{{ zsh_shell }}"
+  become: true
+
+# The installer only creates the tree; .zshrc comes from files/.
+- name: ZSH | Install oh-my-zsh
+  ansible.builtin.shell:
+    cmd: set -o pipefail && curl -fsSL {{ zsh_omz_install_url | quote }} | sh -s -- --unattended --keep-zshrc
+    executable: /bin/bash
+    creates: "{{ zsh_omz_dir }}"
+  environment:
+    ZSH: "{{ zsh_omz_dir }}"
+
+- name: ZSH | Install the plugins
+  ansible.builtin.git:
+    repo: "{{ zsh_plugin.repo }}"
+    version: "{{ zsh_plugin.version }}"
+    dest: "{{ zsh_omz_dir }}/custom/{{ zsh_plugin.type }}/{{ zsh_plugin.name }}"
+    # A shallow clone can only fetch a branch or tag; a commit pin needs a full one.
+    depth: "{{ omit if zsh_plugin.version is match('^[0-9a-f]{40}$') else 1 }}"
+    force: true
+  loop: "{{ zsh_plugins }}"
   loop_control:
-    loop_var: zsh_vars_file
-  vars:
-    zsh_vars_lookup:
-      files:
-        - "{{ ansible_facts.distribution }}-{{ ansible_facts.distribution_major_version }}.yml"
-        - "{{ ansible_facts.distribution }}.yml"
-        - "{{ ansible_facts.os_family }}.yml"
-      paths:
-        - "{{ role_path }}/vars"
-      skip: true
-  tags:
-    - zsh
-    - shell
+    loop_var: zsh_plugin
+    label: "{{ zsh_plugin.name }}"
 
-- name: ZSH | Install
-  ansible.builtin.include_tasks: "{{ zsh_install_tasks }}"
-  vars:
-    zsh_install_tasks: "{{ lookup('ansible.builtin.first_found', zsh_install_lookup) }}"
-    zsh_install_lookup:
-      files:
-        - "{{ ansible_facts.distribution }}-{{ ansible_facts.distribution_major_version }}.yml"
-        - "{{ ansible_facts.distribution }}.yml"
-        - "{{ ansible_facts.os_family }}.yml"
-      paths:
-        - "{{ role_path }}/tasks/install"
-  tags:
-    - zsh
-    - shell
-    - install
+# Ubuntu's /etc/zsh/zshrc runs compinit before ~/.zshrc, and oh-my-zsh runs it again: about a second of every start. .zshenv is the only user file read before /etc/zsh/zshrc.
+- name: ZSH | Skip the system-wide compinit
+  ansible.builtin.blockinfile:
+    path: "{{ dotfiles_home }}/.zshenv"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK zsh"
+    insertbefore: BOF
+    create: true
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0600"
+    block: |
+      skip_global_compinit=1
 
-- name: ZSH | Configure
-  ansible.builtin.include_tasks: "{{ role_path }}/tasks/configure.yml"
-  tags:
-    - zsh
-    - shell
-    - configure
+- name: ZSH | Deploy the shell dotfiles
+  ansible.builtin.copy:
+    src: "{{ zsh_dotfile.src }}"
+    dest: "{{ dotfiles_home }}/{{ zsh_dotfile.dest }}"
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0644"
+  loop: "{{ zsh_dotfiles }}"
+  loop_control:
+    loop_var: zsh_dotfile
+    label: "{{ zsh_dotfile.dest }}"
 
 - name: ZSH | Verify
-  ansible.builtin.include_tasks: "{{ role_path }}/tasks/verify.yml"
+  ansible.builtin.import_tasks: verify.yml
   when: not ansible_check_mode
-  tags:
-    - zsh
-    - shell
-    - verify
+  tags: verify

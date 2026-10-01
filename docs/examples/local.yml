@@ -1,35 +1,24 @@
 ---
 # The local file: ~/.config/dotfiles/local.yml. Never committed.
 #
-# scripts/setup seeds it from this example on first run and asks for the profile, git identity and GitHub login (again with --configure); edit it by hand for anything else. It is the last layer, applied on top of profiles/base.yml and the named profile, so a value here overrides both. See docs/adr/0002-profiles-and-local-file.md.
+# scripts/setup copies this example there on the first run and stops so you can edit it. It is the last layer, applied on top of profiles/base.yml and the named profile, so a value here overrides both (docs/adr/0002).
 
-# Which profile this machine gets. `scripts/setup --profile <name>` or `--configure` rewrites this line.
-dotfiles_profile: home
+# personal or work. Set by `scripts/setup --profile <name>` on the first run.
+dotfiles_profile: personal
 
-# Git identity. Left empty, the git role skips it and warns on every run.
+# Git identity. Left empty, the git role writes none and commits are not signed.
 git_user_name: ""
 git_user_email: ""
-# GitHub login: names ~/git/<login> and imports https://github.com/<login>.keys into authorized_keys. Empty skips both.
+# GitHub login: names ~/git/<login>. Empty skips it.
 git_user_login: ""
 git_signing_key: id_ed25519.pub
 
-# Optional. Uncomment to override.
-# dotfiles_hostname: ubuntu-wsl # defaults to the short hostname; on WSL it is written to /etc/wsl.conf
-# dotfiles_windows_user: username # WSL only; defaults to the Linux user name
-# wsl_global_owner: Ubuntu-26.04 # WSL with several distros: set the SAME value in every distro's local file. Only that distro writes .wslconfig, Terminal settings and fonts; the others warn on drift.
-# wsl_terminal_set_default_profile: true # WSL: make this distro Terminal's default profile (applied by the global owner only)
-# wsl_config_memory: 16GB # WSL: .wslconfig memory=; empty leaves the key alone
-# dotfiles_confirm: false # skip the "Proceed?" prompt, as `scripts/setup --yes` does for one run
+# Optional.
+# dotfiles_hostname: ubuntu-wsl # written to /etc/wsl.conf; defaults to the current host name
+# dotfiles_windows_user: username # the C:\Users\<name> folder; defaults to the Linux user name
 
-# Secrets for the shell and project .env files (roles/secrets, ADR 0012). Values never go here: they live at the source.
-# secrets_source: infisical # or local: hand-written ~/.config/dotfiles/secrets/<name>.env files, where Infisical is out of reach
-# secrets_infisical_project: 00000000-0000-0000-0000-000000000000 # Project Settings in the Infisical dashboard
-# secrets_targets:
-#   - { name: shell, dest: shell, env: prod, path: /shell } # every shell; cached in RAM, fetched once per boot
-#   - { name: myapp, dest: ~/git/me/myapp/.env, env: dev, path: /myapp } # a project .env; git must ignore it
-
-# Work machines, for roles/network (profiles/work.yml enables it). Corporate values live here, never in a profile: the repository is public.
-# network_proxy: http://proxy.example.com:8080
-# network_no_proxy: localhost,127.0.0.1,::1,.corp.example.com
-# network_ca_certificates:
-#   - /mnt/c/Users/username/corp-root-ca.crt # PEM, exported from Windows
+# Work machines: the package mirrors the network requires (docs/adr/0007). scripts/setup reads these too, before the playbook exists.
+# tools_pypi_mirror: https://artifactory.example.com/api/pypi/pypi/simple
+# tools_python_install_mirror: https://artifactory.example.com/artifactory/github/astral-sh/python-build-standalone/releases/download
+# tools_npm_registry: https://artifactory.example.com/api/npm/npm/
+# certificates_corporate_ca: zscaler.cer # in the Windows home, or an absolute path; work.yml sets this default

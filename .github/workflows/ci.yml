@@ -2,7 +2,7 @@
 name: CI
 run-name: Continuous integration triggered by ${{ github.actor }}
 
-# Self-contained on purpose (ADR 0008): every job is defined here, so nothing outside this repository can change or weaken what is checked.
+# Self-contained on purpose (docs/adr/0009): every job is defined here, so nothing outside this repository can change or weaken what is checked.
 on: # yamllint disable-line rule:truthy
   push:
     branches:
@@ -38,18 +38,6 @@ jobs:
         env:
           SKIP: ggshield
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
-
-      # What ansible-lint cannot see: role layout, task-name prefixes, and every profile's roles existing and having a slot in dotfiles_role_order.
-      - name: Check the role structure
-        run: uv run --with pyyaml python scripts/check-structure
-
-      - name: Test dotfiles-secrets
-        run: bash tests/dotfiles-secrets.sh
-
-      - name: Test the local-file setup
-        run: bash tests/setup-local-file.sh
 
   pinned-actions:
     name: Pinned Actions
@@ -66,7 +54,7 @@ jobs:
         uses: zgosalvez/github-actions-ensure-sha-pinned-actions@ca46236c6ce584ae24bc6283ba8dcf4b3ec8a066 # v5.0.4
 
   converge:
-    name: Converge (${{ matrix.release }}, ${{ matrix.profile }})
+    name: Converge (${{ matrix.profile }})
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     permissions:
@@ -75,15 +63,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        release:
-          - "24.04"
-          - "26.04"
         profile:
-          - home
+          - personal
           - work
 
     container:
-      image: ubuntu:${{ matrix.release }}
+      image: ubuntu:26.04
       options: --user root
 
     # Explicit: inside a container the runner picks the image's default shell, which is sh on some Ubuntu base images. `set -o pipefail` is a bashism and fails on line 1 there.
@@ -100,25 +85,11 @@ jobs:
           set -euo pipefail
           apt-get update -qq
           apt-get install -y -qq --no-install-recommends \
-            sudo ca-certificates git curl python3
+            sudo ca-certificates git curl openssl python3
           useradd -m -s /bin/bash tester
           printf 'tester ALL=(ALL) NOPASSWD: ALL\n' > /etc/sudoers.d/90-tester
           chmod 0440 /etc/sudoers.d/90-tester
           git config --system --add safe.directory '*'
-
-      # The work profile's network role needs a proxy that actually proxies: every download in both runs goes through it, so a proxy setting that fails to apply fails the job.
-      - name: Start a proxy for the work profile
-        if: matrix.profile == 'work'
-        run: |
-          set -euo pipefail
-          apt-get install -y -qq --no-install-recommends tinyproxy
-          tinyproxy -c /etc/tinyproxy/tinyproxy.conf
-          for _ in $(seq 20); do
-            curl -fsS -o /dev/null -x http://127.0.0.1:8888 https://github.com && exit 0
-            sleep 1
-          done
-          echo "::error::tinyproxy did not start."
-          exit 1
 
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -131,30 +102,25 @@ jobs:
         run: |
           set -euo pipefail
           chown -R tester:tester "${GITHUB_WORKSPACE}/dotfiles"
-          install -d -m 0755 /opt/dotfiles-ci
-          install -m 0644 "${GITHUB_WORKSPACE}/dotfiles/tests/fixtures/test-ca.crt" /opt/dotfiles-ci/test-ca.crt
           install -d -o tester -g tester /home/tester/.config /home/tester/.config/dotfiles
           install -o tester -g tester -m 0600 \
             "${GITHUB_WORKSPACE}/dotfiles/tests/fixtures/local-${PROFILE}.yml" \
             /home/tester/.config/dotfiles/local.yml
-          # The work fixture syncs a shell target from the local source (roles/secrets).
-          install -d -o tester -g tester -m 0700 /home/tester/.config/dotfiles/secrets
-          install -o tester -g tester -m 0600 \
-            "${GITHUB_WORKSPACE}/dotfiles/tests/fixtures/secrets-shell.env" \
-            /home/tester/.config/dotfiles/secrets/shell.env
+          # Where work.yml looks for the corporate CA: the Windows home of a user named tester.
+          install -D -m 0644 "${GITHUB_WORKSPACE}/dotfiles/tests/fixtures/zscaler.cer" /mnt/c/Users/tester/zscaler.cer
 
       # --skip-tags update omits a full apt upgrade: it is slow, and it is not what this job is testing.
       - name: Converge
         run: |
           set -euo pipefail
           sudo -u tester -H env DOTFILES_DIR="${GITHUB_WORKSPACE}/dotfiles" NO_COLOR=1 \
-            bash "${GITHUB_WORKSPACE}/dotfiles/scripts/setup" --yes --no-pull --skip-tags update
+            bash "${GITHUB_WORKSPACE}/dotfiles/scripts/setup" --no-pull --skip-tags update
 
       - name: Idempotence
         run: |
           set -euo pipefail
           sudo -u tester -H env DOTFILES_DIR="${GITHUB_WORKSPACE}/dotfiles" NO_COLOR=1 \
-            bash "${GITHUB_WORKSPACE}/dotfiles/scripts/setup" --yes --no-pull --skip-tags update \
+            bash "${GITHUB_WORKSPACE}/dotfiles/scripts/setup" --no-pull --skip-tags update \
             | tee /tmp/idempotence.log
           if ! grep -qE 'changed=0[[:space:]]+unreachable=0[[:space:]]+failed=0' /tmp/idempotence.log; then
             echo "::error::The second run was not idempotent."
@@ -162,7 +128,7 @@ jobs:
             exit 1
           fi
 
-  # The single required status check. Matrix jobs report as "Converge (24.04, home)" and so on; one stable context is easier to require than four that change with the matrix.
+  # The single required status check. Matrix jobs report as "Converge (personal)" and so on; one stable context is easier to require than ones that change with the matrix.
   ci-ok:
     name: CI OK
     if: always()

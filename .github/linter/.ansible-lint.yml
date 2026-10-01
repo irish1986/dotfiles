@@ -1,0 +1,19 @@
+---
+# basic, not min. `min` enables only internal-error, load-failure, parser-error and syntax-check -- it verifies the YAML parses and nothing more. `basic` adds the rules that matter here: command-instead-of-module, deprecated-*, key-order, no-free-form, no-jinja-when, partial-become, role-name, schema, var-naming, name and yaml.
+#
+# Not `production`: it requires a meta/main.yml on every role, which the minimal role layout leaves out (docs/adr/0003). Not `safety`: it enables package-latest and latest, which a dotfiles repo deliberately violates by tracking upstream releases.
+profile: basic
+
+exclude_paths:
+  - .cache/
+  - .config/
+  - .github/
+  - .venv/
+  - docs/
+  - scripts/
+  - tests/
+
+warn_list:
+  - yaml[line-length]
+
+# task_name_prefix is deliberately absent: name[prefix] derives the prefix from the file stem, so it would demand "Verify | ..." in tasks/verify.yml instead of the "<Role> | ..." convention used throughout.

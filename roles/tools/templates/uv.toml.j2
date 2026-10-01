@@ -1,0 +1,10 @@
+# Managed by the dotfiles playbook (roles/tools) from the local file's package mirrors. Do not edit.
+{% if tools_python_install_mirror | length > 0 %}
+python-install-mirror = "{{ tools_python_install_mirror }}"
+{% endif %}
+{% if tools_pypi_mirror | length > 0 %}
+
+[[index]]
+url = "{{ tools_pypi_mirror }}"
+default = true
+{% endif %}

@@ -1,7 +1,0 @@
----
-# try-reload-or-restart, not systemd_service state=reloaded: noble socket-activates sshd through ssh.socket, and `reloaded` starts ssh.service when it is not running, which then fights the socket for port 22. This form is a no-op on a stopped service; the next connection starts sshd with the new configuration anyway.
-- name: SSH | Reload sshd
-  ansible.builtin.command: systemctl try-reload-or-restart ssh.service # noqa: command-instead-of-module -- systemd_service has no try-reload
-  become: true
-  changed_when: true
-  when: dotfiles_has_systemd | bool

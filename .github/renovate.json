@@ -18,7 +18,6 @@
   "dependencyDashboard": true,
   "dependencyDashboardTitle": "Renovate Dashboard",
   "enabledManagers": [
-    "ansible-galaxy",
     "custom.regex",
     "github-actions",
     "pre-commit"
@@ -82,15 +81,6 @@
       "groupName": "pre-commit hooks",
       "matchManagers": [
         "pre-commit"
-      ]
-    },
-    {
-      "addLabels": [
-        "ansible"
-      ],
-      "groupName": "ansible collections",
-      "matchManagers": [
-        "ansible-galaxy"
       ]
     },
     {
