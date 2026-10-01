@@ -28,4 +28,4 @@ Uninstalling is explicit: `tools_remove_apt` and `tools_remove_paths`. Deleting 
 
 ## Amendment, 2026-10-01
 
-- Two more kinds: agent skills (`tools_agent_skills`, ADR 0015) and GitHub CLI extensions (`tools_gh_extensions`), each installed once and updated by its own tool (`npx skills update -g`, `gh extension upgrade`).
+- Two more kinds: agent skills (`tools_agent_skills`, ADR 0015) and GitHub CLI extensions (`tools_gh_extensions`), each installed once and updated by its own tool (`npx skills update -g`, `gh extension upgrade`). Agent CLI plugins are no longer installed, only removed, through `tools_remove_agent_plugins`.

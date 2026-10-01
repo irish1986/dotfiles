@@ -1,0 +1,31 @@
+---
+# One plugin on the removal list, as tools_remove_agent_plugin (ADR 0015). Uninstalled through the CLI's own plugin command while its `plugin list` shows it. Neither CLI reports an install through its exit status, so presence is read from the list.
+
+- name: "Tools | Detect the agent CLI: {{ tools_remove_agent_plugin.cli }}"
+  ansible.builtin.stat:
+    path: "{{ dotfiles_home }}/.local/bin/{{ tools_remove_agent_plugin.cli }}"
+  register: tools_agent_cli
+
+- name: "Tools | Remove the agent plugin: {{ tools_remove_agent_plugin.plugin }}"
+  when: tools_agent_cli.stat.exists
+  environment:
+    PATH: "{{ tools_path }}"
+    NO_COLOR: "1"
+  block:
+    - name: "Tools | Query the installed plugins: {{ tools_remove_agent_plugin.cli }}"
+      ansible.builtin.command:
+        argv: ["{{ tools_remove_agent_plugin.cli }}", plugin, list]
+      register: tools_agent_plugins_installed
+      changed_when: false
+      check_mode: false
+
+    - name: "Tools | Uninstall the plugin: {{ tools_remove_agent_plugin.plugin }}"
+      ansible.builtin.command:
+        argv: ["{{ tools_remove_agent_plugin.cli }}", plugin, uninstall, "{{ tools_remove_agent_plugin.plugin }}"]
+      register: tools_agent_plugin_uninstall
+      changed_when: true
+      # Claude Code exits 0 on a failed plugin command; its output is the only signal.
+      failed_when: >-
+        tools_agent_plugin_uninstall.rc != 0
+        or (tools_agent_plugin_uninstall.stdout ~ tools_agent_plugin_uninstall.stderr) is search('Failed|✘')
+      when: tools_agent_plugins_installed.stdout is search(tools_remove_agent_plugin.plugin | regex_escape)

@@ -24,7 +24,7 @@ Decisions behind this shape are recorded in [`docs/adr/`](docs/adr/).
 
 **Agent skill** — a `SKILL.md` folder that Claude Code and Copilot CLI load as a skill, listed in `tools_agent_skills` and installed globally with the skills CLI (`npx skills add`) for every agent in `tools_agent_skill_agents` (ADR 0015). Installed once; `npx skills update -g` updates it.
 
-**Removal list** — `tools_remove_apt` and `tools_remove_paths`. Deleting a tool entry only stops managing it; uninstalling is explicit, by adding it here.
+**Removal list** — `tools_remove_apt`, `tools_remove_paths` and `tools_remove_agent_plugins`. Deleting a tool entry only stops managing it; uninstalling is explicit, by adding it here.
 
 **Windows side** — files on the Windows host (`.wslconfig`, Windows Terminal settings, per-user fonts) that the `wsl` role manages through WSL interop, plus the SSH key that the `ssh` role manages. Every Windows-side task is skipped off WSL. It belongs to the Windows user, not to a distro, so on a host with several distros only the **global owner** writes it.
 

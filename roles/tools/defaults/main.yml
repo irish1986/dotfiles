@@ -47,12 +47,6 @@ tools_nvm_node_version: ""
 #   name, version, verify
 tools_uv_tools: []
 
-# Plugins for an agent CLI, installed with `<cli> plugin install` when `<cli> plugin list` does not show them (ADR 0014). The CLI itself comes from a tools_scripts entry; the CLI owns updates.
-#   cli          claude or copilot, found in ~/.local/bin
-#   plugin       <name>@<marketplace>, as the CLI's `plugin list` prints it
-#   marketplace  the marketplace's GitHub owner/repo, added first when the CLI does not list it
-tools_agent_plugins: []
-
 # Agent skills, installed globally with the skills CLI (`npx skills add`) for every agent in tools_agent_skill_agents (ADR 0015). Installed when a skill is missing from an agent's skills directory; `npx skills update -g` is yours to run. Needs tools_nvm_node_version.
 #   source  what `skills add` takes: a GitHub owner/repo
 #   skills  skill names from that source, default ['*'] for all of them
@@ -80,6 +74,10 @@ tools_files: []
 tools_remove_apt: []
 # Relative to $HOME.
 tools_remove_paths: []
+# Agent CLI plugins, uninstalled with `<cli> plugin uninstall` while `<cli> plugin list` shows them (ADR 0015).
+#   cli     claude or copilot, found in ~/.local/bin
+#   plugin  <name>@<marketplace>, as the CLI's `plugin list` prints it
+tools_remove_agent_plugins: []
 
 # Docker daemon configuration, applied when tools_apt_repos has an entry named docker.
 # Image/container/volume store. Left unset so Docker uses its default, /var/lib/docker. Relocating it into $HOME buys nothing on WSL -- /home and /var share one ext4.vhdx -- and Docker requires the directory root-owned 0710, which is hostile to anything that walks the home directory.

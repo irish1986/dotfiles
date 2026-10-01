@@ -62,14 +62,6 @@
     loop_var: tools_script
     label: "{{ tools_script.name }}"
 
-# After the installer scripts, which put the agent CLIs in place.
-- name: Tools | Install the agent CLI plugins
-  ansible.builtin.include_tasks: "{{ role_path }}/tasks/kinds/agent_plugin.yml"
-  loop: "{{ tools_agent_plugins }}"
-  loop_control:
-    loop_var: tools_agent_plugin
-    label: "{{ tools_agent_plugin.plugin }} ({{ tools_agent_plugin.cli }})"
-
 # After the installer scripts, which put nvm in place.
 - name: Tools | Install the nvm node
   ansible.builtin.include_tasks: "{{ role_path }}/tasks/kinds/nvm.yml"
