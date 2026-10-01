@@ -70,6 +70,11 @@
     loop_var: tools_agent_plugin
     label: "{{ tools_agent_plugin.plugin }} ({{ tools_agent_plugin.cli }})"
 
+# After the installer scripts, which put nvm in place.
+- name: Tools | Install the nvm node
+  ansible.builtin.include_tasks: "{{ role_path }}/tasks/kinds/nvm.yml"
+  when: tools_nvm_node_version | length > 0
+
 - name: Tools | Install the uv interpreter and tools
   ansible.builtin.include_tasks: "{{ role_path }}/tasks/kinds/uv.yml"
   when: tools_uv_python | length > 0 or tools_uv_tools | length > 0

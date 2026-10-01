@@ -37,6 +37,8 @@ source $ZSH/oh-my-zsh.sh
 
 # The tools role installs nvm with PROFILE=/dev/null, so its installer never edits this file; loading it is this block's job. Loaded on first use: sourcing nvm.sh cost ~300 ms per shell. The newest installed node goes on PATH directly so its global npm binaries work without loading nvm; `nvm use` in a shell still overrides it.
 export NVM_DIR="$HOME/.nvm"
+# The tools role deploys npm's user config at the XDG path; npm only looks in ~/.npmrc unless told.
+export NPM_CONFIG_USERCONFIG="$HOME/.config/npm/npmrc"
 if [[ -r $NVM_DIR/nvm.sh ]]; then
   _dotfiles_node=($NVM_DIR/versions/node/v*/bin(N/nOn[1]))
   (( $#_dotfiles_node )) && path=($_dotfiles_node $path)

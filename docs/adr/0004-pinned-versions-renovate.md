@@ -18,3 +18,7 @@ Several roles resolved "latest" from the GitHub API on every run: reruns changed
 
 - A rerun is reproducible; a version change is always a reviewed commit.
 - Renovate PRs are the maintenance load. Minor and patch updates automerge once CI is green. How Renovate runs and groups them is [0013](0013-self-hosted-renovate.md).
+
+## Amendment, 2026-10-01
+
+- The node nvm installs is pinned to a major (`tools_nvm_node_version`), not a release: nvm takes that major's newest release at install time, and patch upgrades within it are run by hand. Renovate tracks the major from the `node-version` datasource, so a bump is a major PR that waits for a human.

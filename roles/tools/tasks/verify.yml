@@ -11,3 +11,14 @@
     loop_var: tools_entry
     label: "{{ tools_entry.name }}"
   changed_when: false
+
+# nvm.sh puts the default alias on PATH as it loads, so this is the node a new shell gets once nvm is loaded.
+- name: Tools | Verify the nvm node
+  ansible.builtin.shell:
+    cmd: . "$NVM_DIR/nvm.sh" && node --version && npm --version
+    executable: /bin/bash
+  environment:
+    NVM_DIR: "{{ tools_nvm_dir }}"
+    PATH: "{{ tools_path }}"
+  when: tools_nvm_node_version | length > 0
+  changed_when: false

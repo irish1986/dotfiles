@@ -1,6 +1,8 @@
 ---
 tools_uv_binary: "{{ dotfiles_home }}/.local/bin/uv"
 tools_binary_dir: /usr/local/bin
+tools_nvm_dir: "{{ dotfiles_home }}/.nvm"
+tools_nvm_script: "{{ tools_nvm_dir }}/nvm.sh"
 
 # What a verify command or an installer sees on PATH: where user-scoped installers put their binaries, ahead of the system directories.
 tools_path: "{{ dotfiles_home }}/.local/bin:{{ dotfiles_home }}/.cargo/bin:/usr/local/bin:/usr/bin:/bin"
