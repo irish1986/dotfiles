@@ -64,6 +64,12 @@ tools_agent_skill_agents: []
 # The skills CLI version npx runs, annotated for Renovate in the profile.
 tools_agent_skills_cli_version: ""
 
+# GitHub CLI extensions, installed with `gh extension install <repo>` when gh has no extension of that name. `gh extension upgrade` owns updates. gh itself comes from the github-cli entry in tools_apt_repos.
+#   name    the extension as gh names it: the repository's name, gh-<command>
+#   repo    owner/repo
+#   verify  a command asserting it works, such as `gh <command> --version`
+tools_gh_extensions: []
+
 # Config files for tools, copied from roles/tools/files/.
 #   src   relative to roles/tools/files/
 #   dest      relative to $HOME

@@ -102,10 +102,19 @@ tools_nvm_node_version: "24"
 tools_agent_skills:
   - source: herdrdev/herdr
     skills: [herdr]
+  # Drives the gh stack extension below.
+  - source: github/gh-stack
+    skills: [gh-stack]
 tools_agent_skill_agents:
   - github-copilot
 # renovate: datasource=npm depName=skills
 tools_agent_skills_cli_version: "1.7.0"
+
+# Stacked pull requests; the gh-stack agent skill drives it.
+tools_gh_extensions:
+  - name: gh-stack
+    repo: github/gh-stack
+    verify: gh stack --version
 
 tools_uv_python: "3.14"
 
@@ -133,6 +142,7 @@ tools_remove_apt:
   - neofetch # fastfetch; archived upstream
   - tmux # herdr (ADR 0005)
 tools_remove_paths:
+  - .copilot/skills/gh-stack # a hand install; the skills CLI's copy is in ~/.agents/skills (ADR 0015)
   - .config/neofetch
   - .config/tmux
   - .tmux

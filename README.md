@@ -155,7 +155,7 @@ Edit secrets in the dashboard (or in `~/.config/dotfiles/secrets/` on a local-so
 
 ## Adding a tool
 
-Add a tool entry to a profile ([ADR 0003](docs/adr/0003-data-driven-tools.md)) — `profiles/base.yml` for every machine, `home.yml` or `work.yml` for one kind. [`roles/tools/defaults/main.yml`](roles/tools/defaults/main.yml) documents each kind: apt package, apt repository, `.deb`, release binary, installer script, uv tool, agent skill, config file. Then:
+Add a tool entry to a profile ([ADR 0003](docs/adr/0003-data-driven-tools.md)) — `profiles/base.yml` for every machine, `home.yml` or `work.yml` for one kind. [`roles/tools/defaults/main.yml`](roles/tools/defaults/main.yml) documents each kind: apt package, apt repository, `.deb`, release binary, installer script, uv tool, gh extension, agent skill, config file. Then:
 
 ```bash
 ~/.dotfiles/scripts/setup --tags tools
