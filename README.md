@@ -38,6 +38,7 @@ Re-runs take arguments:
 - [`CONTEXT.md`](CONTEXT.md) — what the repo is and the vocabulary it uses.
 - [`docs/adr/`](docs/adr/) — why it is shaped the way it is.
 - `roles/` — the reference: each role's `defaults/main.yml` lists what can be changed.
+- [`docs/manual-setup.md`](docs/manual-setup.md) — the same setup done by hand, step by step, to time against `scripts/setup`.
 
 ## Configuration
 
