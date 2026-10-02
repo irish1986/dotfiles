@@ -1,5 +1,4 @@
 ---
 # Work machines: base.yml plus what is listed here (specs/adr/0002). Corporate URLs and identity go in the local file, never here: this repository is public.
 
-# The Zscaler root certificate, exported on Windows to C:\Users\<you>\zscaler.cer (specs/adr/0007). A run fails until it is there.
 certificates_corporate_ca: zscaler.cer

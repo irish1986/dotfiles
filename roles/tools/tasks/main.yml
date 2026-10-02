@@ -118,7 +118,24 @@
       {{ tools_binary.url | replace('{version}', tools_binary.version)
          | replace('{arch}', dotfiles_dpkg_architecture) | replace('{machine}', ansible_facts.architecture) }}
 
-# Run as the login user. The script is fetched first, so a failed download fails here instead of running nothing.
+# Only entries with a version: their verify command reports what is installed, so a bumped pin re-runs the installer.
+- name: Tools | Query the installer script versions
+  ansible.builtin.shell:
+    cmd: "{{ tools_script.verify | default(tools_script.name ~ ' --version') | replace('{home}', dotfiles_home) }}"
+    executable: /bin/bash
+  environment:
+    PATH: "{{ tools_path }}"
+  register: tools_scripts_installed
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  when: tools_script.version is defined
+  loop: "{{ tools_scripts }}"
+  loop_control:
+    loop_var: tools_script
+    label: "{{ tools_script.name }}"
+
+# Run as the login user. The script is fetched first, so a failed download fails here instead of running nothing. `creates` guards an entry without a version; one with a version runs whenever the installed version differs from it.
 - name: Tools | Run the installer scripts
   ansible.builtin.shell:
     cmd: >-
@@ -126,24 +143,22 @@
       {{ tools_script.interpreter | default('sh') }} -c "$script" {{ tools_script.name | quote }}
       {{ tools_script.args | default([]) | map('replace', '{home}', dotfiles_home) | map('quote') | join(' ') }}
     executable: /bin/bash
-    creates: "{{ dotfiles_home }}/{{ tools_script.creates }}"
+    creates: "{{ omit if tools_script_outdated else dotfiles_home ~ '/' ~ tools_script.creates }}"
   environment: >-
     {{ dict((tools_script.env | default({})).keys() | zip((tools_script.env | default({})).values() | map('replace', '{home}', dotfiles_home)))
        | combine({'PATH': tools_path}) }}
-  loop: "{{ tools_scripts }}"
+  loop: "{{ tools_scripts_installed.results }}"
   loop_control:
-    loop_var: tools_script
+    loop_var: tools_script_installed
     label: "{{ tools_script.name }}"
+  vars:
+    tools_script: "{{ tools_script_installed.tools_script }}"
+    tools_script_outdated: >-
+      {{ tools_script.version is defined and
+         (tools_script_installed.stdout | default('') | regex_search('[0-9]+(\.[0-9]+)+') | default('', true)) != tools_script.version }}
 
 # ── uv ────────────────────────────────────────────────────────────────────
-- name: Tools | Install uv
-  ansible.builtin.shell:
-    cmd: script="$(curl -fsSL https://astral.sh/uv/install.sh)" && sh -c "$script" uv-installer --quiet
-    executable: /bin/bash
-    creates: "{{ dotfiles_home }}/.local/bin/uv"
-  environment:
-    UV_NO_MODIFY_PATH: "1"
-
+# uv itself is an installer-script entry above.
 - name: Tools | Query the uv interpreters
   ansible.builtin.command: "{{ dotfiles_home }}/.local/bin/uv python list --only-installed"
   environment:
@@ -182,20 +197,13 @@
     label: "{{ tools_uv_tool.name }} {{ tools_uv_tool.version }}"
 
 # ── nvm and node ──────────────────────────────────────────────────────────
-# nvm is a shell function, so every call sources nvm.sh under bash. PROFILE=/dev/null keeps the installer out of ~/.zshrc, which loads nvm itself.
+# nvm itself is an installer-script entry above. It is a shell function, so every call sources nvm.sh under bash.
 - name: Tools | Install node
-  when: tools_nvm_version | length > 0
+  when: tools_node_version | length > 0
   environment:
     NVM_DIR: "{{ tools_nvm_dir }}"
-    PROFILE: /dev/null
     PATH: "{{ tools_path }}"
   block:
-    - name: Tools | Install nvm {{ tools_nvm_version }}
-      ansible.builtin.shell:
-        cmd: script="$(curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v{{ tools_nvm_version }}/install.sh)" && bash -c "$script"
-        executable: /bin/bash
-        creates: "{{ tools_nvm_dir }}/nvm.sh"
-
     # "N/A" until a matching version is installed; after that, patch releases are left to `nvm install` by hand.
     - name: Tools | Query the installed node
       ansible.builtin.shell:
@@ -227,6 +235,41 @@
       changed_when: true
       when: (tools_node_default.content | default('') | b64decode | trim) != tools_node_version
 
+# ── npm tools ─────────────────────────────────────────────────────────────
+# Into the default node's global prefix, which sourcing nvm.sh selects. npm ls exits non-zero on cosmetic problems (an extraneous package), so only its JSON counts.
+- name: Tools | Query the npm tools
+  ansible.builtin.shell:
+    cmd: . "$NVM_DIR/nvm.sh" && npm ls --global --depth=0 --json
+    executable: /bin/bash
+  environment:
+    NVM_DIR: "{{ tools_nvm_dir }}"
+    NPM_CONFIG_USERCONFIG: "{{ dotfiles_home }}/.config/npm/npmrc"
+    PATH: "{{ tools_path }}"
+    NO_COLOR: "1"
+  register: tools_npm_installed
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  when: tools_npm_tools | length > 0
+
+- name: Tools | Install the npm tools
+  ansible.builtin.shell:
+    cmd: . "$NVM_DIR/nvm.sh" && npm install --global {{ (tools_npm_tool.name ~ '@' ~ tools_npm_tool.version) | quote }}
+    executable: /bin/bash
+  environment:
+    NVM_DIR: "{{ tools_nvm_dir }}"
+    NPM_CONFIG_USERCONFIG: "{{ dotfiles_home }}/.config/npm/npmrc"
+    PATH: "{{ tools_path }}"
+    NO_COLOR: "1"
+  changed_when: true
+  when: >-
+    (((tools_npm_installed.stdout | default('{}', true) | from_json).dependencies | default({}))[tools_npm_tool.name].version
+      | default('')) != tools_npm_tool.version
+  loop: "{{ tools_npm_tools }}"
+  loop_control:
+    loop_var: tools_npm_tool
+    label: "{{ tools_npm_tool.name }} {{ tools_npm_tool.version }}"
+
 # ── Agent skills ──────────────────────────────────────────────────────────
 # Absent until the skills CLI first installs something.
 - name: Tools | Read the skills lock
@@ -235,13 +278,12 @@
   register: tools_agent_skill_lock_read
   failed_when: false
 
-# A skill is its files, so a SKILL.md missing from any agent's directory means the entry needs installing. --yes twice: npx's to fetch the CLI, the CLI's to skip its prompts.
+# A skill is its files, so a SKILL.md missing from any agent's directory means the entry needs installing. The skills CLI is an npm tool above; --yes skips its prompts.
 - name: Tools | Install the agent skills
   ansible.builtin.shell:
     cmd: >-
       . "$NVM_DIR/nvm.sh" &&
-      npx --yes {{ ('skills@' ~ tools_agent_skills_cli_version) | quote }}
-      add {{ tools_agent_skill.source | quote }}
+      skills add {{ tools_agent_skill.source | quote }}
       --skill {{ tools_agent_skill.skills | default(['*']) | map('quote') | join(' ') }}
       --global
       --agent {{ tools_agent_skill_agents | map('quote') | join(' ') }}

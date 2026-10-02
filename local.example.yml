@@ -18,5 +18,3 @@ git_signing_key: id_ed25519.pub
 # dotfiles_windows_user: username # the C:\Users\<name> folder; defaults to the Linux user name
 
 # certificates_corporate_ca: zscaler.cer # in the Windows home, or an absolute path; work.yml sets this default
-
-# Tokens and package mirrors do not go here: they go in the env file, .env at the checkout root (see .env.sample).

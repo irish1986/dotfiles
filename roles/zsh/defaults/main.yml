@@ -12,13 +12,14 @@ zsh_packages:
   - zoxide
   - zsh
 
-# Set as the login user's shell once installed.
 zsh_shell: /usr/bin/zsh
 
 zsh_omz_dir: "{{ dotfiles_home }}/.oh-my-zsh"
-zsh_omz_install_url: https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh
+zsh_omz:
+  repo: https://github.com/ohmyzsh/ohmyzsh.git
+  # renovate: datasource=git-refs depName=https://github.com/ohmyzsh/ohmyzsh currentValue=master
+  version: 74965c96098134b192f00084f966b4b02438a739
 
-# Every plugin pinned: these are vendored dependencies, and an unpinned clone means a shell that changes behaviour without any commit to this repo.
 zsh_plugins:
   - name: powerlevel10k
     repo: https://github.com/romkatv/powerlevel10k.git

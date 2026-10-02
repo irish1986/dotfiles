@@ -29,6 +29,9 @@ export ZSH="$HOME/.oh-my-zsh"
 # On fpath before oh-my-zsh runs compinit, rather than listed in plugins=(): as a plugin it lands on fpath after compinit, so its completions only registered because of a second compinit at the end of this file, which cost a full rescan on every start. The zsh-completions README gives the same advice.
 fpath+=($ZSH/custom/plugins/zsh-completions/src)
 
+# The checkout is pinned in roles/zsh/defaults and moved by Renovate; oh-my-zsh's own updater would move it off the pin.
+zstyle ':omz:update' mode disabled
+
 source $ZSH/oh-my-zsh.sh
 
 # Guarded: on a fresh box, or any shell opened before the playbook finishes, an unguarded source prints an error on every prompt. ~/.zshenv is not sourced here -- zsh reads it automatically, and first, so doing it again double-loads.

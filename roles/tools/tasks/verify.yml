@@ -9,8 +9,7 @@
   changed_when: false
   loop: >-
     {{ tools_debs + tools_binaries + tools_scripts + tools_uv_tools + tools_gh_extensions
-       + (tools_apt_repos | selectattr('verify', 'defined') | list)
-       + [{'name': 'uv'}] }}
+       + (tools_apt_repos | selectattr('verify', 'defined') | list) }}
   loop_control:
     loop_var: tools_entry
     label: "{{ tools_entry.name }}"
@@ -23,7 +22,21 @@
     NVM_DIR: "{{ tools_nvm_dir }}"
     PATH: "{{ tools_path }}"
   changed_when: false
-  when: tools_nvm_version | length > 0
+  when: tools_node_version | length > 0
+
+# The global bin directory is on PATH only once nvm.sh is sourced.
+- name: Tools | Verify the npm tools
+  ansible.builtin.shell:
+    cmd: . "$NVM_DIR/nvm.sh" && {{ tools_npm_tool.verify | default(tools_npm_tool.name ~ ' --version') | replace('{home}', dotfiles_home) }}
+    executable: /bin/bash
+  environment:
+    NVM_DIR: "{{ tools_nvm_dir }}"
+    PATH: "{{ tools_path }}"
+  changed_when: false
+  loop: "{{ tools_npm_tools }}"
+  loop_control:
+    loop_var: tools_npm_tool
+    label: "{{ tools_npm_tool.name }}"
 
 - name: Tools | Read the skills lock again
   ansible.builtin.slurp:

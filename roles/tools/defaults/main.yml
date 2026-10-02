@@ -31,28 +31,28 @@ tools_debs: []
 #   name, version, url, checksum_url (optional: a file whose first word is the sha256; {url} is the binary's URL), verify
 tools_binaries: []
 
-# Upstream installer scripts, run once: `creates` (relative to $HOME) guards them, and the tool's own updater owns upgrades from then on.
-#   name, url, creates, interpreter (default sh), args (list), env (dict), verify
+# Upstream installer scripts, run once: `creates` (relative to $HOME) guards them, and the tool's own updater owns upgrades from then on. uv and nvm are entries here too.
+#   name, url, version (optional: substituted into url, and when set the installer re-runs whenever verify reports another version, so a bumped pin lands), creates, interpreter (default sh), args (list), env (dict), verify
 tools_scripts: []
 
-# uv is installed by scripts/setup, and here when missing; `uv self update` owns its upgrades.
 # Interpreter uv installs and marks default. Empty leaves the choice to you.
 tools_uv_python: ""
 # Python tools installed with `uv tool install <name>==<version>`.
 #   name, version, verify
 tools_uv_tools: []
 
-# nvm, and the node it installs and aliases as default: a major such as "24". Patch upgrades within it are yours to run. Empty skips both.
-tools_nvm_version: ""
+# The node that nvm (a tools_scripts entry) installs and aliases as default: a major such as "24". Patch upgrades within it are yours to run. Empty skips node.
 tools_node_version: ""
+# npm tools installed with `npm install --global <name>@<version>` into the default node, when `npm ls --global` reports another version. Needs node.
+#   name, version, verify
+tools_npm_tools: []
 
-# Agent skills, installed globally with the skills CLI (`npx skills add`) for every agent in tools_agent_skill_agents (specs/adr/0008). Installed when a skill is missing from an agent's skills directory; `npx skills update -g` is yours to run. Needs node.
+# Agent skills, installed globally with the skills CLI (`skills add`, an entry in tools_npm_tools) for every agent in tools_agent_skill_agents (specs/adr/0008). Installed when a skill is missing from an agent's skills directory; `skills update -g` is yours to run.
 #   source  what `skills add` takes: a GitHub owner/repo
 #   skills  skill names from that source, default ['*'] for all of them
 tools_agent_skills: []
 # The skills CLI's names for the agents, each with a directory in tools_agent_skill_dirs below.
 tools_agent_skill_agents: []
-tools_agent_skills_cli_version: ""
 
 # GitHub CLI extensions, installed with `gh extension install <repo>` when gh has no extension of that name. `gh extension upgrade` owns updates.
 #   name, repo (owner/repo), verify

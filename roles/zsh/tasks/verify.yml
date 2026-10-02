@@ -27,6 +27,14 @@
     loop_var: zsh_dotfile
     label: "{{ zsh_dotfile.dest }}"
 
+# .zshrc sources it.
+- name: ZSH | Assert oh-my-zsh is present
+  ansible.builtin.assert:
+    that:
+      - (zsh_omz_dir ~ '/oh-my-zsh.sh') is file
+    fail_msg: oh-my-zsh is missing from {{ zsh_omz_dir }}.
+    quiet: true
+
 # .zshrc's ZSH_THEME does not resolve without it.
 - name: ZSH | Assert the powerlevel10k theme is present
   ansible.builtin.assert:
