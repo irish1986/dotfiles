@@ -2,8 +2,6 @@
 # Only the keys set on purpose are here; `herdr --default-config` prints every option with its default.
 # Edits made on the machine (settings UI, hand edits) are overwritten on the next run: change this file instead.
 
-# false: with the .zshenv autostart every terminal launch enters herdr, so a first-run screen
-# that has already been answered would show up on every window.
 onboarding = false
 
 [theme]
@@ -14,25 +12,11 @@ default_shell = "/usr/bin/zsh"
 
 [update]
 channel = "stable"
-# false on both: herdr_version is pinned in the role, so Ansible owns which release is on disk.
-# `herdr update` would move the binary out from under it, and the nag is noise while pinned.
 version_check = false
 manifest_check = false
 
 [keys]
 prefix = "ctrl+space"
-# Unbound so its key can go to herdr-worktree below.
-new_worktree = ""
-
-# Creates the worktree in <repo>/.worktree/<branch-slug> instead of one central [worktrees] directory,
-# which cannot be made per-repo. herdr-worktree is installed by roles/herdr beside the herdr binary.
-[[keys.command]]
-key = "prefix+shift+g"
-type = "popup"
-command = "exec \"$HOME/.local/bin/herdr-worktree\""
-description = "new worktree in <repo>/.worktree"
-width = 70
-height = 8
 
 # btop is a base tools_apt package, so the popup works on every machine.
 [[keys.command]]
@@ -42,20 +26,17 @@ command = "btop"
 width = "80%"
 height = "80%"
 
+[worktrees]
+directory = "~/git/.worktrees"
+
 [ui]
-# Adjacent panes share one divider, tmux style, instead of each drawing its own border.
 pane_gaps = false
-# Split panes name the agent running in them, so side-by-side agents can be told apart.
 show_agent_labels_on_pane_borders = true
+prompt_new_tab_name = false
+prompt_new_workspace_name = false
 
 [ui.toast]
-# In-app toasts when a background agent finishes or needs input. Works the same locally,
-# over --remote and under WSL, unlike "terminal" and "system", which depend on the host.
 delivery = "herdr"
 
 [experimental]
-# Save recent pane screen history across full server restarts. This is the tmux-resurrect
-# "pane contents" equivalent -- session.json restores the layout, this restores what was on
-# screen. Upstream defaults it off because the capture lands in session-history.json in
-# plaintext beside session.json, and pane output can include secrets, tokens and prompts.
 pane_history = true

@@ -1,294 +1,123 @@
 #!/usr/bin/env bash
 #
-# scripts/setup - bootstrap this machine and run the dotfiles playbook. Safe to re-run.
+# scripts/setup - bootstrap this distro and run the dotfiles playbook. Safe to re-run.
 #
-# First run, on a bare Ubuntu. The `bash -c "$(curl ...)"` form keeps stdin on the terminal so sudo and the local-file questions can prompt; `curl | bash` would not:
+#   bash -c "$(curl -fsSL https://raw.githubusercontent.com/irish1986/dotfiles/main/scripts/setup)" -- --profile work
 #
-#   bash -c "$(curl -fsSL https://raw.githubusercontent.com/irish1986/dotfiles/main/scripts/setup)"
+# The first run creates ~/.config/dotfiles/local.yml and ~/.dotfiles/.env, and stops so you can edit them. Every later run trusts the corporate CA (work), exports the env file, installs uv and ansible-core through its package mirror, updates the checkout and runs the playbook. Anything it does not know goes to ansible-playbook:
 #
-# It asks for the profile, git identity and GitHub login, writes them to the local file, then converges. Unattended, pass them instead: `-- --profile home --yes`, with the identity already in ~/.config/dotfiles/local.yml.
-#
-# Later runs. Any option this script does not know goes to ansible-playbook:
-#
-#   ~/.dotfiles/scripts/setup
 #   ~/.dotfiles/scripts/setup --tags zsh,git --check --diff
 
 set -Eeuo pipefail
 
-# Cloned over HTTPS, which needs no key: on a bare machine the SSH key does not exist yet, or is not on GitHub, until the playbook has run. origin is then pointed at SSH, so later pulls and pushes use the machine key.
-readonly REPO_URL="https://github.com/irish1986/dotfiles.git"
+readonly REPO_HTTPS_URL="https://github.com/irish1986/dotfiles.git"
 readonly REPO_SSH_URL="git@github.com:irish1986/dotfiles.git"
-# Floor: the strictest requires_ansible among collections/requirements.yml. Ceiling: 2.24 removes INJECT_FACTS_AS_VARS, which ansible.cfg still sets.
+# Ceiling: 2.24 removes INJECT_FACTS_AS_VARS, which ansible.cfg sets.
 readonly ANSIBLE_CORE_SPEC="ansible-core>=2.16,<2.24"
-readonly MIN_UBUNTU="24.04"
 readonly DOTFILES_DIR="${DOTFILES_DIR:-${HOME}/.dotfiles}"
-readonly LOCAL_FILE="${XDG_CONFIG_HOME:-${HOME}/.config}/dotfiles/local.yml"
-readonly LOCAL_BIN="${HOME}/.local/bin"
+readonly LOCAL_FILE="${DOTFILES_LOCAL_FILE:-${HOME}/.config/dotfiles/local.yml}"
+readonly CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
 
 profile=""
-yes=0
 pull=1
-rotate_key=0
-configure=0
 playbook_args=()
 
 info() { printf '==> %s\n' "$*"; }
-warn() { printf 'warning: %s\n' "$*" >&2; }
 die() {
   printf 'error: %s\n' "$*" >&2
   exit 1
 }
 
-usage() {
-  cat << 'EOF'
-Usage: scripts/setup [--profile NAME] [--configure] [--yes] [--no-pull] [--rotate-ssh-key] [ansible-playbook options]
-
-  --profile NAME  the profile this machine gets (see profiles/), recorded in
-                  ~/.config/dotfiles/local.yml; asked for on a first run from a
-                  terminal, required on one without
-  --configure     ask again for the profile, git identity and GitHub login, even
-                  when the local file has them (a terminal is needed)
-  -y, --yes       do not ask before converging
-  --no-pull       use the checkout as it is; do not fast-forward it
-  --rotate-ssh-key
-                  replace this machine's SSH key, keeping the old one as .old -- on
-                  WSL the Windows key, which each distro copies on its next run
-                  (docs/adr/0011)
-  -h, --help      show this help
-
-Anything else is passed to ansible-playbook, e.g. --tags zsh --check --diff.
-Per-task timings: ANSIBLE_CALLBACKS_ENABLED=ansible.posix.profile_tasks scripts/setup
-EOF
+# One top-level scalar of the local file, without quotes or a trailing comment.
+local_get() {
+  [[ -f $LOCAL_FILE ]] || return 0
+  sed -n "s/^${1}:[[:space:]]*//p" "$LOCAL_FILE" | head -n1 | sed -E 's/[[:space:]]+#.*$//; s/^["'\'']//; s/["'\'']$//'
 }
 
-parse_args() {
-  while (($#)); do
-    case "$1" in
-      --profile) profile="${2:?--profile needs a name}" && shift 2 ;;
-      --profile=*) profile="${1#*=}" && shift ;;
-      --configure) configure=1 && shift ;;
-      -y | --yes) yes=1 && shift ;;
-      --no-pull) pull=0 && shift ;;
-      --rotate-ssh-key) rotate_key=1 && shift ;;
-      -h | --help) usage && exit 0 ;;
-      --) shift && playbook_args+=("$@") && break ;;
-      *) playbook_args+=("$1") && shift ;;
-    esac
-  done
-}
+while (($#)); do
+  case "$1" in
+    --profile) profile="${2:?--profile needs personal or work}" && shift 2 ;;
+    --no-pull) pull=0 && shift ;;
+    -h | --help) sed -n '3,9p' "$0" && exit 0 ;;
+    --) shift ;;
+    *) playbook_args+=("$1") && shift ;;
+  esac
+done
 
-preflight() {
-  [[ $EUID -ne 0 ]] || die "run this as your own user, not root; it escalates with sudo where needed"
-  local id version
-  # shellcheck disable=SC1091 # runtime file
-  id="$(. /etc/os-release && printf '%s' "${ID:-}")"
-  # shellcheck disable=SC1091 # runtime file
-  version="$(. /etc/os-release && printf '%s' "${VERSION_ID:-0}")"
-  [[ $id == ubuntu ]] || die "only Ubuntu is supported (found ${id:-unknown})"
-  dpkg --compare-versions "$version" ge "$MIN_UBUNTU" || die "Ubuntu ${version} is older than ${MIN_UBUNTU}"
-}
+[[ $EUID -ne 0 ]] || die "run this as your own user; it uses sudo where needed"
+# shellcheck disable=SC1091 # runtime file
+[[ "$(. /etc/os-release && printf '%s %s' "$ID" "$VERSION_ID")" == "ubuntu 26.04" ]] || die "this sets up Ubuntu 26.04 only"
 
-install_base_packages() {
-  local pkg missing=()
-  for pkg in ca-certificates curl git python3; do
-    dpkg-query -W -f='${Status}' "$pkg" 2> /dev/null | grep -q 'ok installed' || missing+=("$pkg")
-  done
-  ((${#missing[@]})) || return 0
+profile="${profile:-$(local_get dotfiles_profile)}"
+[[ $profile == personal || $profile == work ]] || die "say which profile this machine gets: --profile personal or --profile work"
+
+# apt reads the archive over plain HTTP, so this works before the corporate CA is trusted.
+missing=()
+for pkg in ca-certificates curl git openssl python3; do
+  dpkg-query -W -f='${Status}' "$pkg" 2> /dev/null | grep -q 'ok installed' || missing+=("$pkg")
+done
+if ((${#missing[@]})); then
   info "Installing ${missing[*]}"
-  # The lock timeout matters from the second run on: the update role enables unattended-upgrades, which holds the dpkg lock right after boot.
-  sudo DEBIAN_FRONTEND=noninteractive apt-get -o DPkg::Lock::Timeout=600 update -qq
+  sudo apt-get -o DPkg::Lock::Timeout=600 update -qq
   sudo DEBIAN_FRONTEND=noninteractive apt-get -o DPkg::Lock::Timeout=600 install -y -qq --no-install-recommends "${missing[@]}"
-}
+fi
 
-# ansible-core comes from uv rather than apt: the archive's is too old for the pinned collections, and PEP 668 rules out pip.
-install_ansible() {
-  if [[ ! -x ${LOCAL_BIN}/uv ]]; then
-    info "Installing uv"
-    curl -LsSf https://astral.sh/uv/install.sh | env UV_NO_MODIFY_PATH=1 sh -s -- --quiet
+# The corporate CA next: until it is trusted, every download below fails behind the TLS-inspecting proxy. The same file, converted the same way, as roles/certificates installs.
+if [[ $profile == work ]]; then
+  ca="$(local_get certificates_corporate_ca)"
+  ca="${ca:-zscaler.cer}"
+  [[ $ca == /* ]] || ca="/mnt/c/Users/$(local_get dotfiles_windows_user | grep . || printf '%s' "$USER")/${ca}"
+  [[ -f $ca ]] || die "${ca} is missing: export the Zscaler root certificate there from Windows (certmgr.msc), then re-run"
+  dest="/usr/local/share/ca-certificates/$(basename "${ca%.*}").crt"
+  pem="$(openssl x509 -in "$ca" 2> /dev/null || openssl x509 -inform DER -in "$ca")"
+  if [[ "$(cat "$dest" 2> /dev/null)" != "$pem" ]]; then
+    info "Trusting ${ca}"
+    printf '%s\n' "$pem" | sudo tee "$dest" > /dev/null
+    # Quiet: openssl rehash warns about the bundle file itself on every run.
+    sudo update-ca-certificates > /dev/null 2>&1 || die "update-ca-certificates failed"
   fi
-  export PATH="${LOCAL_BIN}:${PATH}"
-  # A no-op when an installed version already satisfies the spec.
-  uv tool install --quiet "$ANSIBLE_CORE_SPEC"
-}
+fi
+export SSL_CERT_FILE="$CA_BUNDLE"
 
-sync_checkout() {
-  if [[ ! -d ${DOTFILES_DIR}/.git ]]; then
-    [[ ! -e $DOTFILES_DIR ]] || die "${DOTFILES_DIR} exists and is not a git checkout"
-    info "Cloning into ${DOTFILES_DIR}"
-    git clone --quiet "$REPO_URL" "$DOTFILES_DIR"
-    git -C "$DOTFILES_DIR" remote set-url origin "$REPO_SSH_URL"
-  elif ((pull)); then
-    # Never fatal: the checkout on disk is still worth applying, and this repo is edited locally.
-    git -C "$DOTFILES_DIR" pull --ff-only --autostash --quiet || warn "could not fast-forward ${DOTFILES_DIR}; using it as it is"
-  fi
-}
+if [[ ! -d ${DOTFILES_DIR}/.git ]]; then
+  info "Cloning into ${DOTFILES_DIR}"
+  # HTTPS needs no key; origin then moves to SSH, which the playbook sets up.
+  git clone --quiet "$REPO_HTTPS_URL" "$DOTFILES_DIR"
+  git -C "$DOTFILES_DIR" remote set-url origin "$REPO_SSH_URL"
+elif ((pull)); then
+  git -C "$DOTFILES_DIR" pull --ff-only --autostash --quiet || info "could not fast-forward ${DOTFILES_DIR}; using it as it is"
+fi
 
-# The local file names the profile and holds identity; it lives outside the checkout so it can never be committed (ADR 0002).
-#
-# local_get and local_set read and write one top-level scalar of it -- all the core values are. local_set passes the value through the environment rather than into a sed expression, so a name with | & / or quotes cannot break the file.
-local_get() { # KEY
-  local line value dq='^"(([^"\\]|\\.)*)"' sq="^'(([^']|'')*)'"
-  line="$(grep -m1 "^${1}:" "$LOCAL_FILE" 2> /dev/null)" || return 0
-  value="${line#*:}"
-  value="${value#"${value%%[![:space:]]*}"}"
-  if [[ $value =~ $dq ]]; then
-    value="${BASH_REMATCH[1]//\\\"/\"}"
-    value="${value//\\\\/\\}"
-  elif [[ $value =~ $sq ]]; then
-    value="${BASH_REMATCH[1]//\'\'/\'}"
-  else
-    value="${value%%[[:space:]]#*}"
-    value="${value%"${value##*[![:space:]]}"}"
-  fi
-  printf '%s' "$value"
-}
+# The env file: tokens and corporate URLs, gitignored at the checkout root (specs/adr/0010).
+if [[ ! -f ${DOTFILES_DIR}/.env ]]; then
+  (umask 077 && cp "${DOTFILES_DIR}/.env.sample" "${DOTFILES_DIR}/.env")
+  info "Created ${DOTFILES_DIR}/.env from .env.sample"
+fi
 
-local_set() { # KEY VALUE
-  local value="${2//\\/\\\\}" tmp
-  value="${value//\"/\\\"}"
-  tmp="$(mktemp)"
-  KEY="$1" LINE="${1}: \"${value}\"" awk '
-    !done && index($0, ENVIRON["KEY"] ":") == 1 { print ENVIRON["LINE"]; done = 1; next }
-    { print }
-    END { if (!done) print ENVIRON["LINE"] }
-  ' "$LOCAL_FILE" > "$tmp"
-  # cat rather than mv keeps the local file's 0600 mode.
-  cat "$tmp" > "$LOCAL_FILE"
-  rm -f "$tmp"
-}
+if [[ ! -f $LOCAL_FILE ]]; then
+  mkdir -p "$(dirname "$LOCAL_FILE")"
+  (umask 077 && sed "s/^dotfiles_profile: .*/dotfiles_profile: ${profile}/" "${DOTFILES_DIR}/local.example.yml" > "$LOCAL_FILE")
+  info "Created ${LOCAL_FILE}. Fill in your git identity there$([[ $profile == work ]] && printf ', and the package mirrors in %s/.env' "$DOTFILES_DIR"), then run ${DOTFILES_DIR}/scripts/setup again."
+  exit 0
+fi
+[[ "$(local_get dotfiles_profile)" == "$profile" ]] || sed -i "s/^dotfiles_profile:.*/dotfiles_profile: ${profile}/" "$LOCAL_FILE"
 
-interactive() { [[ -t 0 && -t 1 ]]; }
+# Exported for everything below, the playbook run included: uv and npm read their mirrors from it.
+set -a
+# shellcheck disable=SC1091 # created above
+. "${DOTFILES_DIR}/.env"
+set +a
 
-profile_exists() { [[ $1 =~ ^[A-Za-z0-9_-]+$ && $1 != base && -f ${DOTFILES_DIR}/profiles/${1}.yml ]]; }
-is_set() { [[ -n $1 ]]; }
-is_email() { [[ $1 =~ ^[^@[:space:]]+@[^@[:space:]]+$ ]]; }
-is_login() { [[ -z $1 || $1 =~ ^[A-Za-z0-9-]+$ ]]; }
+# ansible-core from uv, through UV_DEFAULT_INDEX when the env file sets it: the archive's is too old, and PEP 668 rules out pip.
+if [[ ! -x ${HOME}/.local/bin/uv ]]; then
+  info "Installing uv"
+  curl -fsSL https://astral.sh/uv/install.sh | env UV_NO_MODIFY_PATH=1 sh -s -- --quiet
+fi
+export PATH="${HOME}/.local/bin:${PATH}"
+uv tool install --quiet "$ANSIBLE_CORE_SPEC"
 
-# ask PROMPT DEFAULT VALIDATOR: prints the answer. Enter keeps the default; `-` clears it.
-ask() {
-  local reply
-  while true; do
-    read -rp "${1}${2:+ [${2}]}: " reply || die "no answer to '${1}'"
-    reply="${reply:-$2}"
-    [[ $reply != - ]] || reply=""
-    if "$3" "$reply"; then
-      printf '%s' "$reply"
-      return 0
-    fi
-    warn "'${reply}' is not a valid answer"
-  done
-}
-
-ask_core_values() {
-  local profiles=() file p name email login
-  for file in "${DOTFILES_DIR}"/profiles/*.yml; do
-    file="${file##*/}"
-    [[ $file == base.yml ]] || profiles+=("${file%.yml}")
-  done
-  name="$(local_get git_user_name)"
-  email="$(local_get git_user_email)"
-  info "Values for ${LOCAL_FILE}. Enter keeps the one in brackets, - clears it."
-  p="$(ask "Profile ($(IFS=/ && printf '%s' "${profiles[*]}"))" "$(local_get dotfiles_profile)" profile_exists)"
-  name="$(ask "Git name" "${name:-$(git config --global user.name || true)}" is_set)"
-  email="$(ask "Git email" "${email:-$(git config --global user.email || true)}" is_email)"
-  login="$(ask "GitHub login, for ~/git/<login> and authorized_keys (- for none)" "$(local_get git_user_login)" is_login)"
-  local_set dotfiles_profile "$p"
-  local_set git_user_name "$name"
-  local_set git_user_email "$email"
-  local_set git_user_login "$login"
-  printf '  profile: %s\n  git:     %s <%s>\n  github:  %s\n' "$p" "$name" "$email" "${login:-(none)}"
-  info "Wrote ${LOCAL_FILE}; edit it for anything else (see docs/examples/local.yml)"
-}
-
-ensure_local_file() {
-  if [[ -n $profile ]] && ! profile_exists "$profile"; then
-    die "no profile named '${profile}' in ${DOTFILES_DIR}/profiles/"
-  fi
-  local created=0
-  if [[ ! -f $LOCAL_FILE ]]; then
-    [[ -n $profile ]] || interactive || die "first run without a terminal: say which profile this machine gets, e.g. --profile home"
-    info "Creating ${LOCAL_FILE}"
-    mkdir -p "$(dirname "$LOCAL_FILE")"
-    (
-      umask 077
-      cp "${DOTFILES_DIR}/docs/examples/local.yml" "$LOCAL_FILE"
-    )
-    # Identity comes from an existing ~/.gitconfig when there is one, so re-provisioning a machine keeps it.
-    local_set git_user_name "$(git config --global user.name || true)"
-    local_set git_user_email "$(git config --global user.email || true)"
-    created=1
-  fi
-  [[ -z $profile ]] || local_set dotfiles_profile "$profile"
-
-  local missing=()
-  profile_exists "$(local_get dotfiles_profile)" || missing+=(dotfiles_profile)
-  is_set "$(local_get git_user_name)" || missing+=(git_user_name)
-  is_email "$(local_get git_user_email)" || missing+=(git_user_email)
-  ((created || configure || ${#missing[@]})) || return 0
-
-  if interactive; then
-    ask_core_values
-  elif ((${#missing[@]})); then
-    warn "${LOCAL_FILE} lacks ${missing[*]}; run scripts/setup from a terminal to be asked, or edit the file"
-  elif ((configure)); then
-    warn "--configure needs a terminal; ${LOCAL_FILE} is left as it is"
-  fi
-}
-
-# ADR 0012: the Infisical machine identity is the one secret kept on disk by hand. It is asked for here, where there is a terminal; the playbook only checks for it.
-ensure_infisical_credentials() {
-  grep -qE '^secrets_source:[[:space:]]*["'"'"']?infisical' "$LOCAL_FILE" 2> /dev/null || return 0
-  local file="${HOME}/.config/infisical/universal-auth"
-  [[ ! -s $file ]] || return 0
-  if [[ ! -t 0 ]]; then
-    warn "${file} is missing, so secrets cannot be fetched; re-run scripts/setup from a terminal to enter them"
-    return 0
-  fi
-  info "Infisical machine identity for this machine (dashboard: Access Control > Identities > Universal Auth)"
-  local id secret
-  read -rp 'Client ID: ' id
-  read -rsp 'Client secret: ' secret
-  printf '\n'
-  [[ -n $id && -n $secret ]] || die "both the client ID and the client secret are needed"
-  mkdir -p "$(dirname "$file")"
-  chmod 0700 "$(dirname "$file")"
-  (
-    umask 077
-    printf 'INFISICAL_UNIVERSAL_AUTH_CLIENT_ID=%s\nINFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET=%s\n' "$id" "$secret" > "$file"
-  )
-}
-
-run_playbook() {
-  cd "$DOTFILES_DIR"
-  export ANSIBLE_CONFIG="${DOTFILES_DIR}/ansible.cfg"
-  # --upgrade so a pin bumped in requirements.yml actually lands; plain install leaves an existing collection alone.
-  ansible-galaxy collection install --upgrade -r collections/requirements.yml > /dev/null
-
-  local args=(main.yml)
-  if ((yes)); then
-    args+=(-e dotfiles_confirm=false)
-  fi
-  if ((rotate_key)); then
-    args+=(-e ssh_rotate_key=true)
-  fi
-  # ansible's become runs without a tty, so an interactive sudo ticket does not carry over -- `sudo -n true`
-  # would still report success from the ticket install_base_packages just cached in this terminal, even
-  # though that ticket is useless to ansible. Check the sudoers policy instead of the ticket cache. Once the
-  # user role grants NOPASSWD this stops asking.
-  sudo -n -l 2> /dev/null | grep -q NOPASSWD || args+=(--ask-become-pass)
-  ansible-playbook "${args[@]}" "${playbook_args[@]}"
-}
-
-main() {
-  parse_args "$@"
-  preflight
-  install_base_packages
-  install_ansible
-  sync_checkout
-  ensure_local_file
-  ensure_infisical_credentials
-  run_playbook
-}
-
-# Sourcing (tests/setup-local-file.sh) loads the functions without running anything.
-(return 0 2> /dev/null) || main "$@"
+cd "$DOTFILES_DIR"
+export ANSIBLE_CONFIG="${DOTFILES_DIR}/ansible.cfg"
+# The system role grants NOPASSWD; until it has, ansible needs the password.
+sudo -n -l 2> /dev/null | grep -q NOPASSWD || playbook_args+=(--ask-become-pass)
+ansible-playbook main.yml "${playbook_args[@]}"

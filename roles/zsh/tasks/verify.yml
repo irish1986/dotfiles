@@ -1,43 +1,44 @@
 ---
 - name: ZSH | Query the installed version
-  ansible.builtin.command: "{{ zsh_binary }} --version"
-  register: zsh_version_check
+  ansible.builtin.command: zsh --version
   changed_when: false
-  failed_when: false
 
-- name: ZSH | Assert zsh is usable
+- name: ZSH | Read the passwd entry
+  ansible.builtin.command: getent passwd {{ dotfiles_user }}
+  register: zsh_passwd
+  changed_when: false
+
+- name: ZSH | Assert the login shell is zsh
   ansible.builtin.assert:
     that:
-      - zsh_version_check.rc == 0
-    fail_msg: "zsh did not install correctly: {{ zsh_version_check.stderr | default('no output') }}"
-    success_msg: "{{ zsh_version_check.stdout | trim }}"
+      - zsh_passwd.stdout.split(':') | last == zsh_shell
+    fail_msg: "{{ dotfiles_user }} has login shell {{ zsh_passwd.stdout.split(':') | last }}, expected {{ zsh_shell }}."
+    success_msg: login shell {{ zsh_shell }}
     quiet: true
 
-- name: ZSH | Check the deployed dotfiles
-  ansible.builtin.stat:
-    path: "{{ dotfiles_home }}/{{ zsh_dotfile.dest }}"
-  register: zsh_dotfile_check
+- name: ZSH | Assert every dotfile was deployed
+  ansible.builtin.assert:
+    that:
+      - (dotfiles_home ~ '/' ~ zsh_dotfile.dest) is file
+    fail_msg: "{{ dotfiles_home }}/{{ zsh_dotfile.dest }} is missing."
+    quiet: true
   loop: "{{ zsh_dotfiles }}"
   loop_control:
     loop_var: zsh_dotfile
     label: "{{ zsh_dotfile.dest }}"
 
-- name: ZSH | Assert every dotfile was deployed
+# .zshrc sources it.
+- name: ZSH | Assert oh-my-zsh is present
   ansible.builtin.assert:
     that:
-      - zsh_dotfile_check.results | selectattr('stat.exists') | list | length == zsh_dotfiles | length
-    fail_msg: >-
-      Missing:
-      {{ zsh_dotfile_check.results | rejectattr('stat.exists')
-         | map(attribute='zsh_dotfile.dest') | join(', ') }}
-    success_msg: "{{ zsh_dotfiles | length }} shell dotfiles deployed"
+      - (zsh_omz_dir ~ '/oh-my-zsh.sh') is file
+    fail_msg: oh-my-zsh is missing from {{ zsh_omz_dir }}.
     quiet: true
 
-# .zshrc sources ~/.p10k.zsh; the theme it selects renders as mojibake without a Nerd Font, so this catches an ordering mistake in dotfiles_roles.
+# .zshrc's ZSH_THEME does not resolve without it.
 - name: ZSH | Assert the powerlevel10k theme is present
   ansible.builtin.assert:
     that:
       - (zsh_omz_dir ~ '/custom/themes/powerlevel10k/powerlevel10k.zsh-theme') is file
-    fail_msg: powerlevel10k is missing, so .zshrc's ZSH_THEME will not resolve.
-    success_msg: powerlevel10k installed
+    fail_msg: powerlevel10k is missing.
     quiet: true

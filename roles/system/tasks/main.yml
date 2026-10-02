@@ -1,44 +1,131 @@
 ---
-# Orchestrator only: no module calls other than include_vars / include_tasks.
+# ── Packages ──────────────────────────────────────────────────────────────
+# Tagged update so CI can skip a full upgrade, which is slow and not what it tests.
+- name: System | Upgrade the installed packages
+  ansible.builtin.apt:
+    upgrade: full
+    update_cache: true
+    cache_valid_time: 3600
+    autoclean: true
+    autoremove: true
+    lock_timeout: "{{ system_apt_lock_timeout }}"
+  become: true
+  tags: update
 
-- name: System | Load release specific variables
-  ansible.builtin.include_vars: "{{ system_vars_file }}"
-  loop: "{{ query('ansible.builtin.first_found', system_vars_lookup) }}"
+- name: System | Install packages
+  ansible.builtin.apt:
+    name: "{{ system_packages + ['unattended-upgrades'] }}"
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+    lock_timeout: "{{ system_apt_lock_timeout }}"
+  become: true
+
+- name: System | Configure apt and unattended upgrades
+  ansible.builtin.template:
+    src: "{{ system_apt_conf }}.j2"
+    dest: /etc/apt/apt.conf.d/{{ system_apt_conf }}
+    owner: root
+    group: root
+    mode: "0644"
+  become: true
+  loop:
+    - 2norecommends
+    - 10periodic
+    - 50unattended-upgrades
   loop_control:
-    loop_var: system_vars_file
-  vars:
-    system_vars_lookup:
-      files:
-        - "{{ ansible_facts.distribution }}-{{ ansible_facts.distribution_major_version }}.yml"
-        - "{{ ansible_facts.distribution }}.yml"
-        - "{{ ansible_facts.os_family }}.yml"
-      paths:
-        - "{{ role_path }}/vars"
-      skip: true
-  tags:
-    - system
-    - base
+    loop_var: system_apt_conf
+  notify: System | Restart unattended-upgrades
 
-- name: System | Install
-  ansible.builtin.include_tasks: "{{ system_install_tasks }}"
-  vars:
-    system_install_tasks: "{{ lookup('ansible.builtin.first_found', system_install_lookup) }}"
-    system_install_lookup:
-      files:
-        - "{{ ansible_facts.distribution }}-{{ ansible_facts.distribution_major_version }}.yml"
-        - "{{ ansible_facts.distribution }}.yml"
-        - "{{ ansible_facts.os_family }}.yml"
-      paths:
-        - "{{ role_path }}/tasks/install"
-  tags:
-    - system
-    - base
-    - install
+- name: System | Report a pending reboot
+  ansible.builtin.debug:
+    msg: The upgrade needs a restart. Run `wsl --terminate <distro>` from Windows when it suits you.
+  when: "'/var/run/reboot-required' is file"
+
+# ── The login user ────────────────────────────────────────────────────────
+# validate: a malformed drop-in would lock the machine out of sudo.
+- name: System | Grant passwordless sudo
+  ansible.builtin.copy:
+    dest: "{{ system_sudoers_file }}"
+    content: |
+      # Managed by the dotfiles playbook (roles/system). Do not edit.
+      {{ dotfiles_user }} ALL=(ALL) NOPASSWD: ALL
+    owner: root
+    group: root
+    mode: "0440"
+    validate: /usr/sbin/visudo -cf %s
+  become: true
+
+- name: System | Ensure the groups exist
+  ansible.builtin.group:
+    name: "{{ system_group }}"
+    state: present
+  become: true
+  loop: "{{ system_groups }}"
+  loop_control:
+    loop_var: system_group
+
+- name: System | Add the login user to the groups
+  ansible.builtin.user:
+    name: "{{ dotfiles_user }}"
+    groups: "{{ system_groups }}"
+    append: true
+  become: true
+
+- name: System | Ensure the home directories exist
+  ansible.builtin.file:
+    path: "{{ dotfiles_home }}/{{ system_directory.path }}"
+    state: directory
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "{{ system_directory.mode }}"
+  loop: "{{ system_directories }}"
+  loop_control:
+    loop_var: system_directory
+    label: "{{ system_directory.path }}"
+
+# ── WSL ───────────────────────────────────────────────────────────────────
+- name: System | Configure WSL
+  when: dotfiles_is_wsl | bool
+  block:
+    - name: System | Deploy wsl.conf
+      ansible.builtin.template:
+        src: wsl.conf.j2
+        dest: /etc/wsl.conf
+        owner: root
+        group: root
+        mode: "0644"
+      become: true
+      notify: System | Terminate required
+
+    # A Windows .exe on ext4 runs through WSL interop, so it need not live on /mnt/c. Versioned directory, so a bump installs the new release.
+    - name: System | Ensure the win32yank directory exists
+      ansible.builtin.file:
+        path: "{{ dotfiles_home }}/.local/opt/win32yank-{{ system_win32yank_version }}"
+        state: directory
+        owner: "{{ dotfiles_user }}"
+        group: "{{ dotfiles_user }}"
+        mode: "0755"
+
+    - name: System | Install win32yank
+      ansible.builtin.unarchive:
+        src: https://github.com/equalsraf/win32yank/releases/download/v{{ system_win32yank_version }}/win32yank-x64.zip
+        dest: "{{ dotfiles_home }}/.local/opt/win32yank-{{ system_win32yank_version }}"
+        remote_src: true
+        include:
+          - win32yank.exe
+        mode: "0755"
+        creates: "{{ dotfiles_home }}/.local/opt/win32yank-{{ system_win32yank_version }}/win32yank.exe"
+      when: not ansible_check_mode
+
+    - name: System | Link win32yank onto PATH
+      ansible.builtin.file:
+        src: "{{ dotfiles_home }}/.local/opt/win32yank-{{ system_win32yank_version }}/win32yank.exe"
+        dest: "{{ dotfiles_home }}/.local/bin/win32yank.exe"
+        state: link
+        force: true
 
 - name: System | Verify
-  ansible.builtin.include_tasks: "{{ role_path }}/tasks/verify.yml"
+  ansible.builtin.import_tasks: verify.yml
   when: not ansible_check_mode
-  tags:
-    - system
-    - base
-    - verify
+  tags: verify

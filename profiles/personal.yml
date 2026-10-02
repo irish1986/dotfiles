@@ -1,0 +1,31 @@
+---
+# Personal machines: base.yml plus what is listed here (specs/adr/0002).
+
+tools_apt_repos:
+  - name: tailscale
+    uri: https://pkgs.tailscale.com/stable/ubuntu
+    key_url: https://pkgs.tailscale.com/stable/ubuntu/{codename}.asc
+    packages:
+      - tailscale
+    verify: tailscale version
+
+tools_debs:
+  - name: hugo
+    # renovate: datasource=github-releases depName=gohugoio/hugo
+    version: "0.166.0"
+    url: https://github.com/gohugoio/hugo/releases/download/v{version}/hugo_extended_{version}_linux-{arch}.deb
+    verify: hugo version
+
+tools_scripts:
+  - name: claude
+    url: https://claude.ai/install.sh
+    interpreter: bash
+    creates: .local/bin/claude
+
+tools_agent_skill_agents:
+  - claude-code
+
+tools_files:
+  - src: agents/instructions.md
+    dest: .claude/CLAUDE.md
+    dir_mode: "0700"

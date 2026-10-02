@@ -1,32 +1,58 @@
 ---
-# One command per entry, defaulting to `<name> --version`. A non-zero exit fails the run, which is the point: a tool that installed but does not start is caught here, not the next time it is needed.
+# One command per entry, defaulting to `<name> --version`: a tool that installed but does not start fails the run here, not the next time it is needed. A plain apt package is verified by apt itself.
 - name: Tools | Run the verify commands
   ansible.builtin.shell:
     cmd: "{{ tools_entry.verify | default(tools_entry.name ~ ' --version') | replace('{home}', dotfiles_home) }}"
     executable: /bin/bash
   environment:
     PATH: "{{ tools_path }}"
-  loop: "{{ tools_verifiable }}"
+  changed_when: false
+  loop: >-
+    {{ tools_debs + tools_binaries + tools_scripts + tools_uv_tools + tools_gh_extensions
+       + (tools_apt_repos | selectattr('verify', 'defined') | list) }}
   loop_control:
     loop_var: tools_entry
     label: "{{ tools_entry.name }}"
-  changed_when: false
 
-# nvm.sh puts the default alias on PATH as it loads, so this is the node a new shell gets once nvm is loaded.
-- name: Tools | Verify the nvm node
+- name: Tools | Verify node
   ansible.builtin.shell:
-    cmd: . "$NVM_DIR/nvm.sh" && node --version && npm --version
+    cmd: . "$NVM_DIR/nvm.sh" && nvm --version && node --version && npm --version
     executable: /bin/bash
   environment:
     NVM_DIR: "{{ tools_nvm_dir }}"
     PATH: "{{ tools_path }}"
-  when: tools_nvm_node_version | length > 0
   changed_when: false
+  when: tools_node_version | length > 0
 
-# The skill files are the install: each skill's SKILL.md in every agent's directory.
-- name: Tools | Verify the agent skills
-  ansible.builtin.include_tasks: "{{ role_path }}/tasks/kinds/agent_skill_verify.yml"
+# The global bin directory is on PATH only once nvm.sh is sourced.
+- name: Tools | Verify the npm tools
+  ansible.builtin.shell:
+    cmd: . "$NVM_DIR/nvm.sh" && {{ tools_npm_tool.verify | default(tools_npm_tool.name ~ ' --version') | replace('{home}', dotfiles_home) }}
+    executable: /bin/bash
+  environment:
+    NVM_DIR: "{{ tools_nvm_dir }}"
+    PATH: "{{ tools_path }}"
+  changed_when: false
+  loop: "{{ tools_npm_tools }}"
+  loop_control:
+    loop_var: tools_npm_tool
+    label: "{{ tools_npm_tool.name }}"
+
+- name: Tools | Read the skills lock again
+  ansible.builtin.slurp:
+    src: "{{ tools_agent_skill_lock_file }}"
+  register: tools_agent_skill_lock_after
+  failed_when: false
+
+- name: Tools | Assert the agent skills are installed
+  ansible.builtin.assert:
+    that:
+      - tools_agent_skill_missing | length == 0
+    fail_msg: "The skills CLI did not install: {{ tools_agent_skill_missing | join(', ') }}"
+    quiet: true
   loop: "{{ tools_agent_skills }}"
   loop_control:
     loop_var: tools_agent_skill
     label: "{{ tools_agent_skill.source }}"
+  vars:
+    tools_agent_skill_lock: "{{ tools_agent_skill_lock_after }}"

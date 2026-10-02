@@ -1,38 +1,447 @@
 ---
-# Orchestrator only: no module calls other than include_vars / include_tasks.
+# ── Config for uv and npm ─────────────────────────────────────────────────
+# First: everything below that runs npm reads it. The package mirrors come from the env file, through the environment.
+- name: Tools | Ensure the npm config directory exists
+  ansible.builtin.file:
+    path: "{{ dotfiles_home }}/.config/npm"
+    state: directory
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0755"
 
-- name: Tools | Install
-  ansible.builtin.include_tasks: "{{ tools_install_tasks }}"
+- name: Tools | Deploy the npm config
+  ansible.builtin.copy:
+    src: npm/npmrc
+    dest: "{{ dotfiles_home }}/.config/npm/npmrc"
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0644"
+
+# ── apt ───────────────────────────────────────────────────────────────────
+# deb822_repository needs python3-debian, which a minimal image lacks.
+- name: Tools | Install the deb822 dependency
+  ansible.builtin.apt:
+    name: python3-debian
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+  become: true
+
+# signed_by takes the key URL: deb822_repository fetches and dearmors it itself.
+- name: Tools | Configure the apt repositories
+  ansible.builtin.deb822_repository:
+    name: "{{ tools_repo.name }}"
+    types: [deb]
+    uris: "{{ tools_repo.uri }}"
+    suites: "{{ tools_repo.suite | default(ansible_facts.distribution_release) }}"
+    components: "{{ tools_repo.components | default(['main']) }}"
+    architectures: ["{{ dotfiles_dpkg_architecture }}"]
+    signed_by: "{{ tools_repo.key_url | replace('{codename}', ansible_facts.distribution_release) }}"
+    mode: "0644"
+  become: true
+  register: tools_repos_configured
+  loop: "{{ tools_apt_repos }}"
+  loop_control:
+    loop_var: tools_repo
+    label: "{{ tools_repo.name }}"
+
+- name: Tools | Install the apt packages
+  ansible.builtin.apt:
+    name: "{{ tools_apt + (tools_apt_repos | map(attribute='packages') | flatten) }}"
+    state: present
+    update_cache: true
+    # A new repository has no cache yet, however recent the archive's is.
+    cache_valid_time: "{{ 0 if tools_repos_configured is changed else 3600 }}"
+  become: true
+
+# ── Releases ──────────────────────────────────────────────────────────────
+# Keyed on the version installed, so a converged machine downloads nothing and a bumped pin lands.
+- name: Tools | Query the .deb versions
+  ansible.builtin.command: dpkg-query -W -f=${Version} {{ tools_deb.package | default(tools_deb.name) }}
+  register: tools_debs_installed
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  loop: "{{ tools_debs }}"
+  loop_control:
+    loop_var: tools_deb
+    label: "{{ tools_deb.name }}"
+
+- name: Tools | Install the .deb releases
+  ansible.builtin.apt:
+    deb: >-
+      {{ tools_deb.url | replace('{version}', tools_deb.version)
+         | replace('{arch}', dotfiles_dpkg_architecture) | replace('{machine}', ansible_facts.architecture) }}
+    state: present
+  become: true
+  when: tools_deb_installed.stdout is not search('^' ~ (tools_deb.version | regex_escape))
+  loop: "{{ tools_debs_installed.results }}"
+  loop_control:
+    loop_var: tools_deb_installed
+    label: "{{ tools_deb.name }} {{ tools_deb.version }}"
   vars:
-    tools_install_tasks: "{{ lookup('ansible.builtin.first_found', tools_install_lookup) }}"
-    tools_install_lookup:
-      files:
-        - "{{ ansible_facts.distribution }}-{{ ansible_facts.distribution_major_version }}.yml"
-        - "{{ ansible_facts.distribution }}.yml"
-        - "{{ ansible_facts.os_family }}.yml"
-      paths:
-        - "{{ role_path }}/tasks/install"
-  tags:
-    - tools
-    - install
+    tools_deb: "{{ tools_deb_installed.tools_deb }}"
 
-- name: Tools | Configure
-  ansible.builtin.include_tasks: "{{ role_path }}/tasks/configure.yml"
-  tags:
-    - tools
-    - configure
+- name: Tools | Query the binary versions
+  ansible.builtin.command: "{{ tools_binary_dir }}/{{ tools_binary.name }} --version"
+  register: tools_binaries_installed
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  loop: "{{ tools_binaries }}"
+  loop_control:
+    loop_var: tools_binary
+    label: "{{ tools_binary.name }}"
 
+# The published checksum is read rather than handed to get_url as a URL: that form matches the line by the destination's name, and upstream files name the asset.
+- name: Tools | Install the release binaries
+  ansible.builtin.get_url:
+    url: "{{ tools_binary_url }}"
+    dest: "{{ tools_binary_dir }}/{{ tools_binary.name }}"
+    checksum: >-
+      {{ ('sha256:' ~ (lookup('ansible.builtin.url', tools_binary.checksum_url | replace('{url}', tools_binary_url), split_lines=false) | split | first))
+         if tools_binary.checksum_url is defined else omit }}
+    force: true
+    owner: root
+    group: root
+    mode: "0755"
+  become: true
+  when: >-
+    (tools_binary_installed.stdout | regex_search('[0-9]+(\.[0-9]+)+') | default('', true)) != tools_binary.version
+  loop: "{{ tools_binaries_installed.results }}"
+  loop_control:
+    loop_var: tools_binary_installed
+    label: "{{ tools_binary.name }} {{ tools_binary.version }}"
+  vars:
+    tools_binary: "{{ tools_binary_installed.tools_binary }}"
+    tools_binary_url: >-
+      {{ tools_binary.url | replace('{version}', tools_binary.version)
+         | replace('{arch}', dotfiles_dpkg_architecture) | replace('{machine}', ansible_facts.architecture) }}
+
+# Only entries with a version: their verify command reports what is installed, so a bumped pin re-runs the installer.
+- name: Tools | Query the installer script versions
+  ansible.builtin.shell:
+    cmd: "{{ tools_script.verify | default(tools_script.name ~ ' --version') | replace('{home}', dotfiles_home) }}"
+    executable: /bin/bash
+  environment:
+    PATH: "{{ tools_path }}"
+  register: tools_scripts_installed
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  when: tools_script.version is defined
+  loop: "{{ tools_scripts }}"
+  loop_control:
+    loop_var: tools_script
+    label: "{{ tools_script.name }}"
+
+# Run as the login user. The script is fetched first, so a failed download fails here instead of running nothing. `creates` guards an entry without a version; one with a version runs whenever the installed version differs from it.
+- name: Tools | Run the installer scripts
+  ansible.builtin.shell:
+    cmd: >-
+      script="$(curl -fsSL {{ tools_script.url | replace('{version}', tools_script.version | default('')) | quote }})" &&
+      {{ tools_script.interpreter | default('sh') }} -c "$script" {{ tools_script.name | quote }}
+      {{ tools_script.args | default([]) | map('replace', '{home}', dotfiles_home) | map('quote') | join(' ') }}
+    executable: /bin/bash
+    creates: "{{ omit if tools_script_outdated else dotfiles_home ~ '/' ~ tools_script.creates }}"
+  environment: >-
+    {{ dict((tools_script.env | default({})).keys() | zip((tools_script.env | default({})).values() | map('replace', '{home}', dotfiles_home)))
+       | combine({'PATH': tools_path}) }}
+  loop: "{{ tools_scripts_installed.results }}"
+  loop_control:
+    loop_var: tools_script_installed
+    label: "{{ tools_script.name }}"
+  vars:
+    tools_script: "{{ tools_script_installed.tools_script }}"
+    tools_script_outdated: >-
+      {{ tools_script.version is defined and
+         (tools_script_installed.stdout | default('') | regex_search('[0-9]+(\.[0-9]+)+') | default('', true)) != tools_script.version }}
+
+# ── uv ────────────────────────────────────────────────────────────────────
+# uv itself is an installer-script entry above.
+- name: Tools | Query the uv interpreters
+  ansible.builtin.command: "{{ dotfiles_home }}/.local/bin/uv python list --only-installed"
+  environment:
+    NO_COLOR: "1"
+  register: tools_uv_pythons
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Tools | Install python {{ tools_uv_python }}
+  ansible.builtin.command: "{{ dotfiles_home }}/.local/bin/uv python install {{ tools_uv_python }} --default"
+  changed_when: true
+  when:
+    - tools_uv_python | length > 0
+    - tools_uv_pythons.stdout is not search(tools_uv_python | regex_escape)
+
+# NO_COLOR: uv wraps each entry in ANSI escapes otherwise, and the anchored match below never fires.
+- name: Tools | Query the uv tools
+  ansible.builtin.command: "{{ dotfiles_home }}/.local/bin/uv tool list"
+  environment:
+    NO_COLOR: "1"
+  register: tools_uv_installed
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+# --force adopts an executable of the same name that uv did not create.
+- name: Tools | Install the uv tools
+  ansible.builtin.command: "{{ dotfiles_home }}/.local/bin/uv tool install --force {{ tools_uv_tool.name }}=={{ tools_uv_tool.version }}"
+  changed_when: true
+  when: >-
+    tools_uv_installed.stdout is not search('^' ~ (tools_uv_tool.name | regex_escape) ~ ' v' ~ (tools_uv_tool.version | regex_escape) ~ '$', multiline=True)
+  loop: "{{ tools_uv_tools }}"
+  loop_control:
+    loop_var: tools_uv_tool
+    label: "{{ tools_uv_tool.name }} {{ tools_uv_tool.version }}"
+
+# ── nvm and node ──────────────────────────────────────────────────────────
+# nvm itself is an installer-script entry above. It is a shell function, so every call sources nvm.sh under bash.
+- name: Tools | Install node
+  when: tools_node_version | length > 0
+  environment:
+    NVM_DIR: "{{ tools_nvm_dir }}"
+    PATH: "{{ tools_path }}"
+  block:
+    # "N/A" until a matching version is installed; after that, patch releases are left to `nvm install` by hand.
+    - name: Tools | Query the installed node
+      ansible.builtin.shell:
+        cmd: . "$NVM_DIR/nvm.sh" && nvm version {{ tools_node_version | quote }}
+        executable: /bin/bash
+      register: tools_node_installed
+      changed_when: false
+      failed_when: false
+      check_mode: false
+
+    - name: Tools | Install node {{ tools_node_version }}
+      ansible.builtin.shell:
+        cmd: . "$NVM_DIR/nvm.sh" && nvm install --no-progress {{ tools_node_version | quote }}
+        executable: /bin/bash
+      changed_when: true
+      when: tools_node_installed.stdout is not match('^v[0-9]')
+
+    # The alias file holds the name it was given, "24", not the version it resolves to.
+    - name: Tools | Read the default node alias
+      ansible.builtin.slurp:
+        src: "{{ tools_nvm_dir }}/alias/default"
+      register: tools_node_default
+      failed_when: false
+
+    - name: Tools | Alias the default node
+      ansible.builtin.shell:
+        cmd: . "$NVM_DIR/nvm.sh" && nvm alias default {{ tools_node_version | quote }}
+        executable: /bin/bash
+      changed_when: true
+      when: (tools_node_default.content | default('') | b64decode | trim) != tools_node_version
+
+# ── npm tools ─────────────────────────────────────────────────────────────
+# Into the default node's global prefix, which sourcing nvm.sh selects. npm ls exits non-zero on cosmetic problems (an extraneous package), so only its JSON counts.
+- name: Tools | Query the npm tools
+  ansible.builtin.shell:
+    cmd: . "$NVM_DIR/nvm.sh" && npm ls --global --depth=0 --json
+    executable: /bin/bash
+  environment:
+    NVM_DIR: "{{ tools_nvm_dir }}"
+    NPM_CONFIG_USERCONFIG: "{{ dotfiles_home }}/.config/npm/npmrc"
+    PATH: "{{ tools_path }}"
+    NO_COLOR: "1"
+  register: tools_npm_installed
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  when: tools_npm_tools | length > 0
+
+- name: Tools | Install the npm tools
+  ansible.builtin.shell:
+    cmd: . "$NVM_DIR/nvm.sh" && npm install --global {{ (tools_npm_tool.name ~ '@' ~ tools_npm_tool.version) | quote }}
+    executable: /bin/bash
+  environment:
+    NVM_DIR: "{{ tools_nvm_dir }}"
+    NPM_CONFIG_USERCONFIG: "{{ dotfiles_home }}/.config/npm/npmrc"
+    PATH: "{{ tools_path }}"
+    NO_COLOR: "1"
+  changed_when: true
+  when: >-
+    (((tools_npm_installed.stdout | default('{}', true) | from_json).dependencies | default({}))[tools_npm_tool.name].version
+      | default('')) != tools_npm_tool.version
+  loop: "{{ tools_npm_tools }}"
+  loop_control:
+    loop_var: tools_npm_tool
+    label: "{{ tools_npm_tool.name }} {{ tools_npm_tool.version }}"
+
+# ── Agent skills ──────────────────────────────────────────────────────────
+# Absent until the skills CLI first installs something.
+- name: Tools | Read the skills lock
+  ansible.builtin.slurp:
+    src: "{{ tools_agent_skill_lock_file }}"
+  register: tools_agent_skill_lock_read
+  failed_when: false
+
+# A skill is its files, so a SKILL.md missing from any agent's directory means the entry needs installing. The skills CLI is an npm tool above; --yes skips its prompts.
+- name: Tools | Install the agent skills
+  ansible.builtin.shell:
+    cmd: >-
+      . "$NVM_DIR/nvm.sh" &&
+      skills add {{ tools_agent_skill.source | quote }}
+      --skill {{ tools_agent_skill.skills | default(['*']) | map('quote') | join(' ') }}
+      --global
+      --agent {{ tools_agent_skill_agents | map('quote') | join(' ') }}
+      --yes
+    executable: /bin/bash
+  environment:
+    NVM_DIR: "{{ tools_nvm_dir }}"
+    NPM_CONFIG_USERCONFIG: "{{ dotfiles_home }}/.config/npm/npmrc"
+    PATH: "{{ tools_path }}"
+    NO_COLOR: "1"
+    DISABLE_TELEMETRY: "1"
+  changed_when: true
+  when:
+    - not ansible_check_mode
+    - tools_agent_skill_missing | length > 0
+  loop: "{{ tools_agent_skills }}"
+  loop_control:
+    loop_var: tools_agent_skill
+    label: "{{ tools_agent_skill.source }}"
+  vars:
+    tools_agent_skill_lock: "{{ tools_agent_skill_lock_read }}"
+
+# After the apt packages, which install gh. `gh extension install` needs no login.
+- name: Tools | Install the gh extensions
+  ansible.builtin.command:
+    argv: [gh, extension, install, "{{ tools_gh_extension.repo }}"]
+    creates: "{{ tools_gh_extension_dir }}/{{ tools_gh_extension.name }}"
+  environment:
+    PATH: "{{ tools_path }}"
+  loop: "{{ tools_gh_extensions }}"
+  loop_control:
+    loop_var: tools_gh_extension
+    label: "{{ tools_gh_extension.repo }}"
+
+# ── Config files ──────────────────────────────────────────────────────────
+- name: Tools | Ensure the config file directories exist
+  ansible.builtin.file:
+    path: "{{ dotfiles_home }}/{{ tools_file.dest | dirname }}"
+    state: directory
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "{{ tools_file.dir_mode | default('0755') }}"
+  loop: "{{ tools_files }}"
+  loop_control:
+    loop_var: tools_file
+    label: "{{ tools_file.dest | dirname }}"
+
+- name: Tools | Deploy the config files
+  ansible.builtin.copy:
+    src: "{{ tools_file.src }}"
+    dest: "{{ dotfiles_home }}/{{ tools_file.dest }}"
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0644"
+  loop: "{{ tools_files }}"
+  loop_control:
+    loop_var: tools_file
+    label: "{{ tools_file.dest }}"
+
+# ── The env file (specs/adr/0010) ─────────────────────────────────────────
+# Tokens and corporate URLs, in the gitignored .env at the checkout root. Only its permissions and its loading are managed here; its values are never read.
+- name: Tools | Check the env file
+  ansible.builtin.stat:
+    path: "{{ tools_env_file }}"
+  register: tools_env_file_stat
+
+- name: Tools | Keep the env file private
+  ansible.builtin.file:
+    path: "{{ tools_env_file }}"
+    mode: "0600"
+  when: tools_env_file_stat.stat.exists
+
+# Above the herdr block, which execs into herdr. set -a exports every assignment in it.
+- name: Tools | Load the env file in every shell
+  ansible.builtin.blockinfile:
+    path: "{{ dotfiles_home }}/.zshenv"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK env file"
+    insertbefore: BOF
+    create: true
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0600"
+    block: |
+      if [[ -r {{ tools_env_file }} ]]; then
+        set -a; . {{ tools_env_file }}; set +a
+      fi
+
+# ── Docker ────────────────────────────────────────────────────────────────
 - name: Tools | Configure docker
-  ansible.builtin.include_tasks: "{{ role_path }}/tasks/docker.yml"
-  when: tools_docker_enabled | bool
-  tags:
-    - tools
-    - docker
-    - configure
+  when: "'docker' in (tools_apt_repos | map(attribute='name'))"
+  block:
+    - name: Tools | Ensure the docker data root exists
+      ansible.builtin.file:
+        path: "{{ tools_docker_data_root }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0710"
+      become: true
+      when: tools_docker_data_root | length > 0
+
+    # validate: a malformed daemon.json only shows up as dockerd refusing to start.
+    - name: Tools | Deploy the docker daemon.json
+      ansible.builtin.template:
+        src: daemon.json.j2
+        dest: /etc/docker/daemon.json
+        owner: root
+        group: root
+        mode: "0644"
+        validate: /usr/bin/dockerd --validate --config-file %s
+      become: true
+      notify: Tools | Restart docker
+
+    - name: Tools | Enable and start docker
+      ansible.builtin.systemd_service:
+        name: docker
+        enabled: true
+        state: started
+      become: true
+      when: dotfiles_has_systemd | bool
+
+# ── Tool logins (specs/adr/0010) ──────────────────────────────────────────
+# Every tool reads its own token from the env file, which the run inherits; nothing here logs in. The shell tests the variable and runs the check with its output discarded, so no value ever reaches the run: what it prints is the entry's problem, built from the entry alone.
+- name: Tools | Check the tool logins
+  ansible.builtin.shell:
+    cmd: |
+      value=${!TOOLS_AUTH_ENV:-}
+      if [[ -z $value || $value == '<'* ]]; then
+        echo "$TOOLS_AUTH_NAME: $TOOLS_AUTH_ENV is not set in {{ tools_env_file }}. $TOOLS_AUTH_HINT"
+      elif ! ( {{ tools_auth_check.check }} ) >/dev/null 2>&1; then
+        echo "$TOOLS_AUTH_NAME: $TOOLS_AUTH_ENV did not pass \`$TOOLS_AUTH_CHECK\`. $TOOLS_AUTH_HINT"
+      fi
+    executable: /bin/bash
+  environment:
+    PATH: "{{ tools_path }}"
+    TOOLS_AUTH_NAME: "{{ tools_auth_check.name }}"
+    TOOLS_AUTH_ENV: "{{ tools_auth_check.env }}"
+    TOOLS_AUTH_CHECK: "{{ tools_auth_check.check }}"
+    TOOLS_AUTH_HINT: "{{ tools_auth_check.hint }}"
+  register: tools_auth
+  changed_when: false
+  check_mode: false
+  loop: "{{ tools_auth_checks }}"
+  loop_control:
+    loop_var: tools_auth_check
+    label: "{{ tools_auth_check.name }}"
+  when: not dotfiles_dockerenv.stat.exists
+  tags: auth
+
+- name: Tools | Report the tool logins
+  ansible.builtin.debug:
+    msg: "{{ tools_auth_problems }}"
+  vars:
+    tools_auth_problems: "{{ tools_auth.results | default([]) | map(attribute='stdout', default='') | select | list }}"
+  when: tools_auth_problems | length > 0
+  tags: auth
 
 - name: Tools | Verify
-  ansible.builtin.include_tasks: "{{ role_path }}/tasks/verify.yml"
+  ansible.builtin.import_tasks: verify.yml
   when: not ansible_check_mode
-  tags:
-    - tools
-    - verify
+  tags: verify

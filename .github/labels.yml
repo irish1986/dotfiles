@@ -107,7 +107,7 @@
   description: No recent activity
 
 # -- Agent triage -------------------------------------------------------------
-# The five roles docs/agents/triage-labels.md maps the agent skills onto.
+# The five roles specs/agents/triage-labels.md maps the agent skills onto.
 - name: needs-triage
   color: "fbca04"
   description: Maintainer needs to evaluate this issue

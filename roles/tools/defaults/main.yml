@@ -1,26 +1,24 @@
 ---
-# Tool entries, set in the profiles rather than here (ADR 0003). Every list is appended to layer by layer, so base.yml, the named profile and the local file each add their own.
+# Tool entries, set in the profiles rather than here (specs/adr/0004). Every list is appended to layer by layer, so base.yml, the named profile and the local file each add their own.
 #
 # Placeholders, substituted wherever an entry takes a URL, arguments, environment or a verify command:
 #   {version}   the entry's version
 #   {arch}      dpkg architecture: amd64, arm64
 #   {machine}   uname machine: x86_64, aarch64
-#   {codename}  Ubuntu codename: noble, ...
+#   {codename}  Ubuntu codename: resolute
 #   {home}      the login user's home directory
 #
-# Every entry that installs from a release carries a version, annotated for Renovate on the line above it (ADR 0004):
+# Every entry that installs from a release carries a version, annotated for Renovate on the line above it (specs/adr/0005):
 #   # renovate: datasource=github-releases depName=<owner>/<repo>
 
-# Package names from the Ubuntu archive. Upgraded by the update role, not pinned.
+# Package names from the Ubuntu archive. Upgraded by the system role, not pinned.
 tools_apt: []
 
-# Third-party apt repositories and the packages to install from them. The only way the playbook adds an apt source.
+# Third-party apt repositories and the packages to install from them, as deb822 .sources files.
 #   name            becomes /etc/apt/sources.list.d/<name>.sources; an entry named docker also gets the daemon configuration below
 #   uri, key_url    repository base URI and signing key URL
 #   suite           default {codename}
-#   suite_fallback  suite to use when the vendor has not published {codename} yet, found by probing dists/<suite>/Release; empty disables the probe
 #   components      default [main]
-#   probe           default true; false for flat or channel-named suites, which have no dists/ layout to probe
 #   packages        what to install from it
 #   verify          optional command asserting it works
 tools_apt_repos: []
@@ -33,56 +31,77 @@ tools_debs: []
 #   name, version, url, checksum_url (optional: a file whose first word is the sha256; {url} is the binary's URL), verify
 tools_binaries: []
 
-# Upstream installer scripts, run once: `creates` (relative to $HOME) guards them, and the tool's own updater owns upgrades from then on.
-#   name, url, creates, interpreter (default sh), args (list), env (dict), verify
+# Upstream installer scripts, run once: `creates` (relative to $HOME) guards them, and the tool's own updater owns upgrades from then on. uv and nvm are entries here too.
+#   name, url, version (optional: substituted into url, and when set the installer re-runs whenever verify reports another version, so a bumped pin lands), creates, interpreter (default sh), args (list), env (dict), verify
 tools_scripts: []
 
 # Interpreter uv installs and marks default. Empty leaves the choice to you.
 tools_uv_python: ""
-
-# Node version nvm installs and aliases as default: a major such as "24", or anything `nvm install` takes. Installed when no matching version is present; patch upgrades within it are yours to run. Empty leaves node to you. Needs the nvm entry in tools_scripts.
-tools_nvm_node_version: ""
-
 # Python tools installed with `uv tool install <name>==<version>`.
 #   name, version, verify
 tools_uv_tools: []
 
-# Agent skills, installed globally with the skills CLI (`npx skills add`) for every agent in tools_agent_skill_agents (ADR 0015). Installed when a skill is missing from an agent's skills directory; `npx skills update -g` is yours to run. Needs tools_nvm_node_version.
+# The node that nvm (a tools_scripts entry) installs and aliases as default: a major such as "24". Patch upgrades within it are yours to run. Empty skips node.
+tools_node_version: ""
+# npm tools installed with `npm install --global <name>@<version>` into the default node, when `npm ls --global` reports another version. Needs node.
+#   name, version, verify
+tools_npm_tools: []
+
+# Agent skills, installed globally with the skills CLI (`skills add`, an entry in tools_npm_tools) for every agent in tools_agent_skill_agents (specs/adr/0008). Installed when a skill is missing from an agent's skills directory; `skills update -g` is yours to run.
 #   source  what `skills add` takes: a GitHub owner/repo
 #   skills  skill names from that source, default ['*'] for all of them
 tools_agent_skills: []
-
-# The skills CLI's names for the agents to install every skill for. Each needs a directory in tools_agent_skill_dirs (vars/main.yml).
+# The skills CLI's names for the agents, each with a directory in tools_agent_skill_dirs below.
 tools_agent_skill_agents: []
 
-# The skills CLI version npx runs, annotated for Renovate in the profile.
-tools_agent_skills_cli_version: ""
-
-# GitHub CLI extensions, installed with `gh extension install <repo>` when gh has no extension of that name. `gh extension upgrade` owns updates. gh itself comes from the github-cli entry in tools_apt_repos.
-#   name    the extension as gh names it: the repository's name, gh-<command>
-#   repo    owner/repo
-#   verify  a command asserting it works, such as `gh <command> --version`
+# GitHub CLI extensions, installed with `gh extension install <repo>` when gh has no extension of that name. `gh extension upgrade` owns updates.
+#   name, repo (owner/repo), verify
 tools_gh_extensions: []
 
-# Config files for tools, copied from roles/tools/files/.
-#   src   relative to roles/tools/files/
+# Tool logins, checked against the env file (specs/adr/0010): each tool reads its own variable, and nothing logs in or writes a credential store. A run warns, in one message, about every entry whose variable is unset, empty or still a <placeholder>, or whose check fails. Skipped in a container; `--tags auth` runs only these.
+#   name    the tool
+#   env     the env file variable it reads
+#   check   a command that exits 0 when the tool accepts the token; its output is discarded
+#   hint    what the token needs, shown with the warning
+tools_auth_checks: []
+
+# Config files for tools, copied from roles/tools/files/. The repo owns each file whole.
+#   src       relative to roles/tools/files/
 #   dest      relative to $HOME
 #   dir_mode  mode of dest's directory, default 0755
 tools_files: []
 
-# The removal list (ADR 0003). Removing an entry above only stops managing it; uninstalling is explicit, here.
-tools_remove_apt: []
-# Relative to $HOME.
-tools_remove_paths: []
-# Agent CLI plugins, uninstalled with `<cli> plugin uninstall` while `<cli> plugin list` shows them (ADR 0015).
-#   cli     claude or copilot, found in ~/.local/bin
-#   plugin  <name>@<marketplace>, as the CLI's `plugin list` prints it
-tools_remove_agent_plugins: []
-
-# Docker daemon configuration, applied when tools_apt_repos has an entry named docker.
-# Image/container/volume store. Left unset so Docker uses its default, /var/lib/docker. Relocating it into $HOME buys nothing on WSL -- /home and /var share one ext4.vhdx -- and Docker requires the directory root-owned 0710, which is hostile to anything that walks the home directory.
+# ── Docker daemon, when tools_apt_repos has an entry named docker ─────────
+# Left unset so Docker uses /var/lib/docker: on WSL /home and /var share one ext4.vhdx anyway.
 tools_docker_data_root: ""
 tools_docker_address_pool_base: 172.10.0.0/16
 tools_docker_address_pool_size: 24
 tools_docker_experimental: true
 tools_docker_buildkit: true
+
+# ── Paths ─────────────────────────────────────────────────────────────────
+# The env file: tokens and corporate URLs, gitignored at the checkout root (specs/adr/0010).
+tools_env_file: "{{ playbook_dir }}/.env"
+tools_binary_dir: /usr/local/bin
+tools_nvm_dir: "{{ dotfiles_home }}/.nvm"
+# What an installer or a verify command sees on PATH: the user-scoped install directories first.
+tools_path: "{{ dotfiles_home }}/.local/bin:{{ dotfiles_home }}/.cargo/bin:/usr/local/bin:/usr/bin:/bin"
+# Where the skills CLI puts each agent's global skills, relative to $HOME, and its record of which source each skill came from.
+tools_agent_skill_dirs:
+  github-copilot: .agents/skills
+  claude-code: .claude/skills
+tools_agent_skill_lock_file: "{{ dotfiles_home }}/.agents/.skill-lock.json"
+
+# `gh extension list` needs a login, so a run sees an install by its directory.
+tools_gh_extension_dir: "{{ dotfiles_home }}/.local/share/gh/extensions"
+
+# ── Internal ──────────────────────────────────────────────────────────────
+# Evaluated per tools_agent_skill entry, with tools_agent_skill_lock as the slurped lock file: the SKILL.md files of that entry missing from any agent's directory. '*' names no skill, so the lock says which skills the source gave; before the first install it gave none, and the entry counts as missing.
+tools_agent_skill_names: >-
+  {{ ((tools_agent_skill_lock.content | default('e30=') | b64decode | from_json).skills | default({})
+      | dict2items | selectattr('value.source', 'equalto', tools_agent_skill.source) | map(attribute='key') | list)
+     if '*' in tools_agent_skill.skills | default(['*']) else tools_agent_skill.skills }}
+tools_agent_skill_missing: >-
+  {{ ['every skill in ' ~ tools_agent_skill.source] if tools_agent_skill_names | length == 0 else
+     tools_agent_skill_agents | map('extract', tools_agent_skill_dirs) | product(tools_agent_skill_names)
+     | map('join', '/') | map('regex_replace', '^(.*)$', dotfiles_home ~ '/\1/SKILL.md') | reject('file') | list }}

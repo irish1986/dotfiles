@@ -12,10 +12,14 @@ zsh_packages:
   - zoxide
   - zsh
 
-zsh_omz_dir: "{{ dotfiles_home }}/.oh-my-zsh"
-zsh_omz_install_url: https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh
+zsh_shell: /usr/bin/zsh
 
-# Every plugin pinned: these are vendored dependencies, and an unpinned clone means a shell that changes behaviour without any commit to this repo.
+zsh_omz_dir: "{{ dotfiles_home }}/.oh-my-zsh"
+zsh_omz:
+  repo: https://github.com/ohmyzsh/ohmyzsh.git
+  # renovate: datasource=git-refs depName=https://github.com/ohmyzsh/ohmyzsh currentValue=master
+  version: 74965c96098134b192f00084f966b4b02438a739
+
 zsh_plugins:
   - name: powerlevel10k
     repo: https://github.com/romkatv/powerlevel10k.git
@@ -53,7 +57,7 @@ zsh_plugins:
     version: 0.8.0
     type: plugins
 
-# Dotfiles deployed to $HOME. .zshenv and .p10k.zsh were in files/ all along and were never copied: .zshrc sources ~/.p10k.zsh, a name that did not even match the .p10k in the repo, and ~/.zshfunc was deployed but never sourced.
+# Dotfiles copied from files/ into $HOME.
 zsh_dotfiles:
   - src: .zshrc
     dest: .zshrc

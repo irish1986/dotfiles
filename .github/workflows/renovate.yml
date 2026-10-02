@@ -2,7 +2,7 @@
 name: Renovate
 run-name: Renovate triggered by ${{ github.event_name }}
 
-# Self-hosted rather than the Mend app (ADR 0014): the schedule and the Renovate version are ours, and nothing outside this repository decides when it runs.
+# Self-hosted rather than the Mend app (specs/adr/0005): the schedule and the Renovate version are ours, and nothing outside this repository decides when it runs.
 on: # yamllint disable-line rule:truthy
   # Daily, 04:00-05:00 in Toronto depending on DST. The config carries no schedule of its own: this cron is the schedule.
   schedule:

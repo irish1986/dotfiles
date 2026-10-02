@@ -1,0 +1,16 @@
+---
+# update-ca-certificates links every certificate it accepted into /etc/ssl/certs as <name>.pem; a missing link means it was skipped.
+- name: Certificates | Check the trusted corporate CA
+  ansible.builtin.stat:
+    path: /etc/ssl/certs/{{ certificates_corporate_ca | basename | splitext | first }}.pem
+  register: certificates_linked
+  when: certificates_corporate_ca | length > 0
+
+- name: Certificates | Assert the corporate CA is trusted
+  ansible.builtin.assert:
+    that:
+      - certificates_linked.stat.exists
+    fail_msg: "{{ certificates_corporate_ca }} is not in the system trust store; update-ca-certificates skipped it."
+    success_msg: "{{ certificates_corporate_ca | basename }} trusted"
+    quiet: true
+  when: certificates_corporate_ca | length > 0

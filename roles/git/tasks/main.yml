@@ -1,51 +1,147 @@
 ---
-# Orchestrator only: no module calls other than include_vars / include_tasks.
+- name: Git | Install packages
+  ansible.builtin.apt:
+    name: "{{ git_packages }}"
+    state: present
+  become: true
 
-- name: Git | Load release specific variables
-  ansible.builtin.include_vars: "{{ git_vars_file }}"
-  loop: "{{ query('ansible.builtin.first_found', git_vars_lookup) }}"
+- name: Git | Deploy the global gitignore
+  ansible.builtin.copy:
+    src: .gitignore
+    dest: "{{ git_ignore_file }}"
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0644"
+
+- name: Git | Create the project directory
+  ansible.builtin.file:
+    path: "{{ git_project_dir }}"
+    state: directory
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0700"
+  when: git_user_login | length > 0
+
+# A warning, not a failure: the rest of the machine is still worth converging.
+- name: Git | Warn about a missing identity
+  ansible.builtin.debug:
+    msg: git_user_name and git_user_email are not set, so ~/.gitconfig gets no identity and commits are not signed. Set them in {{ dotfiles_local_file }}.
+  when: git_user_name | length == 0 or git_user_email | length == 0
+
+- name: Git | Read the signing key
+  ansible.builtin.slurp:
+    src: "{{ git_signing_key_path }}"
+  register: git_signing_key_content
+  failed_when: false
+
+# Signing is all or nothing: gpgsign=true without a key makes every commit fail.
+- name: Git | Register whether commits can be signed
+  ansible.builtin.set_fact:
+    git_signing_ready: >-
+      {{ git_user_name | length > 0 and git_user_email | length > 0 and git_signing_key_content.content is defined }}
+
+- name: Git | Resolve the git configuration
+  ansible.builtin.set_fact:
+    git_config_wanted: >-
+      {{ git_config
+         | combine({'core.excludesfile': git_ignore_file, 'user.name': git_user_name, 'user.email': git_user_email})
+         | combine({'gpg.ssh.allowedSignersFile': git_allowed_signers, 'user.signingkey': git_signing_key_path}
+                   if git_signing_ready else {'commit.gpgsign': 'false', 'tag.gpgsign': 'false'})
+         | dict2items | rejectattr('value', 'eq', '') | list }}
+
+# Keyed on the email, so a new key replaces that signer's line.
+- name: Git | Add the allowed signer
+  ansible.builtin.blockinfile:
+    path: "{{ git_allowed_signers }}"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK {{ git_user_email }}"
+    create: true
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0644"
+    block: |
+      {{ git_user_email }} {{ git_signing_key_content.content | b64decode | trim }}
+  when: git_signing_ready
+
+- name: Git | Read the git configuration
+  ansible.builtin.command:
+    argv: [git, config, --file, "{{ git_config_file }}", --get, "{{ git_entry.key }}"]
+  register: git_config_current
+  changed_when: false
+  # 1: the key is not set yet.
+  failed_when: git_config_current.rc > 1
+  check_mode: false
+  loop: "{{ git_config_wanted }}"
   loop_control:
-    loop_var: git_vars_file
-  vars:
-    git_vars_lookup:
-      files:
-        - "{{ ansible_facts.distribution }}-{{ ansible_facts.distribution_major_version }}.yml"
-        - "{{ ansible_facts.distribution }}.yml"
-        - "{{ ansible_facts.os_family }}.yml"
-      paths:
-        - "{{ role_path }}/vars"
-      skip: true
-  tags:
-    - git
-    - dev
+    loop_var: git_entry
+    label: "{{ git_entry.key }}"
 
-- name: Git | Install
-  ansible.builtin.include_tasks: "{{ git_install_tasks }}"
-  vars:
-    git_install_tasks: "{{ lookup('ansible.builtin.first_found', git_install_lookup) }}"
-    git_install_lookup:
-      files:
-        - "{{ ansible_facts.distribution }}-{{ ansible_facts.distribution_major_version }}.yml"
-        - "{{ ansible_facts.distribution }}.yml"
-        - "{{ ansible_facts.os_family }}.yml"
-      paths:
-        - "{{ role_path }}/tasks/install"
-  tags:
-    - git
-    - dev
-    - install
+- name: Git | Write the git configuration
+  ansible.builtin.command:
+    argv: [git, config, --file, "{{ git_config_file }}", "{{ git_result.git_entry.key }}", "{{ git_result.git_entry.value }}"]
+  changed_when: true
+  when: git_result.stdout != git_result.git_entry.value
+  loop: "{{ git_config_current.results }}"
+  loop_control:
+    loop_var: git_result
+    label: "{{ git_result.git_entry.key }}"
 
-- name: Git | Configure
-  ansible.builtin.include_tasks: "{{ role_path }}/tasks/configure.yml"
-  tags:
-    - git
-    - dev
-    - configure
+- name: Git | Ensure the gh configuration directory exists
+  ansible.builtin.file:
+    path: "{{ git_gh_config_dir }}"
+    state: directory
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0700"
+
+- name: Git | Read the gh configuration
+  ansible.builtin.command: gh config get {{ git_gh_entry.key }}
+  environment:
+    GH_CONFIG_DIR: "{{ git_gh_config_dir }}"
+  register: git_gh_config_current
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  loop: "{{ git_gh_config | dict2items }}"
+  loop_control:
+    loop_var: git_gh_entry
+    label: "{{ git_gh_entry.key }}"
+
+- name: Git | Write the gh configuration
+  ansible.builtin.command:
+    argv: [gh, config, set, "{{ git_gh_result.git_gh_entry.key }}", "{{ git_gh_result.git_gh_entry.value }}"]
+  environment:
+    GH_CONFIG_DIR: "{{ git_gh_config_dir }}"
+  changed_when: true
+  when: git_gh_result.stdout | trim != git_gh_result.git_gh_entry.value
+  loop: "{{ git_gh_config_current.results }}"
+  loop_control:
+    loop_var: git_gh_result
+    label: "{{ git_gh_result.git_gh_entry.key }}"
+
+- name: Git | Read the gh aliases
+  ansible.builtin.command: gh alias list
+  environment:
+    GH_CONFIG_DIR: "{{ git_gh_config_dir }}"
+  register: git_gh_alias_list
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+# One "name: expansion" line per alias, so a changed expansion is caught too.
+- name: Git | Write the gh aliases
+  ansible.builtin.command:
+    argv: [gh, alias, set, "{{ git_gh_alias.key }}", "{{ git_gh_alias.value }}", --clobber]
+  environment:
+    GH_CONFIG_DIR: "{{ git_gh_config_dir }}"
+  changed_when: true
+  when: >-
+    git_gh_alias_list.stdout is not search('^' ~ (git_gh_alias.key | regex_escape) ~ ': ' ~ (git_gh_alias.value | regex_escape) ~ '$', multiline=True)
+  loop: "{{ git_gh_aliases | dict2items }}"
+  loop_control:
+    loop_var: git_gh_alias
+    label: "{{ git_gh_alias.key }}"
 
 - name: Git | Verify
-  ansible.builtin.include_tasks: "{{ role_path }}/tasks/verify.yml"
+  ansible.builtin.import_tasks: verify.yml
   when: not ansible_check_mode
-  tags:
-    - git
-    - dev
-    - verify
+  tags: verify

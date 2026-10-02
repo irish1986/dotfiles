@@ -96,7 +96,7 @@ repos:
         name: "md | lint: run markdownlint-cli"
         args:
           - --config
-          - .config/.markdown-lint.yml
+          - .github/linter/.markdown-lint.yml
   - repo: https://github.com/adrienverge/yamllint
     rev: v1.38.0
     hooks:
@@ -104,7 +104,16 @@ repos:
         name: "yaml | lint: run yamllint"
         args:
           - -c
-          - .config/.yaml-lint.yml
+          - .github/linter/.yaml-lint.yml
+  - repo: https://github.com/ansible-community/ansible-lint
+    rev: v26.8.0
+    hooks:
+      # No --fix: it rewrites YAML in place mid-commit, which is opaque, and its transformer crashes resolving relative include_tasks paths (it looks for roles/<r>/tasks/configure.yml at the repo root). Run it deliberately instead: ansible-lint -c .github/linter/.ansible-lint.yml --fix No files: either -- exclude_paths in the config is the single source of scope, rather than two overlapping filters.
+      - id: ansible-lint
+        name: "ansible | lint: run ansible-lint"
+        args:
+          - -c
+          - .github/linter/.ansible-lint.yml
   - repo: https://github.com/renovatebot/pre-commit-hooks
     rev: 44.115.10
     hooks:
@@ -113,12 +122,3 @@ repos:
         name: "renovate | validate config"
         args:
           - --strict
-  - repo: https://github.com/ansible-community/ansible-lint
-    rev: v26.8.0
-    hooks:
-      # No --fix: it rewrites YAML in place mid-commit, which is opaque, and its transformer crashes resolving relative include_tasks paths (it looks for roles/<r>/tasks/configure.yml at the repo root). Run it deliberately instead: ansible-lint -c .config/.ansible-lint.yml --fix No files: either -- exclude_paths in the config is the single source of scope, rather than two overlapping filters.
-      - id: ansible-lint
-        name: "ansible | lint: run ansible-lint"
-        args:
-          - -c
-          - .config/.ansible-lint.yml

@@ -1,0 +1,20 @@
+---
+# The local file: ~/.config/dotfiles/local.yml. Never committed.
+#
+# scripts/setup copies this example there on the first run and stops so you can edit it. It is the last layer, applied on top of profiles/base.yml and the named profile, so a value here overrides both (specs/adr/0002).
+
+# personal or work. Set by `scripts/setup --profile <name>` on the first run.
+dotfiles_profile: personal
+
+# Git identity. Left empty, the git role writes none and commits are not signed.
+git_user_name: ""
+git_user_email: ""
+# GitHub login: names ~/git/<login>. Empty skips it.
+git_user_login: ""
+git_signing_key: id_ed25519.pub
+
+# Optional.
+# dotfiles_hostname: ubuntu-wsl # written to /etc/wsl.conf; defaults to the current host name
+# dotfiles_windows_user: username # the C:\Users\<name> folder; defaults to the Linux user name
+
+# certificates_corporate_ca: zscaler.cer # in the Windows home, or an absolute path; work.yml sets this default

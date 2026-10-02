@@ -1,53 +1,67 @@
 ---
-- name: System | Check the base packages
-  ansible.builtin.command: dpkg-query -W -f='${Status}' {{ system_package }}
-  register: system_package_check
+- name: System | Audit the package database
+  ansible.builtin.command: dpkg --audit
+  register: system_audit
   changed_when: false
-  failed_when: false
-  loop: "{{ system_packages }}"
-  loop_control:
-    loop_var: system_package
 
-- name: System | Assert every base package is installed
+- name: System | Assert no package is half configured
   ansible.builtin.assert:
     that:
-      - system_package_check.results | selectattr('stdout', 'search', 'ok installed') | list | length == system_packages | length
-    fail_msg: >-
-      Missing:
-      {{ system_package_check.results | rejectattr('stdout', 'search', 'ok installed')
-         | map(attribute='system_package') | join(', ') }}
-    success_msg: "{{ system_packages | length }} base packages installed"
+      - system_audit.stdout | trim | length == 0
+    fail_msg: "dpkg reports inconsistent packages:\n{{ system_audit.stdout }}"
+    success_msg: package database consistent
     quiet: true
 
-- name: System | List the installed font families
-  ansible.builtin.command: fc-list --format='%{family}\n'
-  register: system_fonts_installed
+- name: System | Validate the sudoers drop-in
+  ansible.builtin.command: /usr/sbin/visudo -cf {{ system_sudoers_file }}
+  become: true
   changed_when: false
-  failed_when: false
-  when: not (dotfiles_is_wsl | bool)
 
-- name: System | Assert each font is registered with fontconfig
+- name: System | Read the group membership
+  ansible.builtin.command: id -nG {{ dotfiles_user }}
+  register: system_groups_check
+  changed_when: false
+
+- name: System | Assert the login user is in every group
   ansible.builtin.assert:
     that:
-      - system_fonts_installed.rc == 0
-      - system_fonts_installed.stdout is search(system_nerd_font, ignorecase=True)
-    fail_msg: "{{ system_nerd_font }} Nerd Font is not registered with fontconfig."
-    success_msg: "{{ system_nerd_font }} Nerd Font available"
+      - system_groups | difference(system_groups_check.stdout.split()) | length == 0
+    fail_msg: "{{ dotfiles_user }} is missing from {{ system_groups | difference(system_groups_check.stdout.split()) | join(', ') }}."
+    success_msg: member of {{ system_groups | join(', ') }}
     quiet: true
-  loop: "{{ system_nerd_fonts }}"
-  loop_control:
-    loop_var: system_nerd_font
-  when: not (dotfiles_is_wsl | bool)
 
-# On WSL the files are what the wsl role registers with Windows, so their presence is what matters here.
-- name: System | Assert each font is unpacked
-  ansible.builtin.assert:
-    that:
-      - (system_fonts_dir ~ '/' ~ system_nerd_font ~ system_fonts_probe_suffix) is file
-    fail_msg: "{{ system_nerd_font }} Nerd Font is missing from {{ system_fonts_dir }}."
-    success_msg: "{{ system_nerd_font }} Nerd Font unpacked"
-    quiet: true
-  loop: "{{ system_nerd_fonts }}"
-  loop_control:
-    loop_var: system_nerd_font
+- name: System | Verify WSL
   when: dotfiles_is_wsl | bool
+  block:
+    - name: System | Assert wsl.conf is present
+      ansible.builtin.assert:
+        that:
+          - "'/etc/wsl.conf' is file"
+        fail_msg: /etc/wsl.conf was not written.
+        quiet: true
+
+    # The user's clipboard is put back afterwards.
+    - name: System | Round-trip the clipboard
+      ansible.builtin.shell:
+        cmd: |
+          set -o pipefail
+          yank={{ dotfiles_home }}/.local/bin/win32yank.exe
+          saved=$(mktemp)
+          trap 'rm -f "$saved"' EXIT
+          "$yank" -o --lf > "$saved" || true
+          printf 'dotfiles-clipboard-probe' | "$yank" -i --crlf
+          probe=$("$yank" -o --lf)
+          "$yank" -i --crlf < "$saved"
+          printf '%s' "$probe"
+        executable: /bin/bash
+      register: system_clipboard
+      changed_when: false
+
+    - name: System | Assert the clipboard round-trips cleanly
+      ansible.builtin.assert:
+        that:
+          - system_clipboard.stdout == 'dotfiles-clipboard-probe'
+        fail_msg: >-
+          win32yank returned {{ system_clipboard.stdout | to_json }}. If Windows binaries fail with "Exec format error", run `wsl --shutdown` from Windows and reopen the distro.
+        success_msg: clipboard round-trips cleanly
+        quiet: true

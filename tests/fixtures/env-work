@@ -1,0 +1,3 @@
+# CI's env file for the work profile: the public registries stand in for the corporate mirrors.
+UV_DEFAULT_INDEX=https://pypi.org/simple
+NPM_CONFIG_REGISTRY=https://registry.npmjs.org/

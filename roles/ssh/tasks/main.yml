@@ -1,51 +1,146 @@
 ---
-# Orchestrator only: no module calls other than include_vars / include_tasks.
+- name: SSH | Install packages
+  ansible.builtin.apt:
+    name: "{{ ssh_packages }}"
+    state: present
+  become: true
 
-- name: SSH | Load release specific variables
-  ansible.builtin.include_vars: "{{ ssh_vars_file }}"
-  loop: "{{ query('ansible.builtin.first_found', ssh_vars_lookup) }}"
+- name: SSH | Ensure the ssh directories exist
+  ansible.builtin.file:
+    path: "{{ ssh_directory }}"
+    state: directory
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0700"
+  loop:
+    - "{{ ssh_dir }}"
+    - "{{ ssh_control_dir }}"
   loop_control:
-    loop_var: ssh_vars_file
-  vars:
-    ssh_vars_lookup:
-      files:
-        - "{{ ansible_facts.distribution }}-{{ ansible_facts.distribution_major_version }}.yml"
-        - "{{ ansible_facts.distribution }}.yml"
-        - "{{ ansible_facts.os_family }}.yml"
-      paths:
-        - "{{ role_path }}/vars"
-      skip: true
-  tags:
-    - ssh
-    - base
+    loop_var: ssh_directory
 
-- name: SSH | Install
-  ansible.builtin.include_tasks: "{{ ssh_install_tasks }}"
-  vars:
-    ssh_install_tasks: "{{ lookup('ansible.builtin.first_found', ssh_install_lookup) }}"
-    ssh_install_lookup:
-      files:
-        - "{{ ansible_facts.distribution }}-{{ ansible_facts.distribution_major_version }}.yml"
-        - "{{ ansible_facts.distribution }}.yml"
-        - "{{ ansible_facts.os_family }}.yml"
-      paths:
-        - "{{ role_path }}/tasks/install"
-  tags:
-    - ssh
-    - base
-    - install
+# validate parses the candidate file first: a typo'd keyword would break every ssh call on the machine.
+- name: SSH | Write the hardened defaults
+  ansible.builtin.blockinfile:
+    path: "{{ ssh_config_file }}"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK defaults"
+    create: true
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0600"
+    validate: ssh -G -F %s example.com
+    block: |
+      Host *
+      {% for ssh_option in ssh_config_options | dict2items %}
+        {{ ssh_option.key }} {{ ssh_option.value }}
+      {% endfor %}
+        IdentityFile {{ ssh_dir }}/{{ ssh_private_key }}
+        ControlPath {{ ssh_control_dir }}/%C
 
-- name: SSH | Configure
-  ansible.builtin.include_tasks: "{{ role_path }}/tasks/configure.yml"
-  tags:
-    - ssh
-    - base
-    - configure
+# ── The machine key, copied from Windows ──────────────────────────────────
+- name: SSH | Copy and register the Windows key
+  when: dotfiles_is_wsl | bool
+  block:
+    - name: SSH | Check the Windows key
+      ansible.builtin.stat:
+        path: "{{ ssh_windows_dir }}/{{ ssh_private_key }}"
+      register: ssh_windows_key
+
+    - name: SSH | Assert Windows has a key
+      ansible.builtin.assert:
+        that:
+          - ssh_windows_key.stat.exists
+        fail_msg: >-
+          {{ ssh_windows_dir }}/{{ ssh_private_key }} is missing. Create it on Windows with
+          `ssh-keygen -t ed25519 -f $env:USERPROFILE\.ssh\{{ ssh_private_key }}` in PowerShell, then re-run.
+        quiet: true
+
+    - name: SSH | Copy the Windows key pair
+      ansible.builtin.copy:
+        src: "{{ ssh_windows_dir }}/{{ ssh_key_file.name }}"
+        dest: "{{ ssh_dir }}/{{ ssh_key_file.name }}"
+        remote_src: true
+        backup: true
+        owner: "{{ dotfiles_user }}"
+        group: "{{ dotfiles_user }}"
+        mode: "{{ ssh_key_file.mode }}"
+      loop:
+        - { name: "{{ ssh_private_key }}", mode: "0600" }
+        - { name: "{{ ssh_public_key }}", mode: "0644" }
+      loop_control:
+        loop_var: ssh_key_file
+        label: "{{ ssh_key_file.name }}"
+
+    - name: SSH | Read the public key
+      ansible.builtin.slurp:
+        src: "{{ ssh_windows_dir }}/{{ ssh_public_key }}"
+      register: ssh_public_key_content
+
+    - name: SSH | Check the GitHub login
+      ansible.builtin.command: gh auth status --hostname github.com
+      register: ssh_gh_auth
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      when: ssh_github_register | bool
+
+    - name: SSH | Report that gh is not logged in
+      ansible.builtin.debug:
+        msg: gh is not logged in to github.com, so the SSH key was not added to GitHub. Set GH_TOKEN in {{ playbook_dir }}/.env (see .env.sample), or run `gh auth login`, then re-run --tags ssh.
+      when:
+        - ssh_github_register | bool
+        - ssh_gh_auth.rc != 0
+
+    # Authentication and signing keys are separate endpoints, with separate scopes that gh's default login grants neither of.
+    - name: SSH | List the GitHub keys
+      ansible.builtin.command: gh api {{ ssh_gh_endpoint.path }}
+      register: ssh_gh_keys
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      loop:
+        - { type: authentication, path: user/keys }
+        - { type: signing, path: user/ssh_signing_keys }
+      loop_control:
+        loop_var: ssh_gh_endpoint
+        label: "{{ ssh_gh_endpoint.type }}"
+      when:
+        - ssh_github_register | bool
+        - ssh_gh_auth.rc == 0
+
+    - name: SSH | Report the missing gh scopes
+      ansible.builtin.debug:
+        msg: >-
+          gh cannot manage your SSH keys, so the key was not added to GitHub as {{ ssh_gh_denied | join(' and ') }}.
+          Give GH_TOKEN in .env the SSH key permissions (fine-grained: Git SSH keys and SSH signing keys; classic: admin:public_key, admin:ssh_signing_key),
+          or for a stored login run `gh auth refresh -h github.com -s admin:public_key,admin:ssh_signing_key`, then re-run --tags ssh.
+      vars:
+        ssh_gh_denied: "{{ ssh_gh_keys.results | rejectattr('skipped', 'defined') | rejectattr('rc', 'eq', 0) | map(attribute='ssh_gh_endpoint.type') | list }}"
+      when:
+        - ssh_gh_keys.results is defined
+        - ssh_gh_denied | length > 0
+
+    # Matched on the key itself, "<type> <base64>", so it is added once however often this runs.
+    - name: SSH | Add the key to GitHub
+      ansible.builtin.command:
+        argv:
+          - gh
+          - ssh-key
+          - add
+          - "{{ ssh_windows_dir }}/{{ ssh_public_key }}"
+          - --title
+          - "{{ ssh_key_title }}"
+          - --type
+          - "{{ ssh_gh_list.ssh_gh_endpoint.type }}"
+      changed_when: true
+      loop: "{{ ssh_gh_keys.results | default([]) | rejectattr('skipped', 'defined') | selectattr('rc', 'eq', 0) }}"
+      loop_control:
+        loop_var: ssh_gh_list
+        label: "{{ ssh_gh_list.ssh_gh_endpoint.type }}"
+      when: >-
+        ((ssh_public_key_content.content | b64decode).split()[:2] | join(' '))
+        not in (ssh_gh_list.stdout | from_json | map(attribute='key') | list)
 
 - name: SSH | Verify
-  ansible.builtin.include_tasks: "{{ role_path }}/tasks/verify.yml"
+  ansible.builtin.import_tasks: verify.yml
   when: not ansible_check_mode
-  tags:
-    - ssh
-    - base
-    - verify
+  tags: verify

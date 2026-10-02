@@ -1,8 +1,5 @@
-.venv/
-/.wip
 .ansible
-.env
 .cache_ggshield
-
-# The legacy per-machine config, from before profiles (ADR 0002). Still ignored so a leftover copy, which holds identity, can never be committed; the playbook warns while it exists.
-/inventory/group_vars/*
+.env
+.venv/
+.wip/
