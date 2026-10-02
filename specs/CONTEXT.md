@@ -61,5 +61,5 @@ The root certificate of the work network's TLS-inspecting proxy (Zscaler), expor
 _Avoid_: proxy certificate, zscaler.crt
 
 **Package mirror**:
-An internal registry the work network requires in place of a public one: for Python packages, Python builds or npm packages. Read anonymously; named in the env file.
+An internal registry the work network requires in place of a public one: for Python packages or npm packages. Read anonymously; named in the env file.
 _Avoid_: proxy, private repo
