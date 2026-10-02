@@ -405,6 +405,42 @@
       become: true
       when: dotfiles_has_systemd | bool
 
+# ── Tool logins (specs/adr/0010) ──────────────────────────────────────────
+# Every tool reads its own token from the env file, which the run inherits; nothing here logs in. The shell tests the variable and runs the check with its output discarded, so no value ever reaches the run: what it prints is the entry's problem, built from the entry alone.
+- name: Tools | Check the tool logins
+  ansible.builtin.shell:
+    cmd: |
+      value=${!TOOLS_AUTH_ENV:-}
+      if [[ -z $value || $value == '<'* ]]; then
+        echo "$TOOLS_AUTH_NAME: $TOOLS_AUTH_ENV is not set in {{ tools_env_file }}. $TOOLS_AUTH_HINT"
+      elif ! ( {{ tools_auth_check.check }} ) >/dev/null 2>&1; then
+        echo "$TOOLS_AUTH_NAME: $TOOLS_AUTH_ENV did not pass \`$TOOLS_AUTH_CHECK\`. $TOOLS_AUTH_HINT"
+      fi
+    executable: /bin/bash
+  environment:
+    PATH: "{{ tools_path }}"
+    TOOLS_AUTH_NAME: "{{ tools_auth_check.name }}"
+    TOOLS_AUTH_ENV: "{{ tools_auth_check.env }}"
+    TOOLS_AUTH_CHECK: "{{ tools_auth_check.check }}"
+    TOOLS_AUTH_HINT: "{{ tools_auth_check.hint }}"
+  register: tools_auth
+  changed_when: false
+  check_mode: false
+  loop: "{{ tools_auth_checks }}"
+  loop_control:
+    loop_var: tools_auth_check
+    label: "{{ tools_auth_check.name }}"
+  when: not dotfiles_dockerenv.stat.exists
+  tags: auth
+
+- name: Tools | Report the tool logins
+  ansible.builtin.debug:
+    msg: "{{ tools_auth_problems }}"
+  vars:
+    tools_auth_problems: "{{ tools_auth.results | default([]) | map(attribute='stdout', default='') | select | list }}"
+  when: tools_auth_problems | length > 0
+  tags: auth
+
 - name: Tools | Verify
   ansible.builtin.import_tasks: verify.yml
   when: not ansible_check_mode

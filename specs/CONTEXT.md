@@ -29,7 +29,7 @@ The one never-committed file per machine that names its profile and holds what m
 _Avoid_: override file, group_vars, config
 
 **Env file**:
-The gitignored `.env` at the checkout root: tokens and corporate URLs, under each tool's own variable names, exported to every shell and the bootstrap. The repo never reads its values.
+The gitignored `.env` at the checkout root: tokens and corporate URLs, under each tool's own variable names, exported to every shell and the bootstrap. The repo never holds its values; it only checks that the tool logins they feed work.
 _Avoid_: secrets file, dotenv, local file
 
 **Layer**:

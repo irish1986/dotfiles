@@ -134,3 +134,21 @@ tools_files:
   - src: agents/instructions.md
     dest: .copilot/copilot-instructions.md
     dir_mode: "0700"
+
+tools_auth_checks:
+  - name: gh
+    env: GH_TOKEN
+    check: gh auth status --hostname github.com
+    hint: A fine-grained token with Git SSH keys and SSH signing keys (read and write) and Copilot Requests; a failed check is a rejected token or no network.
+  - name: copilot
+    env: GH_TOKEN
+    check: '[[ $GH_TOKEN == github_pat_* ]]'
+    hint: Copilot CLI takes only a fine-grained token (github_pat_) with the Copilot Requests permission.
+  - name: ggshield
+    env: GITGUARDIAN_API_KEY
+    check: ggshield api-status
+    hint: A GitGuardian personal access token, for the instance in GITGUARDIAN_INSTANCE; a failed check is a rejected token or no network.
+  - name: snyk
+    env: SNYK_TOKEN
+    check: snyk whoami
+    hint: A Snyk auth token, for the API in SNYK_API; a failed check is a rejected token or no network.

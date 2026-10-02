@@ -78,13 +78,15 @@ The work network inspects TLS with Zscaler and blocks some public registries ([A
 
 Tokens and corporate URLs live in one place, the env file `~/.dotfiles/.env` ([ADR 0010](specs/adr/0010-env-file.md)). It is gitignored, mode 0600, created from [`.env.sample`](.env.sample) on the first run, and exported by every shell and by `scripts/setup`. Uncomment what the machine needs and open a new shell.
 
-gh, and every machine's ggshield and snyk, read their tokens from it (grype, syft, hadolint and zizmor need none):
+gh, Copilot CLI, ggshield and snyk log in from it, each reading its own variable; nothing runs a login (grype, syft, hadolint and zizmor need no token):
 
 ```bash
-GH_TOKEN=<token>
-GITGUARDIAN_API_KEY=<token>
-SNYK_TOKEN=<token>
+GH_TOKEN=<token>             # gh and Copilot CLI, fine-grained (github_pat_): see .env.sample for its permissions
+GITGUARDIAN_API_KEY=<token>  # ggshield
+SNYK_TOKEN=<token>           # snyk
 ```
+
+Every run checks these logins and prints one warning naming each tool whose token is unset, a placeholder, or rejected. After editing the env file, open a new shell and check them alone with `~/.dotfiles/scripts/setup --tags auth`.
 
 ### Adding a tool
 

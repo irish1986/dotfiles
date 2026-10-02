@@ -58,6 +58,13 @@ tools_agent_skill_agents: []
 #   name, repo (owner/repo), verify
 tools_gh_extensions: []
 
+# Tool logins, checked against the env file (specs/adr/0010): each tool reads its own variable, and nothing logs in or writes a credential store. A run warns, in one message, about every entry whose variable is unset, empty or still a <placeholder>, or whose check fails. Skipped in a container; `--tags auth` runs only these.
+#   name    the tool
+#   env     the env file variable it reads
+#   check   a command that exits 0 when the tool accepts the token; its output is discarded
+#   hint    what the token needs, shown with the warning
+tools_auth_checks: []
+
 # Config files for tools, copied from roles/tools/files/. The repo owns each file whole.
 #   src       relative to roles/tools/files/
 #   dest      relative to $HOME
