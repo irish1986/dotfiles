@@ -36,11 +36,13 @@ Later runs take any `ansible-playbook` option:
 ~/.dotfiles/scripts/setup --profile personal  # switch profile
 ```
 
-Once it has run, log in to GitHub with the key scopes so the playbook can add the SSH key, then run `--tags ssh`:
+To let the playbook add the SSH key to GitHub, put a token in the env file (see [Tokens and secrets](#tokens-and-secrets)), then run `--tags ssh`. gh reads it in place of a login:
 
 ```bash
-gh auth login -s admin:public_key,admin:ssh_signing_key
+GH_TOKEN=<token>  # fine-grained: Git SSH keys and SSH signing keys, read and write
 ```
+
+`gh auth login -s admin:public_key,admin:ssh_signing_key` works too, if you would rather keep a stored login.
 
 ## Layout
 
@@ -76,9 +78,10 @@ The work network inspects TLS with Zscaler and blocks some public registries ([A
 
 Tokens and corporate URLs live in one place, the env file `~/.dotfiles/.env` ([ADR 0010](specs/adr/0010-env-file.md)). It is gitignored, mode 0600, created from [`.env.sample`](.env.sample) on the first run, and exported by every shell and by `scripts/setup`. Uncomment what the machine needs and open a new shell.
 
-Every machine gets ggshield, snyk, grype, syft, hadolint and zizmor; ggshield and snyk read their tokens from it:
+gh, and every machine's ggshield and snyk, read their tokens from it (grype, syft, hadolint and zizmor need none):
 
 ```bash
+GH_TOKEN=<token>
 GITGUARDIAN_API_KEY=<token>
 SNYK_TOKEN=<token>
 ```

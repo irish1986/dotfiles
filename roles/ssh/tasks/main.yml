@@ -85,7 +85,7 @@
 
     - name: SSH | Report that gh is not logged in
       ansible.builtin.debug:
-        msg: gh is not logged in to github.com, so the SSH key was not added to GitHub. Run `gh auth login`, then re-run --tags ssh.
+        msg: gh is not logged in to github.com, so the SSH key was not added to GitHub. Set GH_TOKEN in {{ playbook_dir }}/.env (see .env.sample), or run `gh auth login`, then re-run --tags ssh.
       when:
         - ssh_github_register | bool
         - ssh_gh_auth.rc != 0
@@ -111,7 +111,8 @@
       ansible.builtin.debug:
         msg: >-
           gh cannot manage your SSH keys, so the key was not added to GitHub as {{ ssh_gh_denied | join(' and ') }}.
-          Grant the scopes once with `gh auth refresh -h github.com -s admin:public_key,admin:ssh_signing_key`, then re-run --tags ssh.
+          Give GH_TOKEN in .env the SSH key permissions (fine-grained: Git SSH keys and SSH signing keys; classic: admin:public_key, admin:ssh_signing_key),
+          or for a stored login run `gh auth refresh -h github.com -s admin:public_key,admin:ssh_signing_key`, then re-run --tags ssh.
       vars:
         ssh_gh_denied: "{{ ssh_gh_keys.results | rejectattr('skipped', 'defined') | rejectattr('rc', 'eq', 0) | map(attribute='ssh_gh_endpoint.type') | list }}"
       when:
