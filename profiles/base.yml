@@ -116,9 +116,6 @@ tools_gh_extensions:
 tools_uv_python: "3.14"
 
 tools_uv_tools:
-  - name: ggshield
-    # renovate: datasource=pypi depName=ggshield
-    version: "1.55.0"
   - name: prek
     # renovate: datasource=pypi depName=prek
     version: "0.5.3"
