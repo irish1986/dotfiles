@@ -102,6 +102,8 @@ tools_agent_skills:
     skills: [herdr]
   - source: EricTechPro/super-board
   - source: mattpocock/skills
+  - source: https://github.com/astral-sh/claude-code-plugins/tree/main/plugins/astral/skills
+    skills: [uv, ty, ruff]
 
 tools_agent_skill_agents:
   - github-copilot
