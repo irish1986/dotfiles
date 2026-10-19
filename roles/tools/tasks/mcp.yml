@@ -1,0 +1,84 @@
+---
+# MCP configs are user-owned, so merge only the managed server entries and retain all other settings.
+- name: Tools | Ensure MCP config directories exist
+  ansible.builtin.file:
+    path: "{{ dotfiles_home }}/{{ tools_agent_mcp_config_paths[tools_agent_mcp_agent.key] | dirname }}"
+    state: directory
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0700"
+  loop: "{{ tools_agent_mcp_servers | dict2items }}"
+  loop_control:
+    loop_var: tools_agent_mcp_agent
+    label: "{{ tools_agent_mcp_agent.key }}"
+  when: tools_agent_mcp_config_paths[tools_agent_mcp_agent.key] | dirname != '.'
+
+- name: Tools | Inspect MCP config files
+  ansible.builtin.stat:
+    path: "{{ dotfiles_home }}/{{ tools_agent_mcp_config_paths[tools_agent_mcp_agent.key] }}"
+  register: tools_agent_mcp_config_stats
+  loop: "{{ tools_agent_mcp_servers | dict2items }}"
+  loop_control:
+    loop_var: tools_agent_mcp_agent
+    label: "{{ tools_agent_mcp_agent.key }}"
+
+- name: Tools | Read existing MCP config files
+  ansible.builtin.slurp:
+    src: "{{ dotfiles_home }}/{{ tools_agent_mcp_config_path }}"
+  register: tools_agent_mcp_config_reads
+  failed_when: false
+  loop: "{{ tools_agent_mcp_config_stats.results }}"
+  loop_control:
+    loop_var: tools_agent_mcp_config_stat
+    label: "{{ tools_agent_mcp_config_stat.tools_agent_mcp_agent.key }}"
+  when: tools_agent_mcp_config_stat.stat.exists
+  vars:
+    tools_agent_mcp_config_path: "{{ tools_agent_mcp_config_paths[tools_agent_mcp_config_stat.tools_agent_mcp_agent.key] }}"
+
+- name: Tools | Reject unreadable MCP config files
+  ansible.builtin.assert:
+    that:
+      - not tools_agent_mcp_config_read.failed
+    fail_msg: "Could not read {{ dotfiles_home }}/{{ tools_agent_mcp_config_path }}."
+    quiet: true
+  loop: "{{ tools_agent_mcp_config_reads.results | default([]) }}"
+  loop_control:
+    loop_var: tools_agent_mcp_config_read
+    label: "{{ tools_agent_mcp_config_read.tools_agent_mcp_config_stat.tools_agent_mcp_agent.key }}"
+  when: tools_agent_mcp_config_read.tools_agent_mcp_config_stat.stat.exists
+  vars:
+    tools_agent_mcp_config_path: >-
+      {{ tools_agent_mcp_config_paths[tools_agent_mcp_config_read.tools_agent_mcp_config_stat.tools_agent_mcp_agent.key] }}
+
+- name: Tools | Merge managed MCP servers
+  ansible.builtin.set_fact:
+    tools_agent_mcp_merged_configs: >-
+      {{ (tools_agent_mcp_merged_configs | default({}))
+         | combine({tools_agent_mcp_agent.key: tools_agent_mcp_config_merged}) }}
+  loop: "{{ tools_agent_mcp_servers | dict2items }}"
+  loop_control:
+    loop_var: tools_agent_mcp_agent
+    label: "{{ tools_agent_mcp_agent.key }}"
+  vars:
+    tools_agent_mcp_config_read: >-
+      {{ tools_agent_mcp_config_reads.results | default([])
+         | selectattr('tools_agent_mcp_config_stat.tools_agent_mcp_agent.key', 'equalto', tools_agent_mcp_agent.key)
+         | first | default({}) }}
+    tools_agent_mcp_config_current: >-
+      {{ tools_agent_mcp_config_read.content | default('e30=') | b64decode | from_json }}
+    tools_agent_mcp_config_merged: >-
+      {{ tools_agent_mcp_config_current
+         | combine({'mcpServers': (tools_agent_mcp_config_current.mcpServers | default({})
+         | combine(tools_agent_mcp_agent.value, recursive=true))}, recursive=true) }}
+
+- name: Tools | Deploy merged MCP config files
+  ansible.builtin.copy:
+    content: "{{ tools_agent_mcp_merged_config.value | to_nice_json }}"
+    dest: "{{ dotfiles_home }}/{{ tools_agent_mcp_config_paths[tools_agent_mcp_merged_config.key] }}"
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0600"
+  loop: "{{ tools_agent_mcp_merged_configs | dict2items }}"
+  loop_control:
+    loop_var: tools_agent_mcp_merged_config
+    label: "{{ tools_agent_mcp_merged_config.key }}"
