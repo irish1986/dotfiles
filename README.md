@@ -100,7 +100,7 @@ The tools role merges the servers in each profile into the configured agent's us
 - Snyk runs `npx -y snyk@latest mcp -t stdio` and uses `SNYK_TOKEN` from the env file.
 - Terraform runs HashiCorp's pinned Docker image. HCP Terraform credentials are not configured.
 
-Server definitions live in `tools_agent_mcp_servers` in the profiles; the Terraform image version is pinned in [`roles/tools/defaults/main.yml`](roles/tools/defaults/main.yml).
+Server definitions live in `tools_agent_mcp_servers` in the profiles; the Terraform image version is pinned in [`roles/tools/defaults/main.yml`](roles/tools/defaults/main.yml). Run `~/.dotfiles/scripts/setup --tags mcp` to update only MCP configuration.
 
 ## Local development
 
