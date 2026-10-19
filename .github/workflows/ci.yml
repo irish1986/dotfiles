@@ -24,7 +24,7 @@ permissions: {}
 jobs:
   lint:
     name: Lint
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
     permissions:
       contents: read
@@ -34,14 +34,14 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Run prek
-        uses: j178/prek-action@5337cb91e0fa35a7ff31b9ca345126d8bbbcdf16 # v2.0.6
+        uses: j178/prek-action@af4d4fcb6922b8e6f65c0426947125fcc38794ce # v3.0.2
         env:
           SKIP: ggshield
 
 
   pinned-actions:
     name: Pinned Actions
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 5
     permissions:
       contents: read
@@ -55,7 +55,7 @@ jobs:
 
   converge:
     name: Converge (${{ matrix.profile }})
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 45
     permissions:
       contents: read
@@ -140,7 +140,7 @@ jobs:
       - lint
       - pinned-actions
       - converge
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 5
     permissions: {}
 
