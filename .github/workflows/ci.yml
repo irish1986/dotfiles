@@ -34,7 +34,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Run prek
-        uses: j178/prek-action@cbc2f23eb5539cf20d82d1aabd0d0ecbcc56f4e3 # v2.0.2
+        uses: j178/prek-action@5337cb91e0fa35a7ff31b9ca345126d8bbbcdf16 # v2.0.6
         env:
           SKIP: ggshield
 
@@ -51,7 +51,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Ensure every action is pinned by SHA
-        uses: zgosalvez/github-actions-ensure-sha-pinned-actions@ca46236c6ce584ae24bc6283ba8dcf4b3ec8a066 # v5.0.4
+        uses: zgosalvez/github-actions-ensure-sha-pinned-actions@c4e71056006d29f90204b2d063be337109507d62 # v5.0.10
 
   converge:
     name: Converge (${{ matrix.profile }})
