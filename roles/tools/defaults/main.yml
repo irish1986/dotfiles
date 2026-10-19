@@ -48,7 +48,7 @@ tools_node_version: ""
 tools_npm_tools: []
 
 # Agent skills, installed globally with the skills CLI (`skills add`, an entry in tools_npm_tools) for every agent in tools_agent_skill_agents (specs/adr/0008). Installed when a skill is missing from an agent's skills directory; `skills update -g` is yours to run.
-#   source  what `skills add` takes: a GitHub owner/repo
+#   source  what `skills add` takes: a GitHub owner/repo or URL to a skills directory
 #   skills  skill names from that source, default ['*'] for all of them
 tools_agent_skills: []
 # The skills CLI's names for the agents, each with a directory in tools_agent_skill_dirs below.
