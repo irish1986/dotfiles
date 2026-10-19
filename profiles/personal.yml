@@ -12,7 +12,7 @@ tools_apt_repos:
 tools_debs:
   - name: hugo
     # renovate: datasource=github-releases depName=gohugoio/hugo
-    version: "0.166.0"
+    version: "0.168.0"
     url: https://github.com/gohugoio/hugo/releases/download/v{version}/hugo_extended_{version}_linux-{arch}.deb
     verify: hugo version
 

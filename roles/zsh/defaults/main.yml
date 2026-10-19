@@ -18,7 +18,7 @@ zsh_omz_dir: "{{ dotfiles_home }}/.oh-my-zsh"
 zsh_omz:
   repo: https://github.com/ohmyzsh/ohmyzsh.git
   # renovate: datasource=git-refs depName=https://github.com/ohmyzsh/ohmyzsh currentValue=master
-  version: 74965c96098134b192f00084f966b4b02438a739
+  version: 964ddf789b022b6958b27d02d7fa54f552de21e9
 
 zsh_plugins:
   - name: powerlevel10k
@@ -29,7 +29,7 @@ zsh_plugins:
   - name: you-should-use
     repo: https://github.com/MichaelAquilina/zsh-you-should-use.git
     # renovate: datasource=github-tags depName=MichaelAquilina/zsh-you-should-use
-    version: 1.9.0
+    version: 1.11.1
     type: plugins
   - name: zsh-autosuggestions
     repo: https://github.com/zsh-users/zsh-autosuggestions
@@ -44,12 +44,12 @@ zsh_plugins:
   - name: zsh-completions
     repo: https://github.com/zsh-users/zsh-completions
     # renovate: datasource=git-refs depName=https://github.com/zsh-users/zsh-completions currentValue=master
-    version: 67921bc12502c1e7b0f156533fbac2cb51f6943d
+    version: 989b23277ab33e8d5e82df6aed936e846db9d8b8
     type: plugins
   - name: zsh-eza
     repo: https://github.com/z-shell/zsh-eza
     # renovate: datasource=git-refs depName=https://github.com/z-shell/zsh-eza currentValue=main
-    version: 79484190e314c0e5bdbcc3e610300589606c45f0
+    version: e172f4ac99592e8733894dce862c435a58387fae
     type: plugins
   - name: zsh-syntax-highlighting
     repo: https://github.com/zsh-users/zsh-syntax-highlighting.git

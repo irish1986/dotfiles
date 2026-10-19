@@ -34,17 +34,17 @@ tools_apt_repos:
 tools_debs:
   - name: fastfetch
     # renovate: datasource=github-releases depName=fastfetch-cli/fastfetch
-    version: "2.68.1"
+    version: "2.70.0"
     url: https://github.com/fastfetch-cli/fastfetch/releases/download/{version}/fastfetch-linux-{arch}.deb
   # Vulnerabilities in images, filesystems and SBOMs.
   - name: grype
     # renovate: datasource=github-releases depName=anchore/grype
-    version: "0.119.0"
+    version: "0.120.1"
     url: https://github.com/anchore/grype/releases/download/v{version}/grype_{version}_linux_{arch}.deb
   # SBOMs, which grype scans.
   - name: syft
     # renovate: datasource=github-releases depName=anchore/syft
-    version: "1.54.0"
+    version: "1.54.1"
     url: https://github.com/anchore/syft/releases/download/v{version}/syft_{version}_linux_{arch}.deb
 
 tools_binaries:
@@ -54,7 +54,7 @@ tools_binaries:
     url: https://github.com/hadolint/hadolint/releases/download/v{version}/hadolint-linux-x86_64
   - name: snyk
     # renovate: datasource=github-releases depName=snyk/cli
-    version: "1.1307.4"
+    version: "1.1308.1"
     url: https://github.com/snyk/cli/releases/download/v{version}/snyk-linux
     checksum_url: "{url}.sha256"
   - name: tokenuse
@@ -80,7 +80,7 @@ tools_scripts:
     verify: . {home}/.nvm/nvm.sh && nvm --version
   - name: uv
     # renovate: datasource=github-releases depName=astral-sh/uv
-    version: "0.12.19"
+    version: "0.13.1"
     url: https://github.com/astral-sh/uv/releases/download/{version}/uv-installer.sh
     args: [--quiet]
     creates: .local/bin/uv
@@ -93,7 +93,7 @@ tools_node_version: "24"
 tools_npm_tools:
   - name: skills
     # renovate: datasource=npm depName=skills
-    version: "1.7.0"
+    version: "1.7.2"
 
 tools_agent_skills:
   - source: github/gh-stack
@@ -132,13 +132,13 @@ tools_uv_python: "3.14"
 tools_uv_tools:
   - name: prek
     # renovate: datasource=pypi depName=prek
-    version: "0.5.3"
+    version: "0.5.5"
   - name: ggshield
     # renovate: datasource=pypi depName=ggshield
-    version: "1.55.0"
+    version: "1.56.0"
   - name: zizmor
     # renovate: datasource=pypi depName=zizmor
-    version: "1.30.1"
+    version: "1.31.1"
 
 tools_files:
   - src: btop/btop.conf
