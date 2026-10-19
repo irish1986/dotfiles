@@ -92,6 +92,16 @@ Every run checks these logins and prints one warning naming each tool whose toke
 
 Add an entry to a profile ([ADR 0004](specs/adr/0004-tools-as-lists.md)): `profiles/base.yml` for every machine, `personal.yml` or `work.yml` for one kind. [`roles/tools/defaults/main.yml`](roles/tools/defaults/main.yml) documents each kind. Then run `~/.dotfiles/scripts/setup --tags tools`. Removing an entry stops managing the tool; uninstall it by hand.
 
+### MCP servers
+
+The tools role merges the servers in each profile into the configured agent's user-level MCP config, preserving other settings and servers. Copilot CLI gets Snyk and Terraform on every profile; its GitHub MCP server is built in. Personal machines also configure the hosted GitHub MCP server, Snyk, and Terraform for Claude Code. Restart the CLI after setup to discover new servers.
+
+- GitHub uses the hosted server and Claude Code's OAuth flow; Copilot CLI uses its built-in server and existing Copilot login.
+- Snyk runs `npx -y snyk@latest mcp -t stdio` and uses `SNYK_TOKEN` from the env file.
+- Terraform runs HashiCorp's pinned Docker image. HCP Terraform credentials are not configured.
+
+Server definitions live in `tools_agent_mcp_servers` in the profiles; the Terraform image version is pinned in [`roles/tools/defaults/main.yml`](roles/tools/defaults/main.yml).
+
 ## Local development
 
 ```bash

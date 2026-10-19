@@ -92,6 +92,14 @@ tools_agent_skill_dirs:
   claude-code: .claude/skills
 tools_agent_skill_lock_file: "{{ dotfiles_home }}/.agents/.skill-lock.json"
 
+# MCP servers merged into each CLI's user config. Existing unrelated settings and servers are preserved.
+tools_agent_mcp_config_paths:
+  github-copilot: .copilot/mcp-config.json
+  claude-code: .claude.json
+tools_agent_mcp_servers: {}
+# renovate: datasource=docker depName=hashicorp/terraform-mcp-server
+tools_terraform_mcp_version: "1.3.0"
+
 # `gh extension list` needs a login, so a run sees an install by its directory.
 tools_gh_extension_dir: "{{ dotfiles_home }}/.local/share/gh/extensions"
 

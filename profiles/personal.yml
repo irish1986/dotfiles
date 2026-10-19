@@ -25,6 +25,20 @@ tools_scripts:
 tools_agent_skill_agents:
   - claude-code
 
+tools_agent_mcp_servers:
+  claude-code:
+    github:
+      type: http
+      url: https://api.githubcopilot.com/mcp/
+    Snyk:
+      type: stdio
+      command: npx
+      args: [-y, snyk@latest, mcp, -t, stdio]
+    terraform:
+      type: stdio
+      command: docker
+      args: [run, -i, --rm, "hashicorp/terraform-mcp-server:{{ tools_terraform_mcp_version }}"]
+
 tools_files:
   - src: agents/instructions.md
     dest: .claude/CLAUDE.md
