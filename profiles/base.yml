@@ -100,6 +100,7 @@ tools_agent_skills:
     skills: [gh-stack]
   - source: herdrdev/herdr
     skills: [herdr]
+  - source: EricTechPro/super-board
   - source: mattpocock/skills
   - source: https://github.com/astral-sh/claude-code-plugins/tree/main/plugins/astral/skills
     skills: [uv, ty, ruff]
