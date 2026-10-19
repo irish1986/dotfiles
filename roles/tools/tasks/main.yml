@@ -306,6 +306,10 @@
   vars:
     tools_agent_skill_lock: "{{ tools_agent_skill_lock_read }}"
 
+- name: Tools | Configure agent MCP servers
+  ansible.builtin.import_tasks: mcp.yml
+  tags: mcp
+
 # After the apt packages, which install gh. `gh extension install` needs no login.
 - name: Tools | Install the gh extensions
   ansible.builtin.command:

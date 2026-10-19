@@ -107,6 +107,17 @@ tools_agent_skills:
 tools_agent_skill_agents:
   - github-copilot
 
+tools_agent_mcp_servers:
+  github-copilot:
+    Snyk:
+      type: stdio
+      command: npx
+      args: [-y, snyk@latest, mcp, -t, stdio]
+    terraform:
+      type: stdio
+      command: docker
+      args: [run, -i, --rm, "hashicorp/terraform-mcp-server:{{ tools_terraform_mcp_version }}"]
+
 tools_gh_extensions:
   - name: gh-aw
     repo: github/gh-aw
