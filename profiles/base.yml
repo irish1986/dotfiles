@@ -114,6 +114,10 @@ tools_agent_skills:
     skills: [herdr]
     # renovate: datasource=github-tags depName=herdrdev/herdr
     version: v0.9.5
+  - source: j178/prek
+    skills: [prek]
+    # renovate: datasource=github-tags depName=j178/prek
+    version: v0.5.5
   - source: mattpocock/skills
     # renovate: datasource=github-tags depName=mattpocock/skills
     version: v1.3.1
