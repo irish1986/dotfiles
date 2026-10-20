@@ -39,12 +39,12 @@ tools_debs:
   # Vulnerabilities in images, filesystems and SBOMs.
   - name: grype
     # renovate: datasource=github-releases depName=anchore/grype
-    version: "0.120.1"
+    version: "0.121.0"
     url: https://github.com/anchore/grype/releases/download/v{version}/grype_{version}_linux_{arch}.deb
   # SBOMs, which grype scans.
   - name: syft
     # renovate: datasource=github-releases depName=anchore/syft
-    version: "1.54.1"
+    version: "1.55.0"
     url: https://github.com/anchore/syft/releases/download/v{version}/syft_{version}_linux_{arch}.deb
 
 tools_binaries:
@@ -59,7 +59,7 @@ tools_binaries:
     checksum_url: "{url}.sha256"
   - name: tokenuse
     # renovate: datasource=github-releases depName=russmckendrick/tokenuse
-    version: "1.2.6"
+    version: "1.2.7"
     url: https://github.com/russmckendrick/tokenuse/releases/download/v{version}/tokenuse-linux-{arch}
     checksum_url: "{url}.sha256"
 
@@ -80,7 +80,7 @@ tools_scripts:
     verify: . {home}/.nvm/nvm.sh && nvm --version
   - name: uv
     # renovate: datasource=github-releases depName=astral-sh/uv
-    version: "0.13.1"
+    version: "0.13.3"
     url: https://github.com/astral-sh/uv/releases/download/{version}/uv-installer.sh
     args: [--quiet]
     creates: .local/bin/uv
@@ -93,7 +93,7 @@ tools_node_version: "24"
 tools_npm_tools:
   - name: skills
     # renovate: datasource=npm depName=skills
-    version: "1.7.2"
+    version: "1.7.4"
 
 tools_agent_skills:
   - source: github/gh-stack
@@ -132,7 +132,7 @@ tools_uv_python: "3.14"
 tools_uv_tools:
   - name: prek
     # renovate: datasource=pypi depName=prek
-    version: "0.5.5"
+    version: "0.5.6"
   - name: ggshield
     # renovate: datasource=pypi depName=ggshield
     version: "1.56.0"
