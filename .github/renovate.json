@@ -44,7 +44,7 @@
         "digest",
         "pinDigest"
       ],
-      "minimumReleaseAge": "3 days",
+      "minimumReleaseAge": "7 days",
       "platformAutomerge": true
     },
     {
