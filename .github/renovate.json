@@ -93,10 +93,10 @@
       ]
     },
     {
-      "description": "zsh plugins are cloned at the ref as written, so a leading v on a tag has to survive the bump.",
+      "description": "Tags are cloned at the ref as written (zsh plugins, agent skills), so a leading v has to survive the bump.",
       "extractVersion": "^(?<version>.+)$",
-      "matchFileNames": [
-        "roles/zsh/defaults/main.yml"
+      "matchDatasources": [
+        "github-tags"
       ]
     }
   ],

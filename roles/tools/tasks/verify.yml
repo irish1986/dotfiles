@@ -53,6 +53,6 @@
   loop: "{{ tools_agent_skills }}"
   loop_control:
     loop_var: tools_agent_skill
-    label: "{{ tools_agent_skill.source }}"
+    label: "{{ tools_agent_skill.source }} {{ tools_agent_skill.version | default('') }}"
   vars:
     tools_agent_skill_lock: "{{ tools_agent_skill_lock_after }}"

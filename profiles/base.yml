@@ -65,9 +65,15 @@ tools_binaries:
 
 tools_scripts:
   - name: copilot
-    url: https://gh.io/copilot-install
+    # renovate: datasource=github-releases depName=github/copilot-cli
+    version: "1.0.100"
+    url: https://raw.githubusercontent.com/github/copilot-cli/v{version}/install.sh
     interpreter: bash
     creates: .local/bin/copilot
+    env:
+      VERSION: "{version}"
+    # With auto-update off, --version reports the installed binary, not a newer one waiting in the package cache.
+    verify: COPILOT_AUTO_UPDATE=false copilot --version
   - name: nvm
     # renovate: datasource=github-releases depName=nvm-sh/nvm
     version: "0.40.8"
@@ -96,14 +102,24 @@ tools_npm_tools:
     version: "1.7.2"
 
 tools_agent_skills:
+  - source: astral-sh/claude-code-plugins
+    skills: [uv, ty, ruff]
+    # renovate: datasource=git-refs depName=https://github.com/astral-sh/claude-code-plugins currentValue=main
+    version: f3ce88a7ba830f53afd6d944c1d0278ed318e142
   - source: github/gh-stack
     skills: [gh-stack]
+    # renovate: datasource=github-tags depName=github/gh-stack
+    version: v0.2.1
   - source: herdrdev/herdr
     skills: [herdr]
-  - source: EricTechPro/super-board
+    # renovate: datasource=github-tags depName=herdrdev/herdr
+    version: v0.9.5
   - source: mattpocock/skills
-  - source: https://github.com/astral-sh/claude-code-plugins/tree/main/plugins/astral/skills
-    skills: [uv, ty, ruff]
+    # renovate: datasource=github-tags depName=mattpocock/skills
+    version: v1.3.1
+  - source: EricTechPro/super-board
+    # renovate: datasource=github-tags depName=EricTechPro/super-board
+    version: v3.1.2
 
 tools_agent_skill_agents:
   - github-copilot

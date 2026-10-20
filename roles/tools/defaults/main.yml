@@ -32,7 +32,7 @@ tools_debs: []
 tools_binaries: []
 
 # Upstream installer scripts, run once: `creates` (relative to $HOME) guards them, and the tool's own updater owns upgrades from then on. uv and nvm are entries here too.
-#   name, url, version (optional: substituted into url, and when set the installer re-runs whenever verify reports another version, so a bumped pin lands), creates, interpreter (default sh), args (list), env (dict), verify
+#   name, url, version (optional: substituted for {version} in url and env values, and when set the installer re-runs whenever verify reports another version, so a bumped pin lands), creates, interpreter (default sh), args (list), env (dict), verify
 tools_scripts: []
 
 # Interpreter uv installs and marks default. Empty leaves the choice to you.
@@ -47,9 +47,10 @@ tools_node_version: ""
 #   name, version, verify
 tools_npm_tools: []
 
-# Agent skills, installed globally with the skills CLI (`skills add`, an entry in tools_npm_tools) for every agent in tools_agent_skill_agents (specs/adr/0008). Installed when a skill is missing from an agent's skills directory; `skills update -g` is yours to run.
-#   source  what `skills add` takes: a GitHub owner/repo or URL to a skills directory
-#   skills  skill names from that source, default ['*'] for all of them
+# Agent skills, installed globally with the skills CLI (`skills add`, an entry in tools_npm_tools) for every agent in tools_agent_skill_agents (specs/adr/0008). Installed when a skill is missing from an agent's skills directory, or when the lock records another ref than version; `skills update -g` is yours to run, and stays on the ref.
+#   source   what `skills add` takes: a GitHub owner/repo or URL to a skills directory
+#   skills   skill names from that source, default ['*'] for all of them
+#   version  the git ref, passed as source#version: a tag as upstream writes it (v kept) or a commit SHA. Omitted follows the default branch.
 tools_agent_skills: []
 # The skills CLI's names for the agents, each with a directory in tools_agent_skill_dirs below.
 tools_agent_skill_agents: []
@@ -104,12 +105,21 @@ tools_terraform_mcp_version: "1.3.0"
 tools_gh_extension_dir: "{{ dotfiles_home }}/.local/share/gh/extensions"
 
 # ── Internal ──────────────────────────────────────────────────────────────
-# Evaluated per tools_agent_skill entry, with tools_agent_skill_lock as the slurped lock file: the SKILL.md files of that entry missing from any agent's directory. '*' names no skill, so the lock says which skills the source gave; before the first install it gave none, and the entry counts as missing.
+# Evaluated per tools_agent_skill entry, with tools_agent_skill_lock as the slurped lock file: the SKILL.md files of that entry missing from any agent's directory, and its skills installed at another ref. '*' names no skill, so the lock says which skills the source gave; before the first install it gave none, and the entry counts as missing.
+tools_agent_skill_lock_skills: >-
+  {{ (tools_agent_skill_lock.content | default('e30=') | b64decode | from_json).skills | default({})
+     | dict2items | selectattr('value.source', 'equalto', tools_agent_skill.source) | list }}
 tools_agent_skill_names: >-
-  {{ ((tools_agent_skill_lock.content | default('e30=') | b64decode | from_json).skills | default({})
-      | dict2items | selectattr('value.source', 'equalto', tools_agent_skill.source) | map(attribute='key') | list)
+  {{ (tools_agent_skill_lock_skills | map(attribute='key') | list)
      if '*' in tools_agent_skill.skills | default(['*']) else tools_agent_skill.skills }}
+# The skills of a pinned entry that the lock records at another ref, as name@version.
+tools_agent_skill_stale: >-
+  {{ [] if tools_agent_skill.version is not defined else
+     tools_agent_skill_names | reject('in', tools_agent_skill_lock_skills | selectattr('value.ref', 'defined')
+       | selectattr('value.ref', 'equalto', tools_agent_skill.version | string) | map(attribute='key') | list)
+     | map('regex_replace', '$', '@' ~ tools_agent_skill.version) | list }}
 tools_agent_skill_missing: >-
   {{ ['every skill in ' ~ tools_agent_skill.source] if tools_agent_skill_names | length == 0 else
      tools_agent_skill_agents | map('extract', tools_agent_skill_dirs) | product(tools_agent_skill_names)
-     | map('join', '/') | map('regex_replace', '^(.*)$', dotfiles_home ~ '/\1/SKILL.md') | reject('file') | list }}
+     | map('join', '/') | map('regex_replace', '^(.*)$', dotfiles_home ~ '/\1/SKILL.md') | reject('file') | list
+     + tools_agent_skill_stale }}

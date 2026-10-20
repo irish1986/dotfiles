@@ -145,7 +145,8 @@
     executable: /bin/bash
     creates: "{{ omit if tools_script_outdated else dotfiles_home ~ '/' ~ tools_script.creates }}"
   environment: >-
-    {{ dict((tools_script.env | default({})).keys() | zip((tools_script.env | default({})).values() | map('replace', '{home}', dotfiles_home)))
+    {{ dict((tools_script.env | default({})).keys() | zip((tools_script.env | default({})).values() | map('replace', '{home}', dotfiles_home)
+         | map('replace', '{version}', tools_script.version | default(''))))
        | combine({'PATH': tools_path}) }}
   loop: "{{ tools_scripts_installed.results }}"
   loop_control:
@@ -283,7 +284,7 @@
   ansible.builtin.shell:
     cmd: >-
       . "$NVM_DIR/nvm.sh" &&
-      skills add {{ tools_agent_skill.source | quote }}
+      skills add {{ (tools_agent_skill.source ~ ('#' ~ tools_agent_skill.version if tools_agent_skill.version is defined else '')) | quote }}
       --skill {{ tools_agent_skill.skills | default(['*']) | map('quote') | join(' ') }}
       --global
       --agent {{ tools_agent_skill_agents | map('quote') | join(' ') }}
@@ -302,7 +303,7 @@
   loop: "{{ tools_agent_skills }}"
   loop_control:
     loop_var: tools_agent_skill
-    label: "{{ tools_agent_skill.source }}"
+    label: "{{ tools_agent_skill.source }} {{ tools_agent_skill.version | default('') }}"
   vars:
     tools_agent_skill_lock: "{{ tools_agent_skill_lock_read }}"
 

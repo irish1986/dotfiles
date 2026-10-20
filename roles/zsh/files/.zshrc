@@ -31,6 +31,8 @@ fpath+=($ZSH/custom/plugins/zsh-completions/src)
 
 # The checkout is pinned in roles/zsh/defaults and moved by Renovate; oh-my-zsh's own updater would move it off the pin.
 zstyle ':omz:update' mode disabled
+# Copilot CLI is pinned in profiles/base.yml and moved by Renovate; its own updater would run a newer cached version over the pin.
+export COPILOT_AUTO_UPDATE=false
 
 source $ZSH/oh-my-zsh.sh
 
