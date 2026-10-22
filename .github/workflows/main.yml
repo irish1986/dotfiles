@@ -46,10 +46,12 @@ jobs:
               renovate-config-validator
           - group: shell
             hooks: |
-              shellcheck shfmt
+              shellcheck
+              shfmt
           - group: yaml
             hooks: |
-              check-yaml yamllint
+              check-yaml
+              yamllint
 
     steps:
       - name: Checkout
@@ -209,8 +211,10 @@ jobs:
   gating:
     name: Gating
     if: always()
+    # Every job, not only the last: install needs lint and bootstrap-smoke, so when either fails install is skipped, and skipped passes here.
     needs:
       - lint
+      - bootstrap-smoke
       - install
     runs-on: ubuntu-26.04
     timeout-minutes: 5
