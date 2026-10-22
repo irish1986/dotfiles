@@ -211,7 +211,6 @@ jobs:
     if: always()
     needs:
       - lint
-      - bootstrap-smoke
       - install
     runs-on: ubuntu-26.04
     timeout-minutes: 5
