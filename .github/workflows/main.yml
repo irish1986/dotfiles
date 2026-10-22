@@ -1,6 +1,6 @@
 ---
 name: CI - Main
-run-name: Continuous integration on main by ${{ github.actor }}
+run-name: Continuous Integration on main by ${{ github.actor }}
 
 on: # yamllint disable-line rule:truthy
   push:

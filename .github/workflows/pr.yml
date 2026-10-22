@@ -1,6 +1,6 @@
 ---
 name: CI - Pull Request
-run-name: Continuous integration for PR-${{ github.event.pull_request.number }} by ${{ github.actor }}
+run-name: Continuous Integration for PR-${{ github.event.pull_request.number }} by ${{ github.actor }}
 
 on: # yamllint disable-line rule:truthy
   pull_request:

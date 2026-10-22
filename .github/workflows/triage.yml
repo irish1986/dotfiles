@@ -1,5 +1,5 @@
 ---
-name: Triage
+name: Repo - Triage
 run-name: Triage of issue ${{ github.event.issue.number }}
 
 on: # yamllint disable-line rule:truthy
@@ -12,7 +12,6 @@ permissions: {}
 jobs:
   triage:
     name: Triage
-    # Every new issue a person opens, the owner's included; the Renovate Dashboard is opened by a bot, and rot.yml labels its own issue.
     if: github.event.sender.type != 'Bot'
     runs-on: ubuntu-26.04
     timeout-minutes: 5

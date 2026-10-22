@@ -1,5 +1,5 @@
 ---
-name: Stale
+name: Repo - Stale
 run-name: Stale sweep triggered by ${{ github.event_name }}
 
 on: # yamllint disable-line rule:truthy
@@ -23,7 +23,6 @@ jobs:
       pull-requests: write
 
     steps:
-      # The Renovate Dashboard needs no exemption: Renovate rewrites it on every daily run, so it is never inactive.
       - name: Mark and close inactive issues and pull requests
         uses: actions/stale@4391f3da665fdf50b6810c1a66712fb9ba21aa93 # v11.0.0
         with:
