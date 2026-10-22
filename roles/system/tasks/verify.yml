@@ -40,6 +40,23 @@
         fail_msg: /etc/wsl.conf was not written.
         quiet: true
 
+    # systemd's own generator, reading the files the user manager loads at its next start: this holds before the distro restarts.
+    - name: System | Read the user services' environment
+      ansible.builtin.command: /usr/lib/systemd/user-environment-generators/30-systemd-environment-d-generator
+      register: system_user_environment
+      changed_when: false
+
+    - name: System | Assert user services get the WSL session environment
+      ansible.builtin.assert:
+        that:
+          - system_user_environment.stdout is search('^WSL_DISTRO_NAME=.', multiline=True)
+          - >-
+            not (system_wsl_interop_enabled | bool and system_wsl_interop_append_windows_path | bool)
+            or system_user_environment.stdout is search('^PATH=.*:/mnt/', multiline=True)
+        fail_msg: "{{ system_wsl_environment_file }} does not give user services the distro name and Windows PATH:\n{{ system_user_environment.stdout }}"
+        success_msg: user services get the WSL session environment
+        quiet: true
+
     # The user's clipboard is put back afterwards.
     - name: System | Round-trip the clipboard
       ansible.builtin.shell:

@@ -98,6 +98,47 @@
       become: true
       notify: System | Terminate required
 
+    # herdr's panes, like every systemd --user service, start outside a wsl.exe session, so WSL never hands them the distro name or the Windows PATH (specs/adr/0011). Both reads change nothing, so they also run in check mode.
+    - name: System | Read the distro name
+      ansible.builtin.shell:
+        cmd: set -o pipefail && wslpath -w / | cut -d'\' -f4
+        executable: /bin/bash
+      register: system_wsl_distro
+      changed_when: false
+      check_mode: false
+
+    # What appendWindowsPath appends: cmd.exe expands the variables and wslpath translates each entry. One left as an unexpanded %VARIABLE% stays relative, and the template drops it.
+    - name: System | Read the Windows PATH
+      ansible.builtin.shell:
+        cmd: |
+          set -o pipefail
+          /mnt/c/Windows/System32/cmd.exe /d /c 'echo %PATH%' | tr -d '\r' | tr ';' '\n' |
+            while IFS= read -r dir; do [[ -z $dir ]] || wslpath -u "$dir" 2>/dev/null || true; done
+        # cmd.exe warns when started from a UNC path, which every Linux directory is to Windows.
+        chdir: /mnt/c
+        executable: /bin/bash
+      register: system_wsl_windows_path
+      changed_when: false
+      check_mode: false
+      when: system_wsl_interop_enabled | bool and system_wsl_interop_append_windows_path | bool
+
+    - name: System | Ensure the environment.d directory exists
+      ansible.builtin.file:
+        path: "{{ system_wsl_environment_file | dirname }}"
+        state: directory
+        owner: "{{ dotfiles_user }}"
+        group: "{{ dotfiles_user }}"
+        mode: "0755"
+
+    - name: System | Deploy the WSL session environment
+      ansible.builtin.template:
+        src: wsl-environment.conf.j2
+        dest: "{{ system_wsl_environment_file }}"
+        owner: "{{ dotfiles_user }}"
+        group: "{{ dotfiles_user }}"
+        mode: "0644"
+      notify: System | Terminate required
+
     # A Windows .exe on ext4 runs through WSL interop, so it need not live on /mnt/c. Versioned directory, so a bump installs the new release.
     - name: System | Ensure the win32yank directory exists
       ansible.builtin.file:

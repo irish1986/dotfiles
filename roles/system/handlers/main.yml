@@ -11,4 +11,4 @@
 - name: System | Terminate required
   ansible.builtin.debug:
     msg: >-
-      wsl.conf changed. Run `wsl --terminate {{ lookup('ansible.builtin.env', 'WSL_DISTRO_NAME') | default('<distro>', true) }}` from Windows, reopen the distro, and re-run.
+      wsl.conf or the WSL session environment changed. Run `wsl --terminate {{ system_wsl_distro.stdout | default('<distro>', true) }}` from Windows, reopen the distro, and re-run.

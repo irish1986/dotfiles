@@ -1,0 +1,9 @@
+# Managed by the dotfiles playbook (roles/system). Do not edit.
+#
+# What WSL gives a wsl.exe session but not a systemd --user service such as herdr (specs/adr/0011).
+# The user manager reads this when it starts: `wsl --terminate {{ system_wsl_distro.stdout }}` from Windows applies a change.
+
+WSL_DISTRO_NAME={{ system_wsl_distro.stdout }}
+{% if system_wsl_windows_path is not skipped %}
+PATH=${PATH}:{{ system_wsl_windows_path.stdout_lines | select('match', '/') | map('replace', '$', '$$') | join(':') }}
+{% endif %}

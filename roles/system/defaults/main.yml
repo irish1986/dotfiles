@@ -42,6 +42,10 @@ system_wsl_network_generate_hosts: true
 system_wsl_network_generate_resolv_conf: true
 system_wsl_default_user: "{{ dotfiles_user }}"
 
+# ── WSL session environment for systemd --user services (specs/adr/0011) ──
+# Sorts after /usr/lib/environment.d's 99-environment.conf, which is /etc/environment and sets PATH outright, and after 990-snapd.conf, so the Windows entries come last, where appendWindowsPath puts them.
+system_wsl_environment_file: "{{ dotfiles_home }}/.config/environment.d/999-wsl.conf"
+
 # win32yank, the clipboard bridge: `powershell Get-Clipboard` appends CRLF even with -Raw.
 # renovate: datasource=github-releases depName=equalsraf/win32yank
 system_win32yank_version: "0.1.1"
