@@ -1,0 +1,40 @@
+---
+name: Stale
+run-name: Stale sweep triggered by ${{ github.event_name }}
+
+on: # yamllint disable-line rule:truthy
+  schedule:
+    - cron: "0 7 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  stale:
+    name: Stale
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    permissions:
+      issues: write
+      pull-requests: write
+
+    steps:
+      # The Renovate Dashboard needs no exemption: Renovate rewrites it on every daily run, so it is never inactive.
+      - name: Mark and close inactive issues and pull requests
+        uses: actions/stale@4391f3da665fdf50b6810c1a66712fb9ba21aa93 # v11.0.0
+        with:
+          stale-issue-label: stale
+          stale-pr-label: stale
+          days-before-issue-stale: 90
+          days-before-issue-close: 14
+          days-before-pr-stale: 30
+          days-before-pr-close: 7
+          exempt-issue-labels: hold,ready-for-agent,ready-for-human
+          exempt-pr-labels: hold,type/major
+          exempt-draft-pr: true
+          stale-issue-message: No activity for 90 days. This closes in 14 days unless something changes.
+          stale-pr-message: No activity for 30 days. This closes in 7 days unless something changes.

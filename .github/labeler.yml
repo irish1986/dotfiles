@@ -1,5 +1,5 @@
 ---
-# Area labels by changed path, applied to pull requests by the pr-labels job in .github/workflows/cron.yml. A pull request can carry several.
+# Area labels by changed path, applied to pull requests by .github/workflows/pr-labels.yml. A pull request can carry several.
 area/ansible:
   - changed-files:
       - any-glob-to-any-file:

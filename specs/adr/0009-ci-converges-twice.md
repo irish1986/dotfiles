@@ -6,4 +6,4 @@ Every push, pull request and a weekly schedule run the playbook in a clean `ubun
 
 The weekly run exists to catch upstream rot (a moved apt suite, a renamed release asset) before the next real machine does. The container is not WSL, so the Windows-side tasks (the SSH key, `wsl.conf`, the clipboard bridge) are only exercised on a real distro.
 
-Amended 2026-10-21: split into `pr.yml`, `main.yml` and `cron.yml` (0012). The weekly run became a daily real install from main, and the pinned-SHA check was dropped.
+Amended 2026-10-21: split into `pr.yml`, `main.yml` and per-task workflows (0012). The weekly run became a daily real install from main, and the pinned-SHA check was dropped.

@@ -1,0 +1,50 @@
+---
+name: Labels
+run-name: Repository label sync triggered by ${{ github.actor }}
+
+on: # yamllint disable-line rule:truthy
+  # main only: a pull request editing labels.yml must not change repository-wide labels before review.
+  push:
+    branches:
+      - main
+    paths:
+      - .github/labels.yml
+      - .github/workflows/labels.yml
+  # Weekly, to put back a label edited or deleted by hand in the UI.
+  schedule:
+    - cron: "0 7 * * 1"
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: Report the changes without applying them
+        type: boolean
+        default: true
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  labels:
+    name: Sync Labels
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Sync labels
+        uses: crazy-max/ghaction-github-labeler@548a7c3603594ec17c819e1239f281a3b801ab4d # v6.0.0
+        with:
+          yaml-file: .github/labels.yml
+          # true, deliberately. With false, any label absent from labels.yml is deleted repository-wide and stripped from every issue and PR that carries it. Flip only after a dry-run dispatch shows an acceptable diff.
+          skip-delete: true
+          dry-run: ${{ github.event_name == 'workflow_dispatch' && inputs.dry-run || false }}

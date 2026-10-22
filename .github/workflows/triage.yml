@@ -1,0 +1,28 @@
+---
+name: Triage
+run-name: Triage of issue ${{ github.event.issue.number }}
+
+on: # yamllint disable-line rule:truthy
+  issues:
+    types:
+      - opened
+
+permissions: {}
+
+jobs:
+  triage:
+    name: Triage
+    # Every new issue a person opens, the owner's included; the Renovate Dashboard is opened by a bot, and rot.yml labels its own issue.
+    if: github.event.sender.type != 'Bot'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    permissions:
+      issues: write
+
+    steps:
+      - name: Label the issue needs-triage
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          ISSUE: ${{ github.event.issue.number }}
+        run: gh issue edit "$ISSUE" --add-label needs-triage
