@@ -1,0 +1,266 @@
+---
+name: CI - Pull Request
+run-name: Continuous integration for PR-${{ github.event.pull_request.number }} by ${{ github.actor }}
+
+on: # yamllint disable-line rule:truthy
+  pull_request:
+    branches:
+      - main
+    types:
+      - edited
+      - opened
+      - reopened
+      - synchronize
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  lint:
+    name: Lint (${{ matrix.group }})
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - group: ansible
+            hooks: |
+              ansible-lint
+          - group: hygiene
+            hooks: |
+              check-added-large-files
+              check-executables-have-shebangs
+              check-json
+              check-shebang-scripts-are-executable
+              check-toml
+              check-xml
+              end-of-file-fixer
+              forbid-submodules
+              mixed-line-ending
+              pretty-format-json
+              trailing-whitespace
+          - group: markdown
+            hooks: |
+              markdownlint
+          - group: renovate
+            hooks: |
+              renovate-config-validator
+          - group: shell
+            hooks: |
+              shellcheck shfmt
+          - group: yaml
+            hooks: |
+              check-yaml yamllint
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Run prek
+        uses: j178/prek-action@af4d4fcb6922b8e6f65c0426947125fcc38794ce # v3.0.2
+        with:
+          extra-args: --all-files ${{ matrix.hooks }}
+
+  pr-title:
+    name: PR Title
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Write the title to a file
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: printf '%s\n' "$TITLE" > "${RUNNER_TEMP}/pr-title"
+
+      - name: Check the title with commitizen
+        uses: j178/prek-action@af4d4fcb6922b8e6f65c0426947125fcc38794ce # v3.0.2
+        with:
+          extra-args: --stage commit-msg commitizen --commit-msg-filename ${{ runner.temp }}/pr-title
+
+  bootstrap-smoke:
+    name: Bootstrap Smoke
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+
+    container:
+      image: ubuntu:26.04
+      options: --user root
+
+    defaults:
+      run:
+        shell: bash
+
+    env:
+      DEBIAN_FRONTEND: noninteractive
+
+    steps:
+      - name: Prepare the container
+        run: |
+          set -euo pipefail
+          apt-get update -qq
+          apt-get install -y -qq --no-install-recommends \
+            sudo ca-certificates git curl openssl python3
+          useradd -m -s /bin/bash tester
+          printf 'tester ALL=(ALL) NOPASSWD: ALL\n' > /etc/sudoers.d/90-tester
+          chmod 0440 /etc/sudoers.d/90-tester
+          git config --system --add safe.directory '*'
+
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          path: dotfiles
+
+      - name: Refuse to run as root
+        run: |
+          set -euo pipefail
+          chown -R tester:tester "${GITHUB_WORKSPACE}/dotfiles"
+          if bash "${GITHUB_WORKSPACE}/dotfiles/scripts/setup" --no-pull --profile personal; then
+            echo "::error::scripts/setup ran as root."
+            exit 1
+          fi
+
+      - name: Refuse to run without a profile
+        run: |
+          set -euo pipefail
+          if sudo -u tester -H env DOTFILES_DIR="${GITHUB_WORKSPACE}/dotfiles" \
+            bash "${GITHUB_WORKSPACE}/dotfiles/scripts/setup" --no-pull; then
+            echo "::error::scripts/setup ran with no profile."
+            exit 1
+          fi
+
+      - name: First run
+        run: |
+          set -euo pipefail
+          sudo -u tester -H env DOTFILES_DIR="${GITHUB_WORKSPACE}/dotfiles" NO_COLOR=1 \
+            bash "${GITHUB_WORKSPACE}/dotfiles/scripts/setup" --no-pull --profile personal
+          grep -qx 'dotfiles_profile: personal' /home/tester/.config/dotfiles/local.yml \
+            || { echo "::error::The local file does not name the personal profile."; exit 1; }
+          [[ "$(stat -c '%a %U' "${GITHUB_WORKSPACE}/dotfiles/.env")" == "600 tester" ]] \
+            || { echo "::error::.env is not 0600 and owned by tester."; exit 1; }
+
+  converge:
+    name: Converge (${{ matrix.profile }})
+    needs:
+      - lint
+      - pr-title
+      - bootstrap-smoke
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+
+    strategy:
+      fail-fast: true
+      matrix:
+        profile:
+          - personal
+          - work
+
+    container:
+      image: ubuntu:26.04
+      options: --user root
+
+    defaults:
+      run:
+        shell: bash
+
+    env:
+      DEBIAN_FRONTEND: noninteractive
+
+    steps:
+      - name: Prepare the container
+        run: |
+          set -euo pipefail
+          apt-get update -qq
+          apt-get install -y -qq --no-install-recommends \
+            sudo ca-certificates git curl openssl python3
+          useradd -m -s /bin/bash tester
+          printf 'tester ALL=(ALL) NOPASSWD: ALL\n' > /etc/sudoers.d/90-tester
+          chmod 0440 /etc/sudoers.d/90-tester
+          git config --system --add safe.directory '*'
+
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          path: dotfiles
+
+      - name: Install the local file
+        env:
+          PROFILE: ${{ matrix.profile }}
+        run: |
+          set -euo pipefail
+          chown -R tester:tester "${GITHUB_WORKSPACE}/dotfiles"
+          install -d -o tester -g tester /home/tester/.config /home/tester/.config/dotfiles
+          install -o tester -g tester -m 0600 \
+            "${GITHUB_WORKSPACE}/dotfiles/tests/fixtures/local-${PROFILE}.yml" \
+            /home/tester/.config/dotfiles/local.yml
+          # Where work.yml looks for the corporate CA: the Windows home of a user named tester.
+          install -D -m 0644 "${GITHUB_WORKSPACE}/dotfiles/tests/fixtures/zscaler.cer" /mnt/c/Users/tester/zscaler.cer
+          # The work run's env file names the public registries as its mirrors, so uv and npm go through the env-file path for real.
+          if [[ $PROFILE == work ]]; then
+            install -o tester -g tester -m 0600 "${GITHUB_WORKSPACE}/dotfiles/tests/fixtures/env-work" "${GITHUB_WORKSPACE}/dotfiles/.env"
+          fi
+
+      - name: Converge
+        run: |
+          set -euo pipefail
+          sudo -u tester -H env DOTFILES_DIR="${GITHUB_WORKSPACE}/dotfiles" NO_COLOR=1 \
+            bash "${GITHUB_WORKSPACE}/dotfiles/scripts/setup" --no-pull --skip-tags update
+
+      - name: Idempotence
+        run: |
+          set -euo pipefail
+          sudo -u tester -H env DOTFILES_DIR="${GITHUB_WORKSPACE}/dotfiles" NO_COLOR=1 \
+            bash "${GITHUB_WORKSPACE}/dotfiles/scripts/setup" --no-pull --skip-tags update \
+            | tee /tmp/idempotence.log
+          if ! grep -qE 'changed=0[[:space:]]+unreachable=0[[:space:]]+failed=0' /tmp/idempotence.log; then
+            echo "::error::The second run was not idempotent."
+            grep -E '^changed:' -B2 /tmp/idempotence.log || true
+            exit 1
+          fi
+
+  gating:
+    name: Gating
+    if: always()
+    needs:
+      - bootstrap-smoke
+      - converge
+      - lint
+      - pr-title
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    permissions: {}
+
+    steps:
+      - name: Aggregate results
+        env:
+          RESULTS: ${{ join(needs.*.result, ',') }}
+        run: |
+          set -euo pipefail
+          echo "Upstream results: ${RESULTS}"
+          # skipped is tolerated so conditional jobs can be added later without deadlocking the gate.
+          if [[ "${RESULTS}" == *failure* || "${RESULTS}" == *cancelled* ]]; then
+            echo "::error::One or more CI jobs did not succeed."
+            exit 1
+          fi
+          echo "All required CI jobs succeeded or were skipped."

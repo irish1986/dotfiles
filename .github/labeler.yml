@@ -1,0 +1,40 @@
+---
+# Area labels by changed path, applied to pull requests by the pr-labels job in .github/workflows/cron.yml. A pull request can carry several.
+area/ansible:
+  - changed-files:
+      - any-glob-to-any-file:
+          - roles/**
+          - main.yml
+          - inventory/**
+          - profiles/**
+          - ansible.cfg
+area/scripts:
+  - changed-files:
+      - any-glob-to-any-file:
+          - scripts/**
+area/github:
+  - changed-files:
+      - any-glob-to-any-file:
+          - .github/**
+area/docs:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "**/*.md"
+          - specs/**
+area/pre-commit:
+  - changed-files:
+      - any-glob-to-any-file:
+          - .pre-commit-config.yaml
+area/config:
+  - changed-files:
+      - any-glob-to-any-file:
+          - .github/linter/**
+area/vscode:
+  - changed-files:
+      - any-glob-to-any-file:
+          - .vscode/**
+area/wsl:
+  - changed-files:
+      - any-glob-to-any-file:
+          - roles/system/templates/wsl*
+          - roles/herdr/**
