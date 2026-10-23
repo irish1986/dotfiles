@@ -14,6 +14,12 @@ git_signing_key: id_ed25519.pub
 # Directory created for checkouts, under ~/git/<login>.
 git_manage_project_dir: true
 
+# Repositories cloned on every run (specs/adr/0013), set in the profiles rather than here: lists are appended layer by layer. A missing checkout is cloned, an existing one is never touched, and a problem is a warning at the end of the role, never a failed run. `--tags repos` runs only this.
+#   url    any git URL. Private repositories use an SSH URL, whose host needs a pinned key in ssh_known_hosts.
+#   dest   optional; ~ or absolute. Defaults to ~/git/<owner>/<repo>, so a URL whose path is not exactly owner/repo must set it.
+# A fresh clone with a .pre-commit-config.yaml, .pre-commit-config.yml or prek.toml gets `prek install`.
+git_repos: []
+
 # Written into ~/.gitconfig key by key, as strings: what `git config --get` reads back. A layer (profile or local file) overrides or extends it.
 git_config:
   advice.diverging: "false"
@@ -64,3 +70,4 @@ git_ignore_file: "{{ dotfiles_home }}/.gitignore"
 git_signing_key_path: "{{ dotfiles_home }}/.ssh/{{ git_signing_key }}"
 git_allowed_signers: "{{ dotfiles_home }}/.ssh/allowed_signers"
 git_project_dir: "{{ dotfiles_home }}/git/{{ git_user_login }}"
+git_repos_dir: "{{ dotfiles_home }}/git"

@@ -17,6 +17,21 @@
     - "{{ ssh_control_dir }}"
   loop_control:
     loop_var: ssh_directory
+  tags: repos
+
+# Tagged repos too, so `--tags repos` can clone over SSH on a machine that has had no full run, or from a host just added.
+- name: SSH | Pin the known host keys
+  ansible.builtin.known_hosts:
+    path: "{{ ssh_known_hosts_file }}"
+    name: "{{ ssh_known_host.0.host }}"
+    key: "{{ ssh_known_host.0.host }} {{ ssh_known_host.1 }}"
+    hash_host: true
+    state: present
+  loop: "{{ ssh_known_hosts | subelements('keys') }}"
+  loop_control:
+    loop_var: ssh_known_host
+    label: "{{ ssh_known_host.0.host }} {{ ssh_known_host.1.split()[0] }}"
+  tags: repos
 
 # validate parses the candidate file first: a typo'd keyword would break every ssh call on the machine.
 - name: SSH | Write the hardened defaults

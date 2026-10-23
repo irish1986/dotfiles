@@ -40,6 +40,16 @@
     fail_msg: ssh resolves a different cipher list than {{ ssh_config_file }} sets; something above the managed block claims `Host *`.
     quiet: true
 
+# -F finds hashed entries too.
+- name: SSH | Check the pinned host keys
+  ansible.builtin.command:
+    argv: [ssh-keygen, -F, "{{ ssh_known_host.host }}", -f, "{{ ssh_known_hosts_file }}"]
+  changed_when: false
+  loop: "{{ ssh_known_hosts }}"
+  loop_control:
+    loop_var: ssh_known_host
+    label: "{{ ssh_known_host.host }}"
+
 - name: SSH | Verify the machine key
   when: dotfiles_is_wsl | bool
   block:

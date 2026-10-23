@@ -32,6 +32,7 @@ Later runs take any `ansible-playbook` option:
 
 ```bash
 ~/.dotfiles/scripts/setup --tags zsh,git      # only those roles
+~/.dotfiles/scripts/setup --tags repos        # only clone the listed repos
 ~/.dotfiles/scripts/setup --check --diff      # preview, change nothing
 ~/.dotfiles/scripts/setup --profile personal  # switch profile
 ```
@@ -91,6 +92,19 @@ Every run checks these logins and prints one warning naming each tool whose toke
 ### Adding a tool
 
 Add an entry to a profile ([ADR 0004](specs/adr/0004-tools-as-lists.md)): `profiles/base.yml` for every machine, `personal.yml` or `work.yml` for one kind. [`roles/tools/defaults/main.yml`](roles/tools/defaults/main.yml) documents each kind. Then run `~/.dotfiles/scripts/setup --tags tools`. Removing an entry stops managing the tool; uninstall it by hand.
+
+### Cloning repos
+
+List the repositories a machine should have in `git_repos` in a profile ([ADR 0013](specs/adr/0013-repos-cloned-from-the-profiles.md)): `profiles/base.yml` for every machine, `personal.yml` or `work.yml` for one kind. This repo is public, so list only repositories whose names may be published.
+
+```yaml
+git_repos:
+  - url: git@github.com:irish1986/nix.git          # cloned to ~/git/irish1986/nix
+  - url: https://dev.azure.com/org/proj/_git/tool  # not owner/repo, so it needs a dest
+    dest: ~/git/org/tool
+```
+
+Then run `~/.dotfiles/scripts/setup --tags repos`. A missing checkout is cloned, and gets `prek install` if it has a prek or pre-commit config. An existing one is never touched. Anything that could not be cloned is listed in one warning, and the run carries on. Use SSH URLs for private repositories. An SSH host needs its published keys in `ssh_known_hosts` (GitHub's are in `base.yml`). A host without them is skipped rather than trusted on first use.
 
 ### MCP servers
 
