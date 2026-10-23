@@ -1,6 +1,6 @@
 # Context
 
-An Ansible playbook that sets up one WSL2 distro running Ubuntu 26.04, with the shell and tools that go with it, safe to run again at any time. Why it is shaped this way is in [`specs/adr/`](specs/adr/).
+An Ansible playbook that sets up one WSL2 distro running Ubuntu 26.04, with the shell and tools that go with it, safe to run again at any time. Why it is shaped this way is in [`specs/adr/`](adr/).
 
 ## Language
 

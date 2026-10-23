@@ -89,14 +89,15 @@ repos:
           - -sr
           - -bn
           - -w
-  - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.49.1
+  - repo: https://github.com/rvben/rumdl-pre-commit
+    rev: v0.2.79
     hooks:
-      - id: markdownlint
-        name: "md | lint: run markdownlint-cli"
+      - id: rumdl-check
+        name: "md | lint: run rumdl"
         args:
+          - --fix
           - --config
-          - .github/linter/.markdown-lint.yml
+          - .github/linter/rumdl.toml
   - repo: https://github.com/adrienverge/yamllint
     rev: v1.38.0
     hooks:
