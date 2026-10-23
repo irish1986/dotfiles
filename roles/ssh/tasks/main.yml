@@ -17,6 +17,36 @@
     - "{{ ssh_control_dir }}"
   loop_control:
     loop_var: ssh_directory
+  tags: repos
+
+# GitHub's host keys come from its API over TLS on every run, never from the repo (specs/adr/0013): nothing is trusted on first use, and a rotation is picked up by the next run. A failed fetch warns; the SSH clones then report github.com as having no key. Tagged repos too, so `--tags repos` can clone over SSH on a machine that has had no full run.
+- name: SSH | Fetch GitHub's host keys
+  ansible.builtin.uri:
+    url: "{{ ssh_github_meta_url }}"
+    return_content: true
+  register: ssh_github_meta
+  failed_when: false
+  check_mode: false
+  tags: repos
+
+- name: SSH | Report that GitHub's host keys could not be fetched
+  ansible.builtin.debug:
+    msg: "{{ ssh_github_meta_url }} did not answer ({{ ssh_github_meta.msg | default(ssh_github_meta.status) }}), so github.com's host keys were not written and SSH clones from it are skipped. Re-run --tags repos once it is reachable."
+  when: ssh_github_meta.status != 200
+  tags: repos
+
+- name: SSH | Trust GitHub's host keys
+  ansible.builtin.known_hosts:
+    path: "{{ ssh_known_hosts_file }}"
+    name: github.com
+    key: github.com {{ ssh_github_host_key }}
+    hash_host: true
+    state: present
+  loop: "{{ ssh_github_meta.json.ssh_keys if ssh_github_meta.status == 200 else [] }}"
+  loop_control:
+    loop_var: ssh_github_host_key
+    label: "{{ ssh_github_host_key.split()[0] }}"
+  tags: repos
 
 # validate parses the candidate file first: a typo'd keyword would break every ssh call on the machine.
 - name: SSH | Write the hardened defaults

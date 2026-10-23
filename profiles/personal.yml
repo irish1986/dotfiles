@@ -1,6 +1,26 @@
 ---
 # Personal machines: base.yml plus what is listed here (specs/adr/0002).
 
+# Your own public repositories, over SSH so you can push. Private ones are cloned by hand: this repo is public, and so would their names be.
+git_repos:
+  - url: git@github.com:irish1986/irish1986.git
+  - url: git@github.com:irish1986/nix.git
+  - url: git@github.com:irishlab-io/.github.git
+  - url: git@github.com:irishlab-io/blog.git
+  - url: git@github.com:irishlab-io/http-micro-server.git
+  - url: git@github.com:irishlab-io/ibc.git
+  - url: git@github.com:irishlab-io/pyquiz.git
+  - url: git@github.com:irishlab-io/snyk-2-issue.git
+  - url: git@github.com:irishlab-io/vb-android.git
+  - url: git@github.com:irishlab-io/vb-app.git
+  - url: git@github.com:irishlab-io/vb-infra.git
+  - url: git@github.com:irishlab-io/yul-agentic.git
+  - url: git@github.com:mighty-muffin/.github.git
+  - url: git@github.com:mighty-muffin/docker-python-hw.git
+  - url: git@github.com:mighty-muffin/httpenv-app.git
+  - url: git@github.com:mighty-muffin/ibc.git
+  - url: git@github.com:mighty-muffin/insecure-bank.git
+
 tools_apt_repos:
   - name: tailscale
     uri: https://pkgs.tailscale.com/stable/ubuntu

@@ -1,6 +1,27 @@
 ---
 # Every machine. The named profile (personal.yml or work.yml) and then the local file are layered on top: scalars and dictionaries are overridden key by key, lists are appended to (specs/adr/0002).
 
+# Third-party repositories kept for reference (specs/adr/0013), side by side in ~/git/reference rather than under each owner. Read-only, so HTTPS: no key needed.
+git_repos:
+  - url: https://github.com/addyosmani/agent-skills.git
+    dest: ~/git/reference/agent-skills
+  - url: https://github.com/githubnext/agentics.git
+    dest: ~/git/reference/agentics
+  - url: https://github.com/midudev/autoskills.git
+    dest: ~/git/reference/autoskills
+  - url: https://github.com/github/awesome-copilot.git
+    dest: ~/git/reference/awesome-copilot
+  - url: https://github.com/zyf722/exploring-social-engineering-slides.git
+    dest: ~/git/reference/exploring-social-engineering-slides
+  - url: https://github.com/advanced-security/github-sbom-toolkit.git
+    dest: ~/git/reference/github-sbom-toolkit
+  - url: https://github.com/Pouzor/homelable.git
+    dest: ~/git/reference/homelable
+  - url: https://github.com/relizaio/rearm.git
+    dest: ~/git/reference/rearm
+  - url: https://github.com/elastic/snyk-github-issue-creator.git
+    dest: ~/git/reference/snyk-github-issue-creator
+
 tools_apt:
   - btop
   - build-essential
