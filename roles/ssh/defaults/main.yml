@@ -12,6 +12,11 @@ ssh_windows_dir: "{{ dotfiles_windows_home }}/.ssh"
 ssh_github_register: true
 ssh_key_title: "{{ dotfiles_user }}@{{ dotfiles_hostname }}"
 
+# Host keys pinned into ~/.ssh/known_hosts, set in the profiles rather than here: a clone (git_repos, specs/adr/0013) cannot answer StrictHostKeyChecking's prompt, and pinning trusts nothing on first use. Written hashed, as HashKnownHosts asks.
+#   host   the name an SSH URL connects to
+#   keys   "<type> <base64>" lines, from the host's published fingerprints
+ssh_known_hosts: []
+
 # Appended to ~/.ssh/config under `Host *`, after anything you add: ssh takes the first value it finds for each keyword, so a host-specific block above still wins.
 #
 # Rendered verbatim. Every value is quoted because unquoted yes/no is a YAML boolean, and ssh rejects `ForwardAgent True`.
@@ -50,5 +55,6 @@ ssh_config_options:
 # ── Paths ─────────────────────────────────────────────────────────────────
 ssh_dir: "{{ dotfiles_home }}/.ssh"
 ssh_config_file: "{{ ssh_dir }}/config"
+ssh_known_hosts_file: "{{ ssh_dir }}/known_hosts"
 # %C is a hash of the connection: a literal %r@%h:%p overflows the socket path limit on long host names.
 ssh_control_dir: "{{ ssh_dir }}/sockets"

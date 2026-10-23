@@ -1,0 +1,99 @@
+---
+# git_repos (specs/adr/0013): each missing checkout is cloned once and an existing one is never touched. Every problem is collected into one warning at the end, so one bad entry never stops the rest of the machine.
+
+# dest: the entry's own, or ~/git/<owner>/<repo> when the URL's path is exactly owner/repo. unpinned_host: the host of an SSH URL (scp-like or ssh://) that has no pinned key, which BatchMode would refuse anyway.
+- name: Git | Resolve the repos
+  ansible.builtin.set_fact:
+    git_repos_resolved: "{{ git_repos_resolved | default([]) + [{'url': git_repo.url, 'dest': git_repo_dest, 'unpinned_host': git_repo_unpinned_host}] }}"
+  loop: "{{ git_repos }}"
+  loop_control:
+    loop_var: git_repo
+    label: "{{ git_repo.url }}"
+  vars:
+    git_repo_path: >-
+      {{ git_repo.url | regex_replace('^[a-z][a-z0-9+.-]*://[^/]+/', '') | regex_replace('^[^/:]+:', '') | regex_replace('(\.git)?/*$', '') }}
+    git_repo_dest: >-
+      {{ (git_repo.dest | regex_replace('^~(?=/|$)', dotfiles_home)) if git_repo.dest is defined
+         else ((git_repos_dir ~ '/' ~ git_repo_path) if git_repo_path.split('/') | length == 2 else '') }}
+    git_repo_ssh_host: >-
+      {{ (git_repo.url | regex_replace('^ssh://(?:[^@/]+@)?([^/:]+).*$', '\1')) if git_repo.url is match('ssh://')
+         else ('' if '://' in git_repo.url or ':' not in git_repo.url
+               else git_repo.url | regex_replace('^(?:[^@/:]+@)?([^/:]+):.*$', '\1')) }}
+    git_repo_unpinned_host: >-
+      {{ '' if git_repo_ssh_host in [''] + ssh_known_hosts | map(attribute='host') | list else git_repo_ssh_host }}
+
+# The one failure: a typo'd entry should be fixed, not warned about forever.
+- name: Git | Assert every repo has a directory
+  ansible.builtin.assert:
+    that:
+      - git_repo.dest | length > 0
+    fail_msg: The path of {{ git_repo.url }} is not owner/repo, so its directory cannot be derived; give the git_repos entry a dest.
+    quiet: true
+  loop: "{{ git_repos_resolved | default([]) }}"
+  loop_control:
+    loop_var: git_repo
+    label: "{{ git_repo.url }}"
+
+# Only the derived ones: a dest of your own may sit in a directory whose mode is not ours to change. None for a repo that will not be cloned.
+- name: Git | Create the owner directories
+  ansible.builtin.file:
+    path: "{{ git_repo_owner_dir }}"
+    state: directory
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0700"
+  loop: >-
+    {{ git_repos_resolved | default([]) | selectattr('unpinned_host', 'eq', '') | map(attribute='dest')
+       | select('match', (git_repos_dir ~ '/') | regex_escape) | map('dirname') | unique }}
+  loop_control:
+    loop_var: git_repo_owner_dir
+
+# Problems go to stderr and become the warning below; stdout says whether anything was cloned. BatchMode and no terminal prompt: a key, host or password that would need a person fails at once instead of hanging the run. ControlMaster=no: a persisted master would hold the captured output open for ControlPersist. A failed clone removes what it created.
+- name: Git | Clone the missing repos
+  ansible.builtin.shell:
+    cmd: |
+      if [ -e "$GIT_REPO_DEST" ]; then
+        if [ ! -e "$GIT_REPO_DEST/.git" ]; then
+          echo "$GIT_REPO_DEST exists but is not a git checkout; left alone." >&2
+        elif origin="$(git -C "$GIT_REPO_DEST" remote get-url origin 2>/dev/null)"; [ "$origin" != "$GIT_REPO_URL" ]; then
+          echo "$GIT_REPO_DEST has origin ${origin:-unset}, not $GIT_REPO_URL; left alone." >&2
+        fi
+        exit 0
+      fi
+      if [ -n "$GIT_REPO_UNPINNED_HOST" ]; then
+        echo "$GIT_REPO_URL was not cloned: $GIT_REPO_UNPINNED_HOST has no key in ssh_known_hosts." >&2
+        exit 0
+      fi
+      if ! error="$(git clone --quiet "$GIT_REPO_URL" "$GIT_REPO_DEST" 2>&1)"; then
+        echo "$GIT_REPO_URL did not clone: ${error%%$'\n'*}" >&2
+        exit 0
+      fi
+      echo cloned
+      for config in .pre-commit-config.yaml .pre-commit-config.yml prek.toml; do
+        if [ -f "$GIT_REPO_DEST/$config" ]; then
+          if ! (cd "$GIT_REPO_DEST" && "$HOME/.local/bin/prek" install) >/dev/null 2>&1; then
+            echo "prek install failed in $GIT_REPO_DEST; run it there by hand." >&2
+          fi
+          break
+        fi
+      done
+    executable: /bin/bash
+  environment:
+    GIT_REPO_URL: "{{ git_repo.url }}"
+    GIT_REPO_DEST: "{{ git_repo.dest }}"
+    GIT_REPO_UNPINNED_HOST: "{{ git_repo.unpinned_host }}"
+    GIT_TERMINAL_PROMPT: "0"
+    GIT_SSH_COMMAND: ssh -o BatchMode=yes -o ControlMaster=no
+  register: git_repos_cloned
+  changed_when: git_repos_cloned.stdout == 'cloned'
+  loop: "{{ git_repos_resolved | default([]) }}"
+  loop_control:
+    loop_var: git_repo
+    label: "{{ git_repo.url }}"
+
+- name: Git | Report the repo problems
+  ansible.builtin.debug:
+    msg: "{{ git_repos_problems }}"
+  vars:
+    git_repos_problems: "{{ git_repos_cloned.results | default([]) | map(attribute='stderr_lines', default=[]) | flatten }}"
+  when: git_repos_problems | length > 0

@@ -1,6 +1,10 @@
 ---
 # Personal machines: base.yml plus what is listed here (specs/adr/0002).
 
+git_repos:
+  - url: git@github.com:irish1986/irish1986.git
+  - url: git@github.com:irish1986/nix.git
+
 tools_apt_repos:
   - name: tailscale
     uri: https://pkgs.tailscale.com/stable/ubuntu

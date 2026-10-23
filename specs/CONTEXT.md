@@ -43,6 +43,14 @@ _Avoid_: module, component
 One item in a profile's tool lists. Adding a tool means adding a tool entry, not a role.
 _Avoid_: package (unless it is an apt package)
 
+**Repo entry**:
+One item in `git_repos`: a git URL, and optionally where to clone it. A run clones it when its directory is missing and never touches it afterwards.
+_Avoid_: project, checkout (that is the directory it becomes)
+
+**Pinned host key**:
+An SSH host's published key, committed in a profile and written to `known_hosts`, so a clone never trusts a host on first use.
+_Avoid_: fingerprint, known host
+
 **Agent skill**:
 A skill folder that every agent CLI on the machine loads, installed once for all of them.
 _Avoid_: plugin
