@@ -117,7 +117,7 @@ tools_agent_skills:
   - source: j178/prek
     skills: [prek]
     # renovate: datasource=github-tags depName=j178/prek
-    version: v0.5.5
+    version: v0.5.6
   - source: mattpocock/skills
     # renovate: datasource=github-tags depName=mattpocock/skills
     version: v1.3.1
@@ -152,7 +152,7 @@ tools_uv_python: "3.14"
 tools_uv_tools:
   - name: prek
     # renovate: datasource=pypi depName=prek
-    version: "0.5.5"
+    version: "0.5.6"
   - name: ggshield
     # renovate: datasource=pypi depName=ggshield
     version: "1.56.0"
