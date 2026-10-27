@@ -99,7 +99,7 @@ tools_node_version: "24"
 tools_npm_tools:
   - name: skills
     # renovate: datasource=npm depName=skills
-    version: "1.7.2"
+    version: "1.7.4"
 
 tools_agent_skills:
   - source: astral-sh/claude-code-plugins
