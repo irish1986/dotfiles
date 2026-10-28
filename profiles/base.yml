@@ -66,7 +66,7 @@ tools_binaries:
 tools_scripts:
   - name: copilot
     # renovate: datasource=github-releases depName=github/copilot-cli
-    version: "1.0.100"
+    version: "1.0.101"
     url: https://raw.githubusercontent.com/github/copilot-cli/v{version}/install.sh
     interpreter: bash
     creates: .local/bin/copilot
@@ -86,7 +86,7 @@ tools_scripts:
     verify: . {home}/.nvm/nvm.sh && nvm --version
   - name: uv
     # renovate: datasource=github-releases depName=astral-sh/uv
-    version: "0.13.3"
+    version: "0.13.4"
     url: https://github.com/astral-sh/uv/releases/download/{version}/uv-installer.sh
     args: [--quiet]
     creates: .local/bin/uv
@@ -117,7 +117,7 @@ tools_agent_skills:
   - source: j178/prek
     skills: [prek]
     # renovate: datasource=github-tags depName=j178/prek
-    version: v0.5.6
+    version: v0.5.7
   - source: mattpocock/skills
     # renovate: datasource=github-tags depName=mattpocock/skills
     version: v1.3.1
@@ -152,7 +152,7 @@ tools_uv_python: "3.14"
 tools_uv_tools:
   - name: prek
     # renovate: datasource=pypi depName=prek
-    version: "0.5.6"
+    version: "0.5.7"
   - name: ggshield
     # renovate: datasource=pypi depName=ggshield
     version: "1.56.0"
