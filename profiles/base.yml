@@ -54,7 +54,7 @@ tools_binaries:
     url: https://github.com/hadolint/hadolint/releases/download/v{version}/hadolint-linux-x86_64
   - name: snyk
     # renovate: datasource=github-releases depName=snyk/cli
-    version: "1.1308.1"
+    version: "1.1308.2"
     url: https://github.com/snyk/cli/releases/download/v{version}/snyk-linux
     checksum_url: "{url}.sha256"
   - name: tokenuse
@@ -66,7 +66,7 @@ tools_binaries:
 tools_scripts:
   - name: copilot
     # renovate: datasource=github-releases depName=github/copilot-cli
-    version: "1.0.101"
+    version: "1.0.102"
     url: https://raw.githubusercontent.com/github/copilot-cli/v{version}/install.sh
     interpreter: bash
     creates: .local/bin/copilot
@@ -86,7 +86,7 @@ tools_scripts:
     verify: . {home}/.nvm/nvm.sh && nvm --version
   - name: uv
     # renovate: datasource=github-releases depName=astral-sh/uv
-    version: "0.13.4"
+    version: "0.13.5"
     url: https://github.com/astral-sh/uv/releases/download/{version}/uv-installer.sh
     args: [--quiet]
     creates: .local/bin/uv
