@@ -94,7 +94,7 @@ tools_scripts:
       UV_NO_MODIFY_PATH: "1"
 
 # renovate: datasource=node-version depName=node
-tools_node_version: "24"
+tools_node_version: "26"
 
 tools_npm_tools:
   - name: skills
