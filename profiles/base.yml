@@ -54,7 +54,7 @@ tools_binaries:
     url: https://github.com/hadolint/hadolint/releases/download/v{version}/hadolint-linux-x86_64
   - name: snyk
     # renovate: datasource=github-releases depName=snyk/cli
-    version: "1.1308.2"
+    version: "1.1308.3"
     url: https://github.com/snyk/cli/releases/download/v{version}/snyk-linux
     checksum_url: "{url}.sha256"
   - name: tokenuse
