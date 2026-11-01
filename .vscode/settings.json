@@ -1,3 +1,4 @@
 {
+  "rumdl.configPath": ".github/linter/rumdl.toml",
   "snyk.advanced.autoSelectOrganization": true
 }

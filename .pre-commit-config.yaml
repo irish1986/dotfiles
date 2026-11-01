@@ -96,6 +96,7 @@ repos:
         name: "md | lint: run rumdl"
         args:
           - --fix
+          - --no-cache
           - --config
           - .github/linter/rumdl.toml
   - repo: https://github.com/adrienverge/yamllint
