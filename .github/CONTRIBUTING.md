@@ -4,9 +4,9 @@ Raise a PR.
 
 ## `pre-commit` hooks
 
-This project leverages `pre-commit` hooks to improve code quality and security.  This project uses the [pre-commit framework](https://pre-commit.com/) with its configuration file is `.pre-commit-config.yaml`.
+This project leverages `pre-commit` hooks to improve code quality and security. This project uses the [pre-commit framework](https://pre-commit.com/) with its configuration file is `.pre-commit-config.yaml`.
 
-Alternatively, you can use the [perk framework](https://github.com/j178/prek); an improved `pre-commit` re-engineered in Rust.  **This framework is still in active development but performance is insane!!!**
+Alternatively, you can use the [perk framework](https://github.com/j178/prek); an improved `pre-commit` re-engineered in Rust. **This framework is still in active development but performance is insane!!!**
 
 **Checklist to use pre-commit hooks:**
 
@@ -34,8 +34,8 @@ Alternatively, you can use the [perk framework](https://github.com/j178/prek); a
 
 This project uses the following coding style:
 
-- `.config\.markdown-lint.yml` for `markdown`
-- `.config\.yaml-lint.yml` for `yaml`
+- `.github/linter/rumdl.toml` for `markdown`
+- `.github/linter/.yaml-lint.yml` for `yaml`
 
 Please follow these rules and if you wish to amend them; raise a PR explaining your proposed changes.
 

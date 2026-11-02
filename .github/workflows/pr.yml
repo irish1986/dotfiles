@@ -48,7 +48,7 @@ jobs:
               trailing-whitespace
           - group: markdown
             hooks: |
-              markdownlint
+              rumdl-check
           - group: renovate
             hooks: |
               renovate-config-validator
