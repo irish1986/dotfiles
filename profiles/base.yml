@@ -54,7 +54,7 @@ tools_binaries:
     url: https://github.com/hadolint/hadolint/releases/download/v{version}/hadolint-linux-x86_64
   - name: snyk
     # renovate: datasource=github-releases depName=snyk/cli
-    version: "1.1308.1"
+    version: "1.1308.3"
     url: https://github.com/snyk/cli/releases/download/v{version}/snyk-linux
     checksum_url: "{url}.sha256"
   - name: tokenuse
@@ -66,7 +66,7 @@ tools_binaries:
 tools_scripts:
   - name: copilot
     # renovate: datasource=github-releases depName=github/copilot-cli
-    version: "1.0.100"
+    version: "1.0.105"
     url: https://raw.githubusercontent.com/github/copilot-cli/v{version}/install.sh
     interpreter: bash
     creates: .local/bin/copilot
@@ -86,7 +86,7 @@ tools_scripts:
     verify: . {home}/.nvm/nvm.sh && nvm --version
   - name: uv
     # renovate: datasource=github-releases depName=astral-sh/uv
-    version: "0.13.3"
+    version: "0.13.6"
     url: https://github.com/astral-sh/uv/releases/download/{version}/uv-installer.sh
     args: [--quiet]
     creates: .local/bin/uv
@@ -94,12 +94,12 @@ tools_scripts:
       UV_NO_MODIFY_PATH: "1"
 
 # renovate: datasource=node-version depName=node
-tools_node_version: "24"
+tools_node_version: "26"
 
 tools_npm_tools:
   - name: skills
     # renovate: datasource=npm depName=skills
-    version: "1.7.2"
+    version: "1.7.4"
 
 tools_agent_skills:
   - source: astral-sh/claude-code-plugins
@@ -109,7 +109,7 @@ tools_agent_skills:
   - source: github/gh-stack
     skills: [gh-stack]
     # renovate: datasource=github-tags depName=github/gh-stack
-    version: v0.2.1
+    version: v0.3.0
   - source: herdrdev/herdr
     skills: [herdr]
     # renovate: datasource=github-tags depName=herdrdev/herdr
@@ -117,10 +117,10 @@ tools_agent_skills:
   - source: j178/prek
     skills: [prek]
     # renovate: datasource=github-tags depName=j178/prek
-    version: v0.5.5
+    version: v0.5.9
   - source: mattpocock/skills
     # renovate: datasource=github-tags depName=mattpocock/skills
-    version: v1.3.1
+    version: v1.3.2
   - source: EricTechPro/super-board
     # renovate: datasource=github-tags depName=EricTechPro/super-board
     version: v3.1.2
@@ -152,10 +152,10 @@ tools_uv_python: "3.14"
 tools_uv_tools:
   - name: prek
     # renovate: datasource=pypi depName=prek
-    version: "0.5.5"
+    version: "0.5.9"
   - name: ggshield
     # renovate: datasource=pypi depName=ggshield
-    version: "1.56.0"
+    version: "1.56.1"
   - name: zizmor
     # renovate: datasource=pypi depName=zizmor
     version: "1.31.1"
