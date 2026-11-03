@@ -1,0 +1,25 @@
+[MD004]
+style = "dash"
+
+[MD007]
+style = "fixed"
+
+[MD013]
+code-blocks = false
+heading-line-length = 40
+line-length = 1600
+
+[MD025]
+front-matter-title = ""
+
+[MD033]
+allowed-elements = ["a", "br", "details", "img", "kbd", "p", "summary"]
+
+[MD041]
+front-matter-title = ""
+
+[MD046]
+style = "fenced"
+
+[MD048]
+style = "backtick"
