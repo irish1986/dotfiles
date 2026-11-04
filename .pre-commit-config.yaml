@@ -90,7 +90,7 @@ repos:
           - -bn
           - -w
   - repo: https://github.com/rvben/rumdl-pre-commit
-    rev: v0.3.0
+    rev: v0.3.1
     hooks:
       - id: rumdl-check
         name: "md | lint: run rumdl"
