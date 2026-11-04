@@ -35,6 +35,16 @@
   when: ssh_github_meta.status != 200
   tags: repos
 
+# known_hosts with hash_host adds a fresh salted line on every run, so ask ssh-keygen (which reads hashed entries) which keys are already trusted.
+- name: SSH | Read the trusted GitHub host keys
+  ansible.builtin.command:
+    cmd: ssh-keygen -F github.com -f {{ ssh_known_hosts_file }}
+  register: ssh_known_github
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  tags: repos
+
 - name: SSH | Trust GitHub's host keys
   ansible.builtin.known_hosts:
     path: "{{ ssh_known_hosts_file }}"
@@ -42,7 +52,7 @@
     key: github.com {{ ssh_github_host_key }}
     hash_host: true
     state: present
-  loop: "{{ ssh_github_meta.json.ssh_keys if ssh_github_meta.status == 200 else [] }}"
+  loop: "{{ ssh_github_meta.json.ssh_keys | reject('in', ssh_known_github.stdout | default('')) | list if ssh_github_meta.status == 200 else [] }}"
   loop_control:
     loop_var: ssh_github_host_key
     label: "{{ ssh_github_host_key.split()[0] }}"
