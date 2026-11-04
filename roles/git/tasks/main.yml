@@ -143,7 +143,6 @@
 
 - name: Git | Clone the repos
   ansible.builtin.import_tasks: repos.yml
-  tags: repos
 
 - name: Git | Verify
   ansible.builtin.import_tasks: verify.yml
