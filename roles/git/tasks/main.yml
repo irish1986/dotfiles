@@ -141,6 +141,9 @@
     loop_var: git_gh_alias
     label: "{{ git_gh_alias.key }}"
 
+- name: Git | Clone the repos
+  ansible.builtin.import_tasks: repos.yml
+
 - name: Git | Verify
   ansible.builtin.import_tasks: verify.yml
   when: not ansible_check_mode

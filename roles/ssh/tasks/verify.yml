@@ -40,6 +40,13 @@
     fail_msg: ssh resolves a different cipher list than {{ ssh_config_file }} sets; something above the managed block claims `Host *`.
     quiet: true
 
+# -F finds hashed entries too. Only when this run fetched them: a failed fetch is already a warning.
+- name: SSH | Check GitHub's host keys
+  ansible.builtin.command:
+    argv: [ssh-keygen, -F, github.com, -f, "{{ ssh_known_hosts_file }}"]
+  changed_when: false
+  when: ssh_github_meta.status | default(0) == 200
+
 - name: SSH | Verify the machine key
   when: dotfiles_is_wsl | bool
   block:
