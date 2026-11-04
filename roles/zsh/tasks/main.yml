@@ -26,8 +26,7 @@
     repo: "{{ zsh_plugin.repo }}"
     version: "{{ zsh_plugin.version }}"
     dest: "{{ zsh_omz_dir }}/custom/{{ zsh_plugin.type }}/{{ zsh_plugin.name }}"
-    # A shallow clone can only fetch a branch or tag; a commit pin needs a full one.
-    depth: "{{ omit if zsh_plugin.version is match('^[0-9a-f]{40}$') else 1 }}"
+    # No depth: the git module fails on a re-run of a shallow clone pinned to a tag.
     force: true
   loop: "{{ zsh_plugins }}"
   loop_control:
