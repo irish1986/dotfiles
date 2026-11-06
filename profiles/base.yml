@@ -121,9 +121,9 @@ tools_agent_skills:
   - source: mattpocock/skills
     # renovate: datasource=github-tags depName=mattpocock/skills
     version: v1.3.2
-  - source: EricTechPro/super-board
-    # renovate: datasource=github-tags depName=EricTechPro/super-board
-    version: v3.1.2
+  - source: addyosmani/agent-skills
+    # renovate: datasource=github-tags depName=addyosmani/agent-skills
+    version: "0.6.15"
 
 tools_agent_skill_agents:
   - github-copilot
