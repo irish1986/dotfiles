@@ -18,7 +18,7 @@ zsh_omz_dir: "{{ dotfiles_home }}/.oh-my-zsh"
 zsh_omz:
   repo: https://github.com/ohmyzsh/ohmyzsh.git
   # renovate: datasource=git-refs depName=https://github.com/ohmyzsh/ohmyzsh currentValue=master
-  version: b509b1c6ed0c1ba37de12cbd37f30b2b2f61193a
+  version: cca3bdfbef8c52ef8939ce7911ff68852b949daa
 
 zsh_plugins:
   - name: powerlevel10k
