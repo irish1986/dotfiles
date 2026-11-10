@@ -105,7 +105,7 @@ tools_agent_skills:
   - source: astral-sh/claude-code-plugins
     skills: [uv, ty, ruff]
     # renovate: datasource=git-refs depName=https://github.com/astral-sh/claude-code-plugins currentValue=main
-    version: f3ce88a7ba830f53afd6d944c1d0278ed318e142
+    version: 855418fb9ebfada49a8345a5c3ada9db2cdc2419
   - source: github/gh-stack
     skills: [gh-stack]
     # renovate: datasource=github-tags depName=github/gh-stack
