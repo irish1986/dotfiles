@@ -54,7 +54,7 @@ tools_binaries:
     url: https://github.com/hadolint/hadolint/releases/download/v{version}/hadolint-linux-x86_64
   - name: snyk
     # renovate: datasource=github-releases depName=snyk/cli
-    version: "1.1308.3"
+    version: "1.1308.4"
     url: https://github.com/snyk/cli/releases/download/v{version}/snyk-linux
     checksum_url: "{url}.sha256"
   - name: tokenuse
@@ -76,7 +76,7 @@ tools_scripts:
     verify: COPILOT_AUTO_UPDATE=false copilot --version
   - name: nvm
     # renovate: datasource=github-releases depName=nvm-sh/nvm
-    version: "0.40.8"
+    version: "0.41.0"
     url: https://raw.githubusercontent.com/nvm-sh/nvm/v{version}/install.sh
     interpreter: bash
     creates: .nvm/nvm.sh
