@@ -34,17 +34,17 @@ tools_apt_repos:
 tools_debs:
   - name: fastfetch
     # renovate: datasource=github-releases depName=fastfetch-cli/fastfetch
-    version: "2.70.0"
+    version: "2.71.0"
     url: https://github.com/fastfetch-cli/fastfetch/releases/download/{version}/fastfetch-linux-{arch}.deb
   # Vulnerabilities in images, filesystems and SBOMs.
   - name: grype
     # renovate: datasource=github-releases depName=anchore/grype
-    version: "0.121.1"
+    version: "0.121.2"
     url: https://github.com/anchore/grype/releases/download/v{version}/grype_{version}_linux_{arch}.deb
   # SBOMs, which grype scans.
   - name: syft
     # renovate: datasource=github-releases depName=anchore/syft
-    version: "1.56.0"
+    version: "1.57.0"
     url: https://github.com/anchore/syft/releases/download/v{version}/syft_{version}_linux_{arch}.deb
 
 tools_binaries:
@@ -66,7 +66,7 @@ tools_binaries:
 tools_scripts:
   - name: copilot
     # renovate: datasource=github-releases depName=github/copilot-cli
-    version: "1.0.105"
+    version: "1.0.106"
     url: https://raw.githubusercontent.com/github/copilot-cli/v{version}/install.sh
     interpreter: bash
     creates: .local/bin/copilot
