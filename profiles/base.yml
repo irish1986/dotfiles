@@ -66,7 +66,7 @@ tools_binaries:
 tools_scripts:
   - name: copilot
     # renovate: datasource=github-releases depName=github/copilot-cli
-    version: "1.0.106"
+    version: "1.0.107"
     url: https://raw.githubusercontent.com/github/copilot-cli/v{version}/install.sh
     interpreter: bash
     creates: .local/bin/copilot
