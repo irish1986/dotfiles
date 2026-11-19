@@ -1,6 +1,6 @@
 # Context
 
-An Ansible playbook that sets up one WSL2 distro running Ubuntu 26.04, with the shell and tools that go with it, safe to run again at any time. Why it is shaped this way is in [`specs/adr/`](adr/).
+An Ansible playbook that sets up one WSL2 distro running Ubuntu 26.04, with the shell and tools that go with it, safe to run again at any time. Why it is shaped this way is in [`specs/adr/`](adr/). It is being replaced by a NixOS-WSL flake on the `nixos` branch ([0013](adr/0013-nixos-wsl-replaces-ansible.md)); this file is updated there as each area is ported.
 
 ## Language
 
