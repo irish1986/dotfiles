@@ -17,8 +17,8 @@ Settled in the planning session on 2026-11-19 (full reasoning in ADR 0013):
 - **No local file:**
   - Non-sensitive values (hostname, Windows user, personal git identity) are committed per host.
   - Sensitive values are agenix secrets read at runtime: the `.env` contents, and the work git identity through a git `[include]`.
-- **SSH (ADR 0006 kept):** an activation step copies `%USERPROFILE%\.ssh\id_ed25519{,.pub}`.
-- **Secrets:** agenix, decrypted with that copied key. Each machine's public key is a recipient.
+- **SSH (ADR 0006 kept):** an activation step, run after `users`, copies `%USERPROFILE%\.ssh\id_ed25519{,.pub}` into `~/.ssh`.
+- **Secrets:** agenix decrypts with the Windows key read directly from `/mnt/c` (`age.identityPaths`), not with the copy. agenix runs before `users`, so the copy may not exist yet (T1, variant A). Each machine's public key is a recipient.
 - **Zscaler (work only):**
   - The first rebuild runs with `NIX_SSL_CERT_FILE`.
   - After that, `security.pki.certificates` reads `%USERPROFILE%\zscaler.cer`, exported as Base-64 PEM, so work rebuilds use `--impure`.
@@ -113,6 +113,8 @@ These run on a scratch distro (`wsl --install --from-file nixos.wsl --name NixOS
 - Add `flake.nix` with the four inputs, and `nix/hosts/{personal,work}/default.nix` setting `wsl.enable`, `wsl.defaultUser = "irish"`, `networking.hostName` and `system.stateVersion`.
 - Add `nix/modules/nixos/base.nix`, enabling flakes, and home-manager wired in with an empty `nix/modules/home/base.nix`.
 - Work host: a `dotfiles.corporateCa` option that defaults to a dummy test cert in `nix/tests/`.
+- The base module carries the WSL fixes T1 found: `wsl.extraBin = [ { src = "${pkgs.coreutils}/bin/true"; } ]` (for WSL's generated `wsl-mnt-guard.service`) and `services.getty.enable = false` (otherwise `getty@tty1` fails and every switch exits with status 4).
+- agenix's flake has no `home-manager` input any more, so only `agenix.inputs.nixpkgs.follows` is set.
 
 **Acceptance criteria:**
 
@@ -152,7 +154,7 @@ Update the README's install steps:
 1. `wsl --install --from-file nixos.wsl --name NixOS`
 2. the NixOS-WSL rename-user procedure to `irish`
 3. clone the repo and check out `nixos`
-4. run `scripts/switch`; on work, the first run uses the `NIX_SSL_CERT_FILE` step from T2
+4. run `scripts/switch`. The stock image has flakes off, so the first run passes `--option extra-experimental-features "nix-command flakes"`. On work, the first run also uses the `NIX_SSL_CERT_FILE` step from T2.
 
 **Acceptance criteria:**
 
@@ -176,6 +178,7 @@ Each task ticks its items in the parity checklist and marks the ADRs it supersed
 - `wsl.wslConf` covers today's wsl.conf template: interop, `appendWindowsPath`, automount and hostname.
 - The `irish` user goes in the `wheel` and `docker` groups, with the sudo policy.
 - Turn on `programs.nix-ld.enable`, Nix GC/optimise settings and `virtualisation.docker.enable`.
+- Install `pkgs.wget`. Without it the VS Code server install fails, even with nix-ld (T1).
 
 **Acceptance criteria:**
 
@@ -203,7 +206,7 @@ Each task ticks its items in the parity checklist and marks the ADRs it supersed
 
 #### T8: SSH key copy
 
-**Description:** A system activation step, in the order proven in T1, copies both halves of the Windows key to `~irish/.ssh` (private 0600; a differing old copy is kept as a backup). It fails clearly when Windows has no key. Uploading the key to GitHub (auth and signing) moves to `scripts/switch` as a post-switch step that runs only when `gh auth status` succeeds.
+**Description:** A system activation step with `deps = [ "users" ]` copies both halves of the Windows key to `~irish/.ssh` (private 0600; a differing old copy is kept as a backup). On drvfs the key shows as mode 0777, which ssh refuses, so the copy is still needed. It fails clearly when Windows has no key. Uploading the key to GitHub (auth and signing) moves to `scripts/switch` as a post-switch step that runs only when `gh auth status` succeeds.
 
 **Acceptance criteria:**
 
@@ -217,6 +220,7 @@ Each task ticks its items in the parity checklist and marks the ADRs it supersed
 **Description:**
 
 - `secrets/secrets.nix` lists both machines' `id_ed25519.pub` as recipients.
+- `age.identityPaths = [ "/mnt/c/Users/<windows-user>/.ssh/id_ed25519" ]`. This reads the Windows key directly, so it doesn't depend on T8's copy; T1 showed it works on a cold boot.
 - `secrets/env-personal.age` and `secrets/env-work.age` hold today's `.env` variables, decrypted to a 0600 file and exported by zsh.
 - `secrets/git-identity-work.age` is a gitconfig fragment for the work identity.
 - `.env.sample` stays as the reference for which variables exist.
@@ -227,7 +231,7 @@ Each task ticks its items in the parity checklist and marks the ADRs it supersed
 - [ ] No plaintext secret is in git; the ggshield hook passes.
 - [ ] Rotating a value is `agenix -e` plus a switch.
 
-**Dependencies:** T1, T8. **Files:** `secrets/*`, `nix/modules/nixos/secrets.nix`, `nix/modules/home/env.nix`. **Scope:** M. **Label:** `ready-for-human` (secret values).
+**Dependencies:** T1, Checkpoint B. **Files:** `secrets/*`, `nix/modules/nixos/secrets.nix`, `nix/modules/home/env.nix`. **Scope:** M. **Label:** `ready-for-human` (secret values).
 
 #### T10: Shell: zsh, oh-my-zsh, p10k
 
@@ -438,7 +442,7 @@ The cutover bar: every box ticked on both machines, then T19's two weeks.
 | Risk | Impact | Mitigation |
 | --- | --- | --- |
 | The `NIX_SSL_CERT_FILE` first rebuild fails behind Zscaler | High (work blocked) | T2 runs first. Fallback: a self-built `.wsl` with the CA, built on personal. |
-| `/mnt/c` isn't mounted when activation runs, so the key copy and agenix fail | High | T1 proves the order. Fallback: a dedicated age key in `/var/lib/agenix`, placed during bootstrap. |
+| `/mnt/c` isn't mounted when activation runs, so the key copy and agenix fail | Low | T1: `/mnt/c` and `cmd.exe` interop both worked during boot-time activation. Fallback: a dedicated age key in `/var/lib/agenix`, placed during bootstrap. |
 | #888: the user session fails while Ubuntu runs alongside | Medium | T1 checks this. Fallback: `wsl --terminate Ubuntu` while using NixOS during the soak. |
 | A nixpkgs-unstable bump breaks the build or a tool | Medium | A Renovate PR plus a CI build gate every bump; roll back to an earlier generation on the machine. |
 | `--impure` work builds diverge from what CI builds (dummy cert) | Low | Only the CA differs, behind one option. |
