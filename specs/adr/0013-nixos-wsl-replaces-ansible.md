@@ -21,8 +21,8 @@ The never-committed local file goes away, because a pure flake cannot read it:
 
 Ansible's imperative steps become activation steps and a small wrapper, `scripts/switch`, which picks the profile from the hostname and runs `nixos-rebuild switch --flake`.
 
-- **SSH (0006 stands):** activation copies the Windows key into `~/.ssh`. The wrapper adds it to GitHub when `gh` is logged in.
-- **agenix:** decrypts with that copied key, so each machine's public key is a recipient. The copy has to run before decryption.
+- **SSH (0006 stands):** activation copies the Windows key into `~/.ssh`, after users are created. The wrapper adds it to GitHub when `gh` is logged in.
+- **agenix:** decrypts with the same Windows key, read directly from `/mnt/c` (`age.identityPaths`), so each machine's public key is a recipient. agenix runs before NixOS creates users, so on the first boot after a user rename the `~/.ssh` copy may not exist yet. Reading the Windows file avoids that ordering. The T1 spike showed `/mnt/c` is mounted during boot-time activation; the copy depends on `/mnt/c` too, so this adds no new dependency.
 - **User services (0011 stands):** a home-manager activation step writes `~/.config/environment.d/999-wsl.conf`, with the same values and caveats as before. NixOS-WSL does not solve this.
 - **Corporate CA (0007):** the CA stays on Windows. The work host reads `%USERPROFILE%\zscaler.cer`, exported as Base-64 PEM, into `security.pki.certificates`, so work rebuilds are `--impure`. The very first rebuild runs with `NIX_SSL_CERT_FILE` pointing at it. CI builds the work output with a dummy certificate behind the same option.
 
@@ -67,4 +67,4 @@ Each machine runs a `NixOS` distro (user `irish`) next to Ubuntu. Ubuntu is reti
   - CI never builds the exact work system.
 - **Binaries:** downloaded binaries need nix-ld or packaging, and anything installed outside Nix is not tracked by `flake.lock`.
 - **Agent CLIs:** they lag upstream by however long nixpkgs-unstable takes, plus Renovate's buffer.
-- **Untested until the spike (T1, T2):** the `NIX_SSL_CERT_FILE` bootstrap, and the key copy running before agenix. A failure in either changes this record.
+- **Untested until the T2 spike:** the `NIX_SSL_CERT_FILE` bootstrap. If it fails, this record changes. T1 confirmed the rest; see `specs/research/nixos-wsl.md` §20.

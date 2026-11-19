@@ -308,6 +308,29 @@ Other: `networking.extraHosts` does nothing while `generateHosts` is true ([wsl-
 15. **Repo layout:** keep `specs/`, add `flake.nix` + `hosts/` / `modules/{nixos,home}` (frankper-like) or `nix/{machines,home,common}` (dmadisetti-like); whether Ansible and Nix coexist in the repo during migration.
 16. **Migration mechanics:** distro name, side-by-side period (watch #888 with two uid-1000 distros), `wsl --export` backup of Ubuntu, how `$HOME` data moves, and cut-over criteria.
 
+## 20. Spike results
+
+### T1: personal machine (#289), 2026-11-19
+
+**Setup.** A scratch distro, `NixOS-spike`, was installed from the `2605.7.2` `nixos.wsl` (sha256 `e7180ad5…`, matching the release) with `wsl --install --from-file … --no-launch`. The host runs WSL 3.0.5 and Windows kernel 6.18.58.1, with `Ubuntu-26.04` running the whole time. A throwaway flake (nixpkgs-unstable, NixOS-WSL `main`, home-manager, agenix) was switched to from `/mnt/wsl/nixos-spike`, which moved the system to `26.11.20261117` (unstable). Every check was then repeated after a cold boot (`wsl --terminate`, then a start).
+
+| Risk | Result | Evidence |
+| --- | --- | --- |
+| (b) Key copy before agenix | **Pass, both variants** | At boot-time activation `/mnt/c` was mounted, the Windows key was readable, and `cmd.exe /c echo ok` returned `ok`. **Variant A:** `age.identityPaths` set to the key on `/mnt/c` decrypted the test secret. **Variant B:** the copy was deleted before boot; activation recreated it (`copyWindowsSshKey`, ordered before `agenixInstall`), and agenix then decrypted with it. |
+| (c) `999-wsl.conf` for user services | **Pass** | A home-manager activation step wrote `WSL_DISTRO_NAME` and the Windows PATH (from `cmd.exe`, translated with `/bin/wslpath -u`). At boot it runs in `home-manager-nixos.service` *before* the user manager starts (its log says "User systemd daemon not running"). A lingering `systemd --user` oneshot saw `WSL_DISTRO_NAME=NixOS-spike` and all 30 `/mnt/c` PATH entries. |
+| (c) #888 with Ubuntu running | **Not reproduced** | The repro in [#888](https://github.com/nix-community/NixOS-WSL/issues/888) needs `networking.hostName` set and another distro started first. Here, with `networking.hostName = "nixos-spike"` and Ubuntu already running, `systemctl --user is-system-running` gave `running` with no WSL error. Linger was on, which may hide the bug, but the real config needs linger for herdr anyway. |
+| (d) VS Code Remote under nix-ld | **Pass, with `wget`** | Without `wget`, `code .` failed with an error popup and `~/.vscode-server/bin` stayed empty. With `pkgs.wget` installed, the server's own `node` ran from `~/.vscode-server/bin/<commit>/node`, through `/lib64/ld-linux-x86-64.so.2` pointing to nix-ld 2.0.7. That matches [vscode.md](https://github.com/nix-community/NixOS-WSL/blob/main/docs/src/how-to/vscode.md), which says both are needed. |
+
+**Design consequence for ADR 0013.** agenix's `agenixInstall` activation script runs *before* `users` ([age.nix](https://github.com/ryantm/agenix/blob/main/modules/age.nix), `users.deps = [ "agenixInstall" ]`). A copy into `~/.ssh` can't come before decryption on a boot where the user doesn't exist yet, such as the rename from `nixos` to `irish`. Variant A avoids the ordering entirely: agenix reads the Windows key on `/mnt/c` directly, and the ADR 0006 copy into `~/.ssh` becomes an ordinary activation step after `users` (ssh needs the copy, because the key shows as mode 0777 on drvfs). Both variants depend on `/mnt/c`, so variant B adds ordering without adding robustness. **Recommendation: variant A.**
+
+**New gotchas, all needed in the real config:**
+
+- **`wsl-mnt-guard.service` fails at boot.** WSL 3.x generates it with `ExecStart=/bin/true`, and NixOS has no `/bin/true`. The system ends up `degraded`, and WSL's guard against shutdown unmounts spreading to other distros never runs. Fix: `wsl.extraBin = [ { src = "${pkgs.coreutils}/bin/true"; } ];` (`/bin/mount` is already provided).
+- **`getty@tty1` fails on unstable.** `getty.target` now wants `autovt@tty1.service` whatever `console.enable` says (NixOS-WSL sets that to `false`; see [getty.nix](https://github.com/NixOS/nixpkgs/blob/nixos-unstable/nixos/modules/services/ttys/getty.nix)). Every `switch` exits with status 4 and the system stays `degraded`. Fix: `services.getty.enable = false;`, an option added to nixpkgs on 2026-06-27 (`9d280168cc`), so unstable only. This is probably worth reporting upstream to NixOS-WSL.
+- **agenix's flake no longer has a `home-manager` input.** `agenix.inputs.home-manager.follows` only produces a warning; drop it.
+- **The first switch needs flakes turned on by hand:** `sudo nixos-rebuild switch --option extra-experimental-features "nix-command flakes" --flake …`. After that, `nix.settings.experimental-features` takes over.
+- **`/mnt/wsl` is a tmpfs shared by every WSL2 distro.** It worked well for handing the spike flake from Ubuntu to NixOS (`--flake path:/mnt/wsl/…`).
+
 ## Sources
 
 All accessed 2026-11-19.
