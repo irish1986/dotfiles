@@ -66,7 +66,7 @@ tools_binaries:
 tools_scripts:
   - name: copilot
     # renovate: datasource=github-releases depName=github/copilot-cli
-    version: "1.0.108"
+    version: "1.0.112"
     url: https://raw.githubusercontent.com/github/copilot-cli/v{version}/install.sh
     interpreter: bash
     creates: .local/bin/copilot
@@ -86,7 +86,7 @@ tools_scripts:
     verify: . {home}/.nvm/nvm.sh && nvm --version
   - name: uv
     # renovate: datasource=github-releases depName=astral-sh/uv
-    version: "0.13.7"
+    version: "0.13.8"
     url: https://github.com/astral-sh/uv/releases/download/{version}/uv-installer.sh
     args: [--quiet]
     creates: .local/bin/uv
@@ -99,7 +99,7 @@ tools_node_version: "26"
 tools_npm_tools:
   - name: skills
     # renovate: datasource=npm depName=skills
-    version: "1.7.6"
+    version: "1.8.1"
 
 tools_agent_skills:
   - source: astral-sh/claude-code-plugins
@@ -123,7 +123,7 @@ tools_agent_skills:
     version: v1.3.2
   - source: addyosmani/agent-skills
     # renovate: datasource=github-tags depName=addyosmani/agent-skills
-    version: "0.6.15"
+    version: "0.6.16"
 
 tools_agent_skill_agents:
   - github-copilot
