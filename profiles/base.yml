@@ -39,12 +39,12 @@ tools_debs:
   # Vulnerabilities in images, filesystems and SBOMs.
   - name: grype
     # renovate: datasource=github-releases depName=anchore/grype
-    version: "0.121.3"
+    version: "0.122.1"
     url: https://github.com/anchore/grype/releases/download/v{version}/grype_{version}_linux_{arch}.deb
   # SBOMs, which grype scans.
   - name: syft
     # renovate: datasource=github-releases depName=anchore/syft
-    version: "1.57.1"
+    version: "1.57.2"
     url: https://github.com/anchore/syft/releases/download/v{version}/syft_{version}_linux_{arch}.deb
 
 tools_binaries:
@@ -54,7 +54,7 @@ tools_binaries:
     url: https://github.com/hadolint/hadolint/releases/download/v{version}/hadolint-linux-x86_64
   - name: snyk
     # renovate: datasource=github-releases depName=snyk/cli
-    version: "1.1308.4"
+    version: "1.1309.0"
     url: https://github.com/snyk/cli/releases/download/v{version}/snyk-linux
     checksum_url: "{url}.sha256"
   - name: tokenuse
@@ -66,7 +66,7 @@ tools_binaries:
 tools_scripts:
   - name: copilot
     # renovate: datasource=github-releases depName=github/copilot-cli
-    version: "1.0.108"
+    version: "1.0.114"
     url: https://raw.githubusercontent.com/github/copilot-cli/v{version}/install.sh
     interpreter: bash
     creates: .local/bin/copilot
@@ -86,7 +86,7 @@ tools_scripts:
     verify: . {home}/.nvm/nvm.sh && nvm --version
   - name: uv
     # renovate: datasource=github-releases depName=astral-sh/uv
-    version: "0.13.7"
+    version: "0.13.9"
     url: https://github.com/astral-sh/uv/releases/download/{version}/uv-installer.sh
     args: [--quiet]
     creates: .local/bin/uv
@@ -99,7 +99,7 @@ tools_node_version: "26"
 tools_npm_tools:
   - name: skills
     # renovate: datasource=npm depName=skills
-    version: "1.7.6"
+    version: "1.9.0"
 
 tools_agent_skills:
   - source: astral-sh/claude-code-plugins
@@ -117,13 +117,13 @@ tools_agent_skills:
   - source: j178/prek
     skills: [prek]
     # renovate: datasource=github-tags depName=j178/prek
-    version: v0.5.10
+    version: v0.5.11
   - source: mattpocock/skills
     # renovate: datasource=github-tags depName=mattpocock/skills
     version: v1.3.2
   - source: addyosmani/agent-skills
     # renovate: datasource=github-tags depName=addyosmani/agent-skills
-    version: "0.6.15"
+    version: "0.6.17"
 
 tools_agent_skill_agents:
   - github-copilot
@@ -152,7 +152,7 @@ tools_uv_python: "3.14"
 tools_uv_tools:
   - name: prek
     # renovate: datasource=pypi depName=prek
-    version: "0.5.10"
+    version: "0.5.11"
   - name: ggshield
     # renovate: datasource=pypi depName=ggshield
     version: "1.56.1"

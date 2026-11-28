@@ -18,13 +18,13 @@ zsh_omz_dir: "{{ dotfiles_home }}/.oh-my-zsh"
 zsh_omz:
   repo: https://github.com/ohmyzsh/ohmyzsh.git
   # renovate: datasource=git-refs depName=https://github.com/ohmyzsh/ohmyzsh currentValue=master
-  version: c0140703a53eb0d22be44f7bac318d0baacc927c
+  version: 44a5decbc48c4f1885c754eb2044d09a466e4187
 
 zsh_plugins:
   - name: powerlevel10k
     repo: https://github.com/romkatv/powerlevel10k.git
     # renovate: datasource=github-tags depName=romkatv/powerlevel10k
-    version: v1.20.0
+    version: v1.21.0
     type: themes
   - name: you-should-use
     repo: https://github.com/MichaelAquilina/zsh-you-should-use.git
